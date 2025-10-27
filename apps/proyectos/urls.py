@@ -13,6 +13,9 @@ from .views import (
     ProyectoDetalleView,
     ProyectoEditarView,
     ProyectoEliminarView,
+    ProyectoRestaurarView,
+    ProyectosEliminadosView,
+    ProyectoToggleActivoView,
 )
 
 # Router para el ViewSet (API)
@@ -31,6 +34,9 @@ template_urls = [
     path('proyectos/<int:pk>/', ProyectoDetalleView.as_view(), name='proyecto_detalle'),
     path('proyectos/<int:pk>/editar/', ProyectoEditarView.as_view(), name='proyecto_editar'),
     path('proyectos/<int:pk>/eliminar/', ProyectoEliminarView.as_view(), name='proyecto_eliminar'),
+    path('proyectos/<int:pk>/restaurar/', ProyectoRestaurarView.as_view(), name='proyecto_restaurar'),
+    path('proyectos/<int:pk>/toggle-activo/', ProyectoToggleActivoView.as_view(), name='proyecto_toggle_activo'),
+    path('proyectos/eliminados/', ProyectosEliminadosView.as_view(), name='proyectos_eliminados'),
 ]
 
 urlpatterns = [
@@ -40,4 +46,3 @@ urlpatterns = [
     # Template URLs (para la web)
     path('', include(template_urls)),
 ]
-

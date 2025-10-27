@@ -1,0 +1,209 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Proyectos Eliminados - Sistema de Planillas{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="breadcrumb">
+            <a href="{% url 'proyectos_lista' %}" style="color: var(--text-secondary); text-decoration: none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                </svg>
+                Proyectos
+            </a>
+            <span style="color: var(--text-muted); margin: 0 8px;">/</span>
+            <span style="color: var(--text-primary); font-weight: 600;">Eliminados</span>
+        </div>
+        <h1>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Proyectos Eliminados
+        </h1>
+        <p class="page-subtitle">Gestión de proyectos eliminados del sistema</p>
+    </div>
+    
+    <div style="display: flex; gap: 12px;">
+        <a href="{% url 'proyectos_lista' %}" class="btn btn-outline">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Volver a Proyectos
+        </a>
+    </div>
+</div>
+
+<div class="content-wrapper">
+    
+    <!-- Estadísticas -->
+    <div class="stats-grid" style="margin-bottom: 24px;">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #ef4444;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Total Eliminados</span>
+                <span class="stat-value">{{ total_eliminados }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Búsqueda -->
+    <div class="filters-bar">
+        <form method="GET" class="search-form">
+            <div class="search-input-wrapper">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input 
+                    type="text" 
+                    name="search" 
+                    placeholder="Buscar por nombre o ubicación..." 
+                    value="{{ search_query }}"
+                    class="search-input"
+                >
+            </div>
+            <button type="submit" class="btn btn-primary">Buscar</button>
+        </form>
+    </div>
+
+    <!-- Lista de Proyectos Eliminados -->
+    {% if proyectos %}
+    <div class="proyectos-grid">
+        {% for proyecto in proyectos %}
+        <div class="proyecto-card eliminado">
+            <div class="proyecto-image">
+                {% if proyecto.imagen_proyecto %}
+                <img src="{{ proyecto.imagen_proyecto.url }}" alt="{{ proyecto.nombre }}">
+                {% else %}
+                <img src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=400&h=250&fit=crop" alt="{{ proyecto.nombre }}">
+                {% endif %}
+                <div class="proyecto-badge-overlay">
+                    <span class="estado-badge estado-eliminado">Eliminado</span>
+                </div>
+            </div>
+            
+            <div class="proyecto-content">
+                <h3 class="proyecto-nombre">{{ proyecto.nombre }}</h3>
+                
+                <div class="proyecto-info">
+                    <div class="info-row">
+                        <span class="info-label">Eliminado por:</span>
+                        <span class="info-value">{{ proyecto.eliminado_por.nombre_completo|default:"—" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Fecha eliminación:</span>
+                        <span class="info-value">{{ proyecto.fecha_eliminacion|date:"d/m/Y H:i" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Gerente:</span>
+                        <span class="info-value">{{ proyecto.supervisor.nombre_completo }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Ubicación:</span>
+                        <span class="info-value">{{ proyecto.ubicacion }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="proyecto-footer">
+                <form method="POST" action="{% url 'proyecto_restaurar' proyecto.id %}" style="width: 100%;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-block" onclick="return confirm('¿Deseas restaurar el proyecto {{ proyecto.nombre }}?')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                        </svg>
+                        Restaurar Proyecto
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <div class="pagination-wrapper">
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+            <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}" class="pagination-link">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="11 17 6 12 11 7"></polyline>
+                    <polyline points="18 17 13 12 18 7"></polyline>
+                </svg>
+            </a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" class="pagination-link">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </a>
+            {% endif %}
+            
+            <span class="pagination-info">
+                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+            </span>
+            
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" class="pagination-link">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}" class="pagination-link">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="13 17 18 12 13 7"></polyline>
+                    <polyline points="6 17 11 12 6 7"></polyline>
+                </svg>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="empty-state">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <h3>No hay proyectos eliminados</h3>
+        <p>Todos los proyectos están activos en el sistema</p>
+    </div>
+    {% endif %}
+    
+</div>
+
+<style>
+.proyecto-card.eliminado {
+    opacity: 0.9;
+    border: 2px solid #fecaca;
+}
+
+.estado-badge.estado-eliminado {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-success {
+    background: #10b981;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #059669;
+}
+
+.btn-block {
+    width: 100%;
+}
+</style>
+{% endblock %}

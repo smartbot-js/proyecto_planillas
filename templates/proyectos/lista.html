@@ -1,0 +1,380 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Proyectos - Sistema de Planillas{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            </svg>
+            Proyectos
+        </h1>
+        <p class="page-subtitle">Gestión de proyectos y obras</p>
+    </div>
+    {% if user.es_administrador %}
+    <a href="{% url 'proyecto_crear' %}" class="btn btn-primary">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Nuevo Proyecto
+    </a>
+    {% endif %}
+</div>
+
+<div class="content-wrapper">
+    <!-- Mensajes -->
+    {% if messages %}
+    <div class="messages-container">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            <div class="alert-content">
+                {% if message.tags == 'success' %}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                {% elif message.tags == 'error' %}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+                {% elif message.tags == 'info' %}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                {% elif message.tags == 'warning' %}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                {% endif %}
+                <span>{{ message }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Filtros y búsqueda -->
+    <div class="filters-bar">
+        <form method="GET" class="filters-form">
+            <div class="search-box">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input 
+                    type="text" 
+                    name="search" 
+                    placeholder="Buscar por nombre o ubicación..." 
+                    value="{{ search }}"
+                >
+            </div>
+
+            <select name="estado" class="filter-select">
+                <option value="">Todos los estados</option>
+                {% for value, label in estados %}
+                <option value="{{ value }}" {% if estado_actual == value %}selected{% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <button type="submit" class="btn btn-secondary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                </svg>
+                Aplicar
+            </button>
+            
+            {% if search or estado_actual %}
+            <a href="{% url 'proyectos_lista' %}" class="btn btn-outline">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                Limpiar
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Grid de proyectos -->
+    {% if proyectos %}
+    <div class="proyectos-grid">
+        {% for proyecto in proyectos %}
+        <div class="proyecto-card">
+            <!-- Imagen del proyecto -->
+            <div class="proyecto-imagen">
+                {% if proyecto.imagen_proyecto %}
+                <img src="{{ proyecto.imagen_proyecto.url }}" alt="{{ proyecto.nombre }}">
+                {% else %}
+                <img src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=400&h=250&fit=crop" alt="{{ proyecto.nombre }}">
+                {% endif %}
+                <span class="proyecto-estado {{ proyecto.estado }}">{{ proyecto.get_estado_display }}</span>
+            </div>
+
+            <!-- Contenido del proyecto -->
+            <div class="proyecto-content">
+                <h3 class="proyecto-titulo">{{ proyecto.nombre }}</h3>
+
+                <div class="proyecto-info">
+                    <div class="info-item">
+                        <span class="info-label">Gerente</span>
+                        <span class="info-value">{{ proyecto.supervisor.nombre_completo|truncatewords:2 }}</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Personal</span>
+                        <span class="info-value">{{ proyecto.personal_asignado }}</span>
+                    </div>
+                </div>
+
+                <div class="proyecto-info">
+                    <div class="info-item">
+                        <span class="info-label">Presupuesto</span>
+                        <span class="info-value">${{ proyecto.presupuesto_total|floatformat:0 }}</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Avance</span>
+                        <span class="info-value">{{ proyecto.porcentaje_gastado|floatformat:0 }}%</span>
+                    </div>
+                </div>
+
+                <div class="proyecto-info">
+                    <div class="info-item">
+                        <span class="info-label">Tipo</span>
+                        <span class="info-value">{{ proyecto.get_tipo_proyecto_display }}</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Tamaño</span>
+                        <span class="info-value">
+                            {% if proyecto.tamano_proyecto > 0 %}
+                                {{ proyecto.tamano_proyecto|floatformat:0 }} m²
+                            {% else %}
+                                —
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Acciones -->
+                <div class="proyecto-actions">
+                    {% if user.es_administrador or proyecto.supervisor == user %}
+                    <a href="{% url 'proyecto_editar' proyecto.id %}" class="btn-action">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Editar
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'proyecto_detalle' proyecto.id %}" class="btn-action primary">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        Ver detalle
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Estado vacío -->
+    <div class="empty-state">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+        </svg>
+        <h3>No hay proyectos</h3>
+        <p>
+            {% if search or estado_actual %}
+                No se encontraron proyectos con los filtros aplicados.
+            {% else %}
+                Aún no se han creado proyectos en el sistema.
+            {% endif %}
+        </p>
+        {% if user.es_administrador %}
+        <a href="{% url 'proyecto_crear' %}" class="btn btn-primary" style="margin-top: 16px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Crear Primer Proyecto
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* ========== MENSAJES ========== */
+.messages-container {
+    margin-bottom: 24px;
+}
+
+/* Animación para mensajes */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alert {
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: var(--shadow-sm);
+    animation: slideIn 0.3s ease-out;
+}
+
+.alert-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.alert-success {
+    background: #dcfce7;
+    color: #16a34a;
+    border: 2px solid #bbf7d0;
+}
+
+.alert-error {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 2px solid #fecaca;
+}
+
+.alert-info {
+    background: #dbeafe;
+    color: var(--primary-color);
+    border: 2px solid #bfdbfe;
+}
+
+.alert-warning {
+    background: #fef3c7;
+    color: #d97706;
+    border: 2px solid #fde68a;
+}
+
+/* ========== FILTROS ========== */
+.filters-form {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* ========== GRID DE PROYECTOS ========== */
+.proyecto-titulo {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-height: 48px;
+}
+
+.info-value {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ========== ESTADOS ========== */
+.proyecto-estado {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.proyecto-estado.planificacion {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.proyecto-estado.ejecucion {
+    background: #10b981;
+    color: white;
+}
+
+.proyecto-estado.pausado {
+    background: #f59e0b;
+    color: white;
+}
+
+.proyecto-estado.finalizado {
+    background: #6b7280;
+    color: white;
+}
+
+.proyecto-estado.cancelado {
+    background: #ef4444;
+    color: white;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+    .filters-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-box,
+    .filter-select {
+        width: 100%;
+    }
+    
+    .proyectos-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+// Auto-dismiss mensajes después de 5 segundos
+document.addEventListener('DOMContentLoaded', function() {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            alert.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+            alert.style.opacity = '0';
+            alert.style.transform = 'translateY(-20px)';
+            setTimeout(() => alert.remove(), 500);
+        }, 5000);
+    });
+});
+</script>
+{% endblock %}

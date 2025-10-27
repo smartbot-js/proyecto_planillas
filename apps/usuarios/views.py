@@ -223,13 +223,28 @@ class LoginTemplateView(View):
         return render(request, self.template_name)
     
     def post(self, request):
-        email = request.POST.get('email')
-        password = request.POST.get('password')
+        email = request.POST.get('email', '').strip()
+        password = request.POST.get('password', '')
         remember = request.POST.get('remember')
         
+        # Debug: Imprimir lo que llega
+        print(f"Intento de login - Email: {email}")
+        
+        # Verificar que el usuario exista
+        try:
+            usuario = Usuario.objects.get(email=email)
+            print(f"Usuario encontrado: {usuario.email}, Activo: {usuario.activo}")
+        except Usuario.DoesNotExist:
+            print(f"Usuario NO encontrado con email: {email}")
+            messages.error(request, 'No existe un usuario con este correo electrónico.')
+            return render(request, self.template_name)
+        
+        # Autenticar usuario
         user = authenticate(request, username=email, password=password)
         
         if user is not None:
+            print(f"Autenticación exitosa para: {email}")
+            
             if user.activo:
                 auth_login(request, user)
                 
@@ -238,31 +253,34 @@ class LoginTemplateView(View):
                 
                 messages.success(request, f'¡Bienvenido {user.nombre_completo}!')
                 
+                # Redirigir según rol
                 if user.es_administrador():
                     return redirect('dashboard')
                 elif user.es_supervisor():
                     return redirect('dashboard')
                 else:
-                    return redirect('perfil')
+                    return redirect('dashboard')
             else:
+                print(f"Usuario {email} está desactivado")
                 messages.error(request, 'Tu cuenta está desactivada.')
         else:
-            messages.error(request, 'Credenciales incorrectas.')
+            print(f"Autenticación FALLIDA para: {email}")
+            messages.error(request, 'Credenciales incorrectas. Verifica tu correo y contraseña.')
         
         return render(request, self.template_name)
-
 
 class RegistroTemplateView(View):
     """Vista para registro de nuevos usuarios"""
     template_name = 'usuarios/login.html'
     
     def post(self, request):
-        email = request.POST.get('email')
-        nombre_completo = request.POST.get('nombre_completo')
-        password = request.POST.get('password')
-        password_confirm = request.POST.get('password_confirm')
+        email = request.POST.get('email', '').strip()
+        nombre_completo = request.POST.get('nombre_completo', '').strip()
+        password = request.POST.get('password', '')
+        password_confirm = request.POST.get('password_confirm', '')
         rol = request.POST.get('rol', 'trabajador')
         
+        # Validaciones
         if password != password_confirm:
             messages.error(request, 'Las contraseñas no coinciden.')
             return render(request, self.template_name)
@@ -272,18 +290,21 @@ class RegistroTemplateView(View):
             return render(request, self.template_name)
         
         try:
-            usuario = Usuario.objects.create_user(
+            # IMPORTANTE: Usar create_user() NO create()
+            usuario = Usuario.objects.create_user(  # ← Esto es clave
                 email=email,
                 nombre_completo=nombre_completo,
-                password=password,
-                rol=rol
+                password=password,  # Se encripta automáticamente
+                rol=rol,
+                activo=True
             )
+            
             messages.success(request, '¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.')
             return redirect('login')
+            
         except Exception as e:
             messages.error(request, f'Error al crear la cuenta: {str(e)}')
             return render(request, self.template_name)
-
 
 class LogoutTemplateView(View):
     """Vista para cerrar sesión"""

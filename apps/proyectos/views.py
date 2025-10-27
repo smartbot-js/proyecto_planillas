@@ -1,341 +1,504 @@
-"""
-Views para la aplicación de proyectos
-"""
-
-from rest_framework import viewsets, status, permissions
-from rest_framework.decorators import action
-from rest_framework.response import Response
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
 from django.views import View
-from django.utils.decorators import method_decorator
-from django.contrib.auth.decorators import login_required
-from django.db.models import Q, Count, Sum
+from django.views.generic import ListView, DetailView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
+from django.db.models import Q
 from django.utils import timezone
 
 from .models import Proyecto
-from .serializers import (
-    ProyectoSerializer,
-    ProyectoCreateSerializer,
-    ProyectoUpdateSerializer,
-    ProyectoListSerializer,
-    ProyectoDetalleSerializer,
-)
 from apps.usuarios.models import Usuario
 
 
-# ========================================
-# VISTAS API REST (para la app móvil)
-# ========================================
-
-class ProyectoViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet para operaciones CRUD de proyectos (API)
-    """
-    queryset = Proyecto.objects.select_related('supervisor').all()
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get_serializer_class(self):
-        """Retorna el serializer apropiado según la acción"""
-        if self.action == 'list':
-            return ProyectoListSerializer
-        elif self.action == 'retrieve':
-            return ProyectoDetalleSerializer
-        elif self.action == 'create':
-            return ProyectoCreateSerializer
-        elif self.action in ['update', 'partial_update']:
-            return ProyectoUpdateSerializer
-        return ProyectoSerializer
+class ProyectoListView(LoginRequiredMixin, ListView):
+    """Vista para listar todos los proyectos"""
+    model = Proyecto
+    template_name = 'proyectos/lista.html'
+    context_object_name = 'proyectos'
+    paginate_by = 12
     
     def get_queryset(self):
-        """Filtrar queryset según rol del usuario y parámetros"""
-        user = self.request.user
-        queryset = Proyecto.objects.select_related('supervisor').all()
+        """Retorna el queryset filtrado de proyectos (excluye eliminados)"""
+        queryset = Proyecto.objects.filter(eliminado=False).select_related('supervisor')
         
-        # Si es supervisor, solo ve sus proyectos
-        if user.es_supervisor():
-            queryset = queryset.filter(supervisor=user)
-        
-        # Filtros opcionales
-        estado = self.request.query_params.get('estado', None)
-        supervisor_id = self.request.query_params.get('supervisor', None)
-        search = self.request.query_params.get('search', None)
-        activos = self.request.query_params.get('activos', None)
-        
-        if estado:
-            queryset = queryset.filter(estado=estado)
-        
-        if supervisor_id:
-            queryset = queryset.filter(supervisor_id=supervisor_id)
-        
-        if activos == 'true':
-            queryset = queryset.filter(estado=Proyecto.Estado.ACTIVO)
-        
+        # Filtro de búsqueda
+        search = self.request.GET.get('search')
         if search:
             queryset = queryset.filter(
                 Q(nombre__icontains=search) |
-                Q(descripcion__icontains=search) |
-                Q(ubicacion__icontains=search)
+                Q(ubicacion__icontains=search) |
+                Q(supervisor__nombre_completo__icontains=search)
             )
         
-        return queryset.order_by('-fecha_creacion')
-    
-    def perform_create(self, serializer):
-        """Crear proyecto"""
-        serializer.save()
-    
-    @action(detail=True, methods=['post'])
-    def activar(self, request, pk=None):
-        """Activar un proyecto"""
-        proyecto = self.get_object()
-        proyecto.activar()
-        serializer = self.get_serializer(proyecto)
-        return Response({
-            'message': 'Proyecto activado exitosamente',
-            'proyecto': serializer.data
-        })
-    
-    @action(detail=True, methods=['post'])
-    def pausar(self, request, pk=None):
-        """Pausar un proyecto"""
-        proyecto = self.get_object()
-        proyecto.pausar()
-        serializer = self.get_serializer(proyecto)
-        return Response({
-            'message': 'Proyecto pausado exitosamente',
-            'proyecto': serializer.data
-        })
-    
-    @action(detail=True, methods=['post'])
-    def finalizar(self, request, pk=None):
-        """Finalizar un proyecto"""
-        proyecto = self.get_object()
-        proyecto.finalizar()
-        serializer = self.get_serializer(proyecto)
-        return Response({
-            'message': 'Proyecto finalizado exitosamente',
-            'proyecto': serializer.data
-        })
-    
-    @action(detail=True, methods=['post'])
-    def cancelar(self, request, pk=None):
-        """Cancelar un proyecto"""
-        proyecto = self.get_object()
-        proyecto.cancelar()
-        serializer = self.get_serializer(proyecto)
-        return Response({
-            'message': 'Proyecto cancelado',
-            'proyecto': serializer.data
-        })
-    
-    @action(detail=False, methods=['get'])
-    def activos(self, request):
-        """Listar solo proyectos activos"""
-        proyectos = self.get_queryset().filter(estado=Proyecto.Estado.ACTIVO)
-        serializer = ProyectoListSerializer(proyectos, many=True)
-        return Response(serializer.data)
-    
-    @action(detail=False, methods=['get'])
-    def mis_proyectos(self, request):
-        """Listar proyectos del supervisor actual"""
-        proyectos = Proyecto.objects.filter(supervisor=request.user)
-        serializer = ProyectoListSerializer(proyectos, many=True)
-        return Response(serializer.data)
-    
-    @action(detail=True, methods=['get'])
-    def estadisticas(self, request, pk=None):
-        """Obtener estadísticas del proyecto"""
-        proyecto = self.get_object()
+        # Filtro de estado
+        estado = self.request.GET.get('estado')
+        if estado and estado != 'todos':
+            queryset = queryset.filter(estado=estado)
         
-        # Aquí podrías agregar más estadísticas cuando tengas
-        # trabajadores, asistencias, etc.
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        """Agrega datos adicionales al contexto"""
+        context = super().get_context_data(**kwargs)
+        context['estados'] = Proyecto.Estado.choices
+        context['estado_actual'] = self.request.GET.get('estado', 'todos')
+        context['search_query'] = self.request.GET.get('search', '')
         
-        stats = {
-            'presupuesto_total': float(proyecto.presupuesto),
-            'presupuesto_gastado': float(proyecto.presupuesto_gastado),
-            'presupuesto_disponible': float(proyecto.presupuesto_disponible()),
-            'porcentaje_gastado': proyecto.porcentaje_gastado(),
-            'dias_transcurridos': proyecto.dias_transcurridos(),
-            'dias_restantes': proyecto.dias_restantes(),
-            'estado': proyecto.estado,
-        }
+        # Estadísticas
+        context['total_proyectos'] = Proyecto.objects.filter(eliminado=False).count()
+        context['proyectos_activos'] = Proyecto.objects.filter(
+            activo=True, 
+            eliminado=False
+        ).count()
+        context['proyectos_en_ejecucion'] = Proyecto.objects.filter(
+            estado='ejecucion',
+            eliminado=False
+        ).count()
         
-        return Response(stats)
+        return context
 
 
-# ========================================
-# VISTAS DE TEMPLATES (para la web)
-# ========================================
+class ProyectoDetalleView(LoginRequiredMixin, DetailView):
+    """Vista para mostrar el detalle de un proyecto"""
+    model = Proyecto
+    template_name = 'proyectos/detalle.html'
+    context_object_name = 'proyecto'
+    
+    def get_queryset(self):
+        """Solo mostrar proyectos no eliminados"""
+        return Proyecto.objects.filter(eliminado=False).select_related(
+            'supervisor',
+            'creado_por',
+            'modificado_por'
+        )
+    
+    def get_context_data(self, **kwargs):
+        """Agrega datos adicionales al contexto"""
+        context = super().get_context_data(**kwargs)
+        proyecto = self.get_object()
+        
+        # Información adicional
+        context['puede_editar'] = proyecto.puede_ser_editado_por(self.request.user)
+        context['puede_eliminar'] = proyecto.puede_ser_eliminado_por(self.request.user)
+        
+        return context
 
-@method_decorator(login_required(login_url='login'), name='dispatch')
-class ProyectoListView(View):
-    """Vista para listar proyectos"""
-    template_name = 'proyectos/lista.html'
+
+class ProyectoCreateView(LoginRequiredMixin, View):
+    """Vista para crear un nuevo proyecto"""
+    template_name = 'proyectos/crear.html'
     
     def get(self, request):
-        user = request.user
+        """Muestra el formulario de creación"""
+        supervisores = Usuario.objects.filter(
+            activo=True,
+            rol__in=['administrador', 'supervisor']
+        ).order_by('nombre_completo')  # ← CAMBIO AQUÍ
         
-        # Filtrar según rol
-        if user.es_supervisor():
-            proyectos = Proyecto.objects.filter(supervisor=user)
-        else:
-            proyectos = Proyecto.objects.all()
+        context = {
+            'supervisores': supervisores,
+        }
+        return render(request, self.template_name, context)
         
-        # Filtros adicionales
-        estado = request.GET.get('estado', '')
-        if estado:
-            proyectos = proyectos.filter(estado=estado)
+    def post(self, request):
+        """Procesa el formulario de creación"""
+        try:
+            # Crear el proyecto con los datos del POST
+            proyecto = Proyecto()
+            
+            # Información básica
+            proyecto.nombre = request.POST.get('nombre')
+            proyecto.descripcion = request.POST.get('descripcion', '')
+            proyecto.estado = request.POST.get('estado')
+            proyecto.tipo_proyecto = request.POST.get('tipo_proyecto')
+            
+            # Ubicación
+            proyecto.ubicacion = request.POST.get('ubicacion')
+            proyecto.ubicacion_coordenadas = request.POST.get('ubicacion_coordenadas', '')
+            proyecto.departamento = request.POST.get('departamento', '')
+            proyecto.municipio = request.POST.get('municipio', '')
+            
+            # Características
+            proyecto.tamano_proyecto = request.POST.get('tamano_proyecto', 0)
+            proyecto.cantidad_unidades = request.POST.get('cantidad_unidades', 0)
+            proyecto.tamano_promedio = request.POST.get('tamano_promedio', 0)
+            
+            # Fechas
+            proyecto.fecha_inicio = request.POST.get('fecha_inicio')
+            proyecto.fecha_fin_estimada = request.POST.get('fecha_fin_estimada') or None
+            proyecto.fecha_avaluo = request.POST.get('fecha_avaluo') or None
+            
+            # Personal
+            supervisor_id = request.POST.get('supervisor')
+            proyecto.supervisor = Usuario.objects.get(id=supervisor_id)
+            proyecto.personal_asignado = request.POST.get('personal_asignado', 0)
+            proyecto.contratistas_asignados = request.POST.get('contratistas_asignados', 0)
+            
+            # Porcentajes
+            proyecto.porcentaje_avance_general = request.POST.get('porcentaje_avance_general', 0)
+            proyecto.porcentaje_asignacion_planilla = request.POST.get('porcentaje_asignacion_planilla', 0)
+            
+            # Presupuesto
+            proyecto.presupuesto_total = request.POST.get('presupuesto_total', 0)
+            proyecto.presupuesto_mano_obra = request.POST.get('presupuesto_mano_obra', 0)
+            proyecto.presupuesto_administrativo = request.POST.get('presupuesto_administrativo', 0)
+            proyecto.gasto_mano_obra_real = request.POST.get('gasto_mano_obra_real', 0)
+            proyecto.gasto_administrativo_real = request.POST.get('gasto_administrativo_real', 0)
+            proyecto.anticipo = request.POST.get('anticipo', 0)
+            proyecto.valor_avaluo_acumulado = request.POST.get('valor_avaluo_acumulado', 0)
+            
+            # Archivos
+            if 'archivo_contrato' in request.FILES:
+                proyecto.archivo_contrato = request.FILES['archivo_contrato']
+            if 'archivo_avaluo' in request.FILES:
+                proyecto.archivo_avaluo = request.FILES['archivo_avaluo']
+            if 'archivo_presupuesto' in request.FILES:
+                proyecto.archivo_presupuesto = request.FILES['archivo_presupuesto']
+            if 'imagen_proyecto' in request.FILES:
+                proyecto.imagen_proyecto = request.FILES['imagen_proyecto']
+            
+            # Estado
+            proyecto.activo = 'activo' in request.POST or request.POST.get('activo') == 'on'
+            
+            # 🆕 AUDITORÍA: Registrar quién creó el proyecto
+            proyecto.creado_por = request.user
+            proyecto.modificado_por = request.user
+            
+            proyecto.save()
+            
+            messages.success(
+                request,
+                f'✅ Proyecto "{proyecto.nombre}" creado exitosamente.'
+            )
+            return redirect('proyectos_lista')
+            
+        except Exception as e:
+            messages.error(
+                request,
+                f'❌ Error al crear el proyecto: {str(e)}'
+            )
+            
+            supervisores = Usuario.objects.filter(
+                activo=True,
+                rol__in=['administrador', 'supervisor']
+            ).order_by('nombre_completo')
+            
+            context = {
+                'supervisores': supervisores,
+            }
+            return render(request, self.template_name, context)
+
+
+class ProyectoEditarView(LoginRequiredMixin, View):
+    """Vista para editar un proyecto existente"""
+    template_name = 'proyectos/editar.html'
+    
+    def get(self, request, pk):
+        """Muestra el formulario de edición"""
+        proyecto = get_object_or_404(Proyecto, pk=pk, eliminado=False)
         
-        search = request.GET.get('search', '')
+        # Verificar permisos
+        if not proyecto.puede_ser_editado_por(request.user):
+            messages.error(
+                request,
+                '❌ No tienes permisos para editar este proyecto.'
+            )
+            return redirect('proyecto_detalle', pk=pk)
+        
+        supervisores = Usuario.objects.filter(
+            activo=True,
+            rol__in=['administrador', 'supervisor']
+        ).order_by('nombre_completo') 
+        
+        context = {
+            'proyecto': proyecto,
+            'supervisores': supervisores,
+        }
+        return render(request, self.template_name, context)
+    
+    def post(self, request, pk):
+        """Procesa el formulario de edición"""
+        proyecto = get_object_or_404(Proyecto, pk=pk, eliminado=False)
+        
+        # Verificar permisos
+        if not proyecto.puede_ser_editado_por(request.user):
+            messages.error(
+                request,
+                '❌ No tienes permisos para editar este proyecto.'
+            )
+            return redirect('proyecto_detalle', pk=pk)
+        
+        try:
+            # Actualizar campos
+            proyecto.nombre = request.POST.get('nombre')
+            proyecto.descripcion = request.POST.get('descripcion', '')
+            proyecto.estado = request.POST.get('estado')
+            proyecto.tipo_proyecto = request.POST.get('tipo_proyecto')
+            
+            # Ubicación
+            proyecto.ubicacion = request.POST.get('ubicacion')
+            proyecto.ubicacion_coordenadas = request.POST.get('ubicacion_coordenadas', '')
+            proyecto.departamento = request.POST.get('departamento', '')
+            proyecto.municipio = request.POST.get('municipio', '')
+            
+            # Características
+            proyecto.tamano_proyecto = request.POST.get('tamano_proyecto', 0)
+            proyecto.cantidad_unidades = request.POST.get('cantidad_unidades', 0)
+            proyecto.tamano_promedio = request.POST.get('tamano_promedio', 0)
+            
+            # Fechas
+            proyecto.fecha_inicio = request.POST.get('fecha_inicio')
+            proyecto.fecha_fin_estimada = request.POST.get('fecha_fin_estimada') or None
+            proyecto.fecha_avaluo = request.POST.get('fecha_avaluo') or None
+            
+            # Personal
+            supervisor_id = request.POST.get('supervisor')
+            proyecto.supervisor = Usuario.objects.get(id=supervisor_id)
+            proyecto.personal_asignado = request.POST.get('personal_asignado', 0)
+            proyecto.contratistas_asignados = request.POST.get('contratistas_asignados', 0)
+            
+            # Porcentajes
+            proyecto.porcentaje_avance_general = request.POST.get('porcentaje_avance_general', 0)
+            proyecto.porcentaje_asignacion_planilla = request.POST.get('porcentaje_asignacion_planilla', 0)
+            
+            # Presupuesto
+            proyecto.presupuesto_total = request.POST.get('presupuesto_total', 0)
+            proyecto.presupuesto_mano_obra = request.POST.get('presupuesto_mano_obra', 0)
+            proyecto.presupuesto_administrativo = request.POST.get('presupuesto_administrativo', 0)
+            proyecto.gasto_mano_obra_real = request.POST.get('gasto_mano_obra_real', 0)
+            proyecto.gasto_administrativo_real = request.POST.get('gasto_administrativo_real', 0)
+            proyecto.anticipo = request.POST.get('anticipo', 0)
+            proyecto.valor_avaluo_acumulado = request.POST.get('valor_avaluo_acumulado', 0)
+            
+            # Archivos (solo si se suben nuevos)
+            if 'archivo_contrato' in request.FILES:
+                proyecto.archivo_contrato = request.FILES['archivo_contrato']
+            if 'archivo_avaluo' in request.FILES:
+                proyecto.archivo_avaluo = request.FILES['archivo_avaluo']
+            if 'archivo_presupuesto' in request.FILES:
+                proyecto.archivo_presupuesto = request.FILES['archivo_presupuesto']
+            if 'imagen_proyecto' in request.FILES:
+                proyecto.imagen_proyecto = request.FILES['imagen_proyecto']
+            
+            # Estado
+            proyecto.activo = 'activo' in request.POST or request.POST.get('activo') == 'on'
+            
+            # 🆕 AUDITORÍA: Registrar quién modificó el proyecto
+            proyecto.modificado_por = request.user
+            
+            proyecto.save()
+            
+            messages.success(
+                request,
+                f'✅ Proyecto "{proyecto.nombre}" actualizado exitosamente.'
+            )
+            return redirect('proyecto_detalle', pk=proyecto.pk)
+            
+        except Exception as e:
+            messages.error(
+                request,
+                f'❌ Error al actualizar el proyecto: {str(e)}'
+            )
+            
+            supervisores = Usuario.objects.filter(
+                activo=True,
+                rol__in=['administrador', 'supervisor']
+            ).order_by('nombre_completo') 
+            
+            context = {
+                'proyecto': proyecto,
+                'supervisores': supervisores,
+            }
+            return render(request, self.template_name, context)
+
+
+class ProyectoEliminarView(LoginRequiredMixin, View):
+    """Vista para eliminar (soft delete) un proyecto"""
+    
+    def post(self, request, pk):
+        """Maneja la eliminación del proyecto"""
+        try:
+            proyecto = get_object_or_404(Proyecto, pk=pk, eliminado=False)
+            
+            # Verificar permisos - Solo administradores pueden eliminar
+            if not proyecto.puede_ser_eliminado_por(request.user):
+                messages.error(
+                    request,
+                    '❌ No tienes permisos para eliminar este proyecto.'
+                )
+                return redirect('proyecto_detalle', pk=pk)
+            
+            # Soft delete
+            nombre_proyecto = proyecto.nombre
+            proyecto.soft_delete(request.user)
+            
+            messages.success(
+                request,
+                f'✅ Proyecto "{nombre_proyecto}" eliminado exitosamente.'
+            )
+            return redirect('proyectos_lista')
+            
+        except Proyecto.DoesNotExist:
+            messages.error(
+                request,
+                '❌ El proyecto no existe o ya fue eliminado.'
+            )
+            return redirect('proyectos_lista')
+        except Exception as e:
+            messages.error(
+                request,
+                f'❌ Error al eliminar el proyecto: {str(e)}'
+            )
+            return redirect('proyecto_detalle', pk=pk)
+
+
+class ProyectoRestaurarView(LoginRequiredMixin, View):
+    """Vista para restaurar un proyecto eliminado"""
+    
+    def post(self, request, pk):
+        """Maneja la restauración del proyecto"""
+        try:
+            # Solo administradores pueden restaurar
+            if not request.user.es_administrador():
+                messages.error(
+                    request,
+                    '❌ No tienes permisos para restaurar proyectos.'
+                )
+                return redirect('proyectos_lista')
+            
+            proyecto = get_object_or_404(Proyecto, pk=pk, eliminado=True)
+            nombre_proyecto = proyecto.nombre
+            proyecto.restaurar()
+            
+            messages.success(
+                request,
+                f'✅ Proyecto "{nombre_proyecto}" restaurado exitosamente.'
+            )
+            return redirect('proyecto_detalle', pk=pk)
+            
+        except Proyecto.DoesNotExist:
+            messages.error(
+                request,
+                '❌ El proyecto no existe o no está eliminado.'
+            )
+            return redirect('proyectos_lista')
+        except Exception as e:
+            messages.error(
+                request,
+                f'❌ Error al restaurar el proyecto: {str(e)}'
+            )
+            return redirect('proyectos_lista')
+
+
+class ProyectosEliminadosView(LoginRequiredMixin, ListView):
+    """Vista para listar proyectos eliminados (solo administradores)"""
+    model = Proyecto
+    template_name = 'proyectos/eliminados.html'
+    context_object_name = 'proyectos'
+    paginate_by = 12
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Verificar que solo administradores accedan"""
+        if not request.user.es_administrador():
+            messages.error(
+                request,
+                '❌ No tienes permisos para acceder a esta sección.'
+            )
+            return redirect('proyectos_lista')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_queryset(self):
+        """Retorna solo proyectos eliminados"""
+        queryset = Proyecto.objects.filter(eliminado=True).select_related(
+            'supervisor',
+            'eliminado_por'
+        ).order_by('-fecha_eliminacion')
+        
+        # Filtro de búsqueda
+        search = self.request.GET.get('search')
         if search:
-            proyectos = proyectos.filter(
+            queryset = queryset.filter(
                 Q(nombre__icontains=search) |
                 Q(ubicacion__icontains=search)
             )
         
-        proyectos = proyectos.select_related('supervisor').order_by('-fecha_creacion')
-        
-        context = {
-            'proyectos': proyectos,
-            'estados': Proyecto.Estado.choices,
-            'estado_actual': estado,
-            'search': search,
-        }
-        return render(request, self.template_name, context)
-
-
-@method_decorator(login_required(login_url='login'), name='dispatch')
-class ProyectoCreateView(View):
-    """Vista para crear proyecto"""
-    template_name = 'proyectos/crear.html'
+        return queryset
     
-    def get(self, request):
-        # Solo administradores pueden crear proyectos
-        if not request.user.es_administrador():
-            messages.error(request, 'No tienes permisos para crear proyectos.')
-            return redirect('proyectos_lista')
-        
-        # Obtener supervisores disponibles
-        supervisores = Usuario.objects.filter(
-            Q(rol='administrador') | Q(rol='supervisor'),
-            activo=True
-        )
-        
-        context = {
-            'supervisores': supervisores,
-            'estados': Proyecto.Estado.choices,
-        }
-        return render(request, self.template_name, context)
-    
-    def post(self, request):
-        if not request.user.es_administrador():
-            messages.error(request, 'No tienes permisos para crear proyectos.')
-            return redirect('proyectos_lista')
-        
-        try:
-            proyecto = Proyecto.objects.create(
-                nombre=request.POST.get('nombre'),
-                descripcion=request.POST.get('descripcion', ''),
-                ubicacion=request.POST.get('ubicacion'),
-                fecha_inicio=request.POST.get('fecha_inicio'),
-                fecha_fin_estimada=request.POST.get('fecha_fin_estimada') or None,
-                supervisor_id=request.POST.get('supervisor'),
-                presupuesto=request.POST.get('presupuesto'),
-                estado=request.POST.get('estado', 'activo'),
-            )
-            messages.success(request, f'Proyecto "{proyecto.nombre}" creado exitosamente.')
-            return redirect('proyecto_detalle', pk=proyecto.id)
-        except Exception as e:
-            messages.error(request, f'Error al crear proyecto: {str(e)}')
-            return redirect('proyecto_crear')
+    def get_context_data(self, **kwargs):
+        """Agrega datos adicionales al contexto"""
+        context = super().get_context_data(**kwargs)
+        context['total_eliminados'] = Proyecto.objects.filter(eliminado=True).count()
+        context['search_query'] = self.request.GET.get('search', '')
+        return context
 
 
-@method_decorator(login_required(login_url='login'), name='dispatch')
-class ProyectoDetalleView(View):
-    """Vista para ver detalle del proyecto"""
-    template_name = 'proyectos/detalle.html'
-    
-    def get(self, request, pk):
-        proyecto = get_object_or_404(Proyecto, pk=pk)
-        
-        # Verificar permisos
-        if request.user.es_supervisor() and proyecto.supervisor != request.user:
-            messages.error(request, 'No tienes permisos para ver este proyecto.')
-            return redirect('proyectos_lista')
-        
-        context = {
-            'proyecto': proyecto,
-        }
-        return render(request, self.template_name, context)
-
-
-@method_decorator(login_required(login_url='login'), name='dispatch')
-class ProyectoEditarView(View):
-    """Vista para editar proyecto"""
-    template_name = 'proyectos/editar.html'
-    
-    def get(self, request, pk):
-        proyecto = get_object_or_404(Proyecto, pk=pk)
-        
-        # Verificar permisos
-        if not proyecto.puede_ser_editado_por(request.user):
-            messages.error(request, 'No tienes permisos para editar este proyecto.')
-            return redirect('proyecto_detalle', pk=pk)
-        
-        supervisores = Usuario.objects.filter(
-            Q(rol='administrador') | Q(rol='supervisor'),
-            activo=True
-        )
-        
-        context = {
-            'proyecto': proyecto,
-            'supervisores': supervisores,
-            'estados': Proyecto.Estado.choices,
-        }
-        return render(request, self.template_name, context)
+class ProyectoToggleActivoView(LoginRequiredMixin, View):
+    """Vista para activar/desactivar un proyecto"""
     
     def post(self, request, pk):
-        proyecto = get_object_or_404(Proyecto, pk=pk)
-        
-        if not proyecto.puede_ser_editado_por(request.user):
-            messages.error(request, 'No tienes permisos para editar este proyecto.')
-            return redirect('proyecto_detalle', pk=pk)
-        
+        """Maneja el cambio de estado activo"""
         try:
-            proyecto.nombre = request.POST.get('nombre')
-            proyecto.descripcion = request.POST.get('descripcion', '')
-            proyecto.ubicacion = request.POST.get('ubicacion')
-            proyecto.fecha_inicio = request.POST.get('fecha_inicio')
-            proyecto.fecha_fin_estimada = request.POST.get('fecha_fin_estimada') or None
-            proyecto.fecha_fin_real = request.POST.get('fecha_fin_real') or None
-            proyecto.supervisor_id = request.POST.get('supervisor')
-            proyecto.presupuesto = request.POST.get('presupuesto')
-            proyecto.presupuesto_gastado = request.POST.get('presupuesto_gastado', 0)
-            proyecto.estado = request.POST.get('estado')
+            proyecto = get_object_or_404(Proyecto, pk=pk, eliminado=False)
+            
+            # Verificar permisos
+            if not request.user.es_administrador():
+                messages.error(
+                    request,
+                    '❌ No tienes permisos para cambiar el estado del proyecto.'
+                )
+                return redirect('proyecto_detalle', pk=pk)
+            
+            # Cambiar estado
+            proyecto.activo = not proyecto.activo
+            proyecto.modificado_por = request.user
             proyecto.save()
             
-            messages.success(request, 'Proyecto actualizado exitosamente.')
-            return redirect('proyecto_detalle', pk=proyecto.id)
-        except Exception as e:
-            messages.error(request, f'Error al actualizar proyecto: {str(e)}')
-            return redirect('proyecto_editar', pk=pk)
-
-
-@method_decorator(login_required(login_url='login'), name='dispatch')
-class ProyectoEliminarView(View):
-    """Vista para eliminar/cancelar proyecto"""
-    
-    def post(self, request, pk):
-        proyecto = get_object_or_404(Proyecto, pk=pk)
-        
-        if not request.user.es_administrador():
-            messages.error(request, 'No tienes permisos para eliminar proyectos.')
+            estado = "activado" if proyecto.activo else "desactivado"
+            messages.success(
+                request,
+                f'✅ Proyecto "{proyecto.nombre}" {estado} exitosamente.'
+            )
             return redirect('proyecto_detalle', pk=pk)
-        
-        nombre = proyecto.nombre
-        proyecto.cancelar()
-        
-        messages.success(request, f'Proyecto "{nombre}" cancelado exitosamente.')
-        return redirect('proyectos_lista')
+            
+        except Exception as e:
+            messages.error(
+                request,
+                f'❌ Error al cambiar el estado: {str(e)}'
+            )
+            return redirect('proyectos_lista')
+
+
+# ============================================
+# API VIEWS (Para tu app móvil)
+# ============================================
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from .serializers import ProyectoSerializer
+
+
+class ProyectoViewSet(viewsets.ModelViewSet):
+    """ViewSet para la API REST de proyectos"""
+    queryset = Proyecto.objects.filter(eliminado=False)
+    serializer_class = ProyectoSerializer
+    permission_classes = [IsAuthenticated]
     
+    def get_queryset(self):
+        """Filtrar proyectos según el usuario"""
+        user = self.request.user
+        if user.es_administrador():
+            return Proyecto.objects.filter(eliminado=False)
+        return Proyecto.objects.filter(
+            supervisor=user,
+            eliminado=False
+        )
     
+    def perform_create(self, serializer):
+        """Registrar auditoría al crear"""
+        serializer.save(
+            creado_por=self.request.user,
+            modificado_por=self.request.user
+        )
+    
+    def perform_update(self, serializer):
+        """Registrar auditoría al actualizar"""
+        serializer.save(modificado_por=self.request.user)
