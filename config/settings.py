@@ -43,10 +43,12 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    'django.contrib.humanize',
     
     # Local apps
     'apps.usuarios',
     'apps.proyectos',
+    'apps.trabajadores', 
 ]
 
 MIDDLEWARE = [

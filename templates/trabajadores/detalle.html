@@ -1,0 +1,947 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ trabajador.nombre_completo }} - Detalle{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="breadcrumb">
+            <a href="{% url 'trabajadores_lista' %}" style="color: var(--text-secondary); text-decoration: none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                </svg>
+                Trabajadores
+            </a>
+            <span style="color: var(--text-muted); margin: 0 8px;">/</span>
+            <span style="color: var(--text-primary); font-weight: 600;">{{ trabajador.nombre_completo }}</span>
+        </div>
+        <h1>{{ trabajador.nombre_completo }}</h1>
+        <p class="page-subtitle">{{ trabajador.numero_cedula }} • {{ trabajador.puesto_laboral }}</p>
+    </div>
+    
+    <div style="display: flex; gap: 12px;">
+        {% if puede_editar %}
+        <a href="{% url 'trabajador_editar' trabajador.pk %}" class="btn btn-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+            Editar
+        </a>
+        {% endif %}
+        <a href="{% url 'trabajadores_lista' %}" class="btn btn-secondary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Volver
+        </a>
+    </div>
+</div>
+
+<div class="content-wrapper">
+    <div class="detail-grid">
+        
+        <div class="detail-main">
+            
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <h3>Información Personal</h3>
+                </div>
+                <div class="detail-card-body">
+                    <div class="detail-row">
+                        <span class="detail-label">Nombre completo:</span>
+                        <span class="detail-value">{{ trabajador.nombre_completo }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Cédula:</span>
+                        <span class="detail-value">{{ trabajador.numero_cedula }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Fecha de nacimiento:</span>
+                        <span class="detail-value">
+                            {{ trabajador.fecha_nacimiento|date:"d/m/Y" }}
+                            {% if trabajador.edad %}
+                            <span class="text-muted">({{ trabajador.edad }} años)</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Sexo:</span>
+                        <span class="detail-value">{{ trabajador.get_sexo_display }}</span>
+                    </div>
+                    {% if trabajador.tipo_sangre %}
+                    <div class="detail-row">
+                        <span class="detail-label">Tipo de sangre:</span>
+                        <span class="detail-value">{{ trabajador.tipo_sangre }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                    </svg>
+                    <h3>Información de Contacto</h3>
+                </div>
+                <div class="detail-card-body">
+                    <div class="detail-row">
+                        <span class="detail-label">Teléfono:</span>
+                        <span class="detail-value">{{ trabajador.telefono }}</span>
+                    </div>
+                    {% if trabajador.email %}
+                    <div class="detail-row">
+                        <span class="detail-label">Email:</span>
+                        <span class="detail-value">{{ trabajador.email }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="detail-row">
+                        <span class="detail-label">Dirección:</span>
+                        <span class="detail-value">{{ trabajador.direccion }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Ubicación:</span>
+                        <span class="detail-value">{{ trabajador.municipio }}, {{ trabajador.departamento }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Contacto de emergencia:</span>
+                        <span class="detail-value">{{ trabajador.contacto_emergencia }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                    </svg>
+                    <h3>Información Laboral</h3>
+                </div>
+                <div class="detail-card-body">
+                    <div class="detail-row">
+                        <span class="detail-label">Proyecto asignado:</span>
+                        <span class="detail-value">
+                            {% if trabajador.proyecto_asignado %}
+                            <a href="{% url 'proyecto_detalle' trabajador.proyecto_asignado.pk %}">
+                                {{ trabajador.proyecto_asignado.nombre }}
+                            </a>
+                            {% else %}
+                            <span class="text-muted">Sin asignar</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Puesto laboral:</span>
+                        <span class="detail-value">{{ trabajador.puesto_laboral }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Área/Cargo:</span>
+                        <span class="detail-value">{{ trabajador.area_cargo }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Fecha de ingreso:</span>
+                        <span class="detail-value">
+                            {{ trabajador.fecha_ingreso|date:"d/m/Y" }}
+                            <span class="text-muted">({{ trabajador.tiempo_servicio }} días)</span>
+                        </span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Estado:</span>
+                        <span class="detail-value">
+                            <span class="badge badge-{{ trabajador.estado }}">{{ trabajador.get_estado_display }}</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                    <h3>Información Salarial</h3>
+                </div>
+                <div class="detail-card-body">
+                    <div class="detail-row">
+                        <span class="detail-label">Salario por hora:</span>
+                        <span class="detail-value">Gs. {{ trabajador.salario_normal|floatformat:0 }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Tarifa hora extra:</span>
+                        <span class="detail-value">Gs. {{ trabajador.tarifa_hora_extra|floatformat:0 }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Salario diario estimado:</span>
+                        <span class="detail-value">Gs. {{ trabajador.get_salario_diario|floatformat:0 }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Salario mensual estimado:</span>
+                        <span class="detail-value">Gs. {{ trabajador.get_salario_mensual_estimado|floatformat:0 }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            {% if historial_proyectos %}
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <h3>Historial de Proyectos</h3>
+                </div>
+                <div class="detail-card-body">
+                    <div class="timeline">
+                        {% for historial in historial_proyectos %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <strong>{{ historial.proyecto.nombre }}</strong>
+                                    <span class="text-muted">
+                                        {{ historial.fecha_asignacion|date:"d/m/Y" }}
+                                        {% if historial.fecha_salida %}
+                                        - {{ historial.fecha_salida|date:"d/m/Y" }}
+                                        {% else %}
+                                        - Actual
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                {% if historial.motivo %}
+                                <p class="timeline-description">{{ historial.motivo }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+        </div>
+        
+        <div class="detail-sidebar">
+            
+            <div class="detail-card">
+                <div class="worker-photo">
+                    {% if trabajador.foto %}
+                    <img src="{{ trabajador.foto.url }}" alt="{{ trabajador.nombre_completo }}">
+                    {% else %}
+                    <div class="worker-photo-placeholder">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="detail-card qr-card">
+                <div class="detail-card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    <h3>Código QR para Asistencias</h3>
+                </div>
+                <div class="detail-card-body">
+                    {% if trabajador.codigo_qr and trabajador.codigo_qr.name %}
+                    <div class="qr-section">
+                        <div class="qr-container">
+                            <div class="qr-image-wrapper">
+                                <img src="{{ trabajador.codigo_qr.url }}" alt="QR {{ trabajador.nombre_completo }}" class="qr-image">
+                            </div>
+                            
+                            <div class="qr-info">
+                                <div class="qr-badge">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                    QR Activo
+                                </div>
+                                
+                                <p class="qr-description">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                    </svg>
+                                    Este código QR identifica al trabajador para el registro de asistencias. 
+                                    Puede imprimirlo o escanearlo directamente desde la app móvil.
+                                </p>
+                                
+                                <div class="qr-alternative">
+                                    <strong>Método alternativo:</strong> También puede escanear el código de barras 
+                                    de la cédula física con la app móvil.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="qr-actions">
+                            <a href="{{ trabajador.codigo_qr.url }}" download="QR_{{ trabajador.numero_cedula }}.png" class="btn btn-primary">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Descargar QR
+                            </a>
+                            
+                            <button type="button" class="btn btn-secondary" onclick="imprimirQR('{{ trabajador.codigo_qr.url }}')">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                    <rect x="6" y="14" width="12" height="8"></rect>
+                                </svg>
+                                Imprimir QR
+                            </button>
+                            
+                            <form method="POST" action="{% url 'trabajador_generar_qr' trabajador.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-secondary" onclick="return confirm('¿Regenerar código QR? Se sobrescribirá el actual.')">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="23 4 23 10 17 10"></polyline>
+                                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                    </svg>
+                                    Regenerar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="qr-empty">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        <h4>No hay código QR generado</h4>
+                        <p>Genera el código QR para que este trabajador pueda registrar asistencias escaneándolo desde la app móvil.</p>
+                        <form method="POST" action="{% url 'trabajador_generar_qr' trabajador.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="7" height="7"></rect>
+                                    <rect x="14" y="3" width="7" height="7"></rect>
+                                    <rect x="14" y="14" width="7" height="7"></rect>
+                                    <rect x="3" y="14" width="7" height="7"></rect>
+                                </svg>
+                                Generar Código QR
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                    <h3>Estado y Verificación</h3>
+                </div>
+                <div class="detail-card-body">
+                    <div class="verification-item">
+                        <span>Asegurado:</span>
+                        {% if trabajador.asegurado %}
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        {% else %}
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        {% endif %}
+                    </div>
+                    <div class="verification-item">
+                        <span>Record de policía:</span>
+                        {% if trabajador.record_policia %}
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        {% else %}
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        {% endif %}
+                    </div>
+                    {% if trabajador.numero_seguro_social %}
+                    <div class="verification-item">
+                        <span>N° Seguro Social:</span>
+                        <span>{{ trabajador.numero_seguro_social }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <h3>Documentos</h3>
+                </div>
+                <div class="detail-card-body">
+                    {% if trabajador.foto_cedula %}
+                    <a href="{{ trabajador.foto_cedula.url }}" target="_blank" class="document-link">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        Cédula de identidad
+                    </a>
+                    {% endif %}
+                    
+                    {% if trabajador.record_policia_doc %}
+                    <a href="{{ trabajador.record_policia_doc.url }}" target="_blank" class="document-link">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        Record de policía
+                    </a>
+                    {% endif %}
+                    
+                    {% if not trabajador.foto_cedula and not trabajador.record_policia_doc %}
+                    <p class="text-muted" style="font-style: italic; font-size: 14px;">No hay documentos cargados</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if trabajador.notas %}
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    <h3>Notas</h3>
+                </div>
+                <div class="detail-card-body">
+                    <p style="white-space: pre-wrap;">{{ trabajador.notas }}</p>
+                </div>
+            </div>
+            {% endif %}
+            
+        </div>
+        
+    </div>
+</div>
+
+<script>
+// FUNCIÓN IMPRIMIR QR ACTUALIZADA
+function imprimirQR(qrUrl) {
+    const ventana = window.open('', '_blank');
+    ventana.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>QR - {{ trabajador.nombre_completo }}</title>
+            <style>
+                body {
+                    margin: 0;
+                    padding: 20px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 100vh;
+                    font-family: Arial, sans-serif;
+                }
+                .qr-print {
+                    text-align: center;
+                    page-break-after: always;
+                }
+                img {
+                    max-width: 100%;
+                    height: auto;
+                }
+                @media print {
+                    body { padding: 0; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="qr-print">
+                <img src="${qrUrl}" alt="QR">
+            </div>
+        </body>
+        </html>
+    `);
+    ventana.document.close();
+    ventana.focus();
+    setTimeout(() => {
+        ventana.print();
+        ventana.close();
+    }, 500);
+}
+</script>
+
+<style>
+/* =================================
+   ESTILOS DE BOTONES MEJORADOS
+   ================================= */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px; /* Espacio entre icono y texto */
+    padding: 0 16px;
+    height: 40px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.btn svg {
+    width: 16px; /* Ajusta el tamaño del icono */
+    height: 16px;
+    stroke-width: 2.5;
+}
+
+/* --- Botón Primario (Editar) --- */
+.btn-primary {
+    background-color: var(--primary-color, #0d6efd); /* Color de fallback */
+    color: white;
+    border-color: var(--primary-color, #0d6efd);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-color-dark, #0b5ed7); /* Asume una var o usa un color más oscuro */
+    border-color: var(--primary-color-dark, #0b5ed7);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+/* --- Botón Secundario (Volver) --- */
+.btn-secondary {
+    background-color: white;
+    color: var(--text-secondary, #333);
+    border-color: var(--border-color, #e5e7eb);
+}
+
+.btn-secondary svg {
+    stroke: var(--text-secondary, #333);
+}
+
+.btn-secondary:hover {
+    background-color: #f9fafb; /* Un gris muy claro */
+    border-color: #d1d5db;
+    color: var(--text-primary, #111);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+/* =================================
+   ESTILOS EXISTENTES DE LA PÁGINA
+   ================================= */
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 24px;
+}
+
+.detail-main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.detail-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.detail-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.detail-card-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.detail-card-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.detail-card-body {
+    padding: 24px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.detail-value {
+    color: var(--text-primary);
+    font-size: 14px;
+    text-align: right;
+}
+
+.worker-photo {
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f9fafb;
+}
+
+.worker-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.worker-photo-placeholder {
+    color: #d1d5db;
+}
+
+.verification-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 14px;
+}
+
+.verification-item:last-child {
+    border-bottom: none;
+}
+
+.document-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 6px;
+    background: #f9fafb;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: all 0.2s;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.document-link:hover {
+    background: #f3f4f6;
+    color: var(--primary-color);
+}
+
+.badge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.badge-activo {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.badge-inactivo {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.badge-suspendido {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.badge-retirado {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Timeline */
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 24px;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -24px;
+    top: 8px;
+    bottom: -16px;
+    width: 2px;
+    background: #e5e7eb;
+}
+
+.timeline-item:last-child::before {
+    display: none;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -30px;
+    top: 4px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    border: 3px solid white;
+    box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+.timeline-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.timeline-description {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* =================================== */
+/* ESTILOS PARA LA SECCIÓN DE QR (ACTUALIZADOS) */
+/* =================================== */
+.qr-card .info-card-header h3 { /* Ajusta el nombre de la clase si usas detail-card-header */
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.qr-section {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.qr-container {
+    display: grid;
+    /* Ajusta las columnas según necesites espacio */
+    grid-template-columns: auto 1fr; 
+    gap: 24px; /* Espacio reducido */
+    align-items: start;
+}
+
+.qr-image-wrapper {
+    background: white;
+    padding: 16px; /* Padding reducido */
+    border-radius: 10px; /* Borde más suave */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); /* Sombra más sutil */
+    border: 1px solid #e5e7eb; /* Borde más fino */
+}
+
+.qr-image {
+    display: block;
+    width: 180px; /* Tamaño reducido */
+    height: auto;
+    border-radius: 6px; /* Borde más suave */
+}
+
+.qr-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px; /* Espacio reducido */
+}
+
+.qr-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px; /* Padding reducido */
+    background: #d1fae5;
+    color: #065f46;
+    border-radius: 16px; /* Más redondeado */
+    font-size: 13px; /* Tamaño reducido */
+    font-weight: 600;
+    width: fit-content;
+}
+
+.qr-description {
+    display: flex;
+    gap: 10px; /* Espacio reducido */
+    padding: 12px; /* Padding reducido */
+    background: #eff6ff; /* Azul más claro */
+    border-left: 3px solid #60a5fa; /* Borde azul más claro */
+    border-radius: 6px; /* Borde más suave */
+    color: #1e3a8a; /* Azul oscuro */
+    font-size: 13px; /* Tamaño reducido */
+    line-height: 1.5;
+    margin: 0;
+}
+.qr-description svg {
+    flex-shrink: 0; /* Evita que el icono se encoja */
+}
+
+.qr-alternative {
+    padding: 10px 12px; /* Padding reducido */
+    background: #fffbeb; /* Amarillo muy claro */
+    border-left: 3px solid #fcd34d; /* Amarillo */
+    border-radius: 6px; /* Borde más suave */
+    font-size: 12px; /* Tamaño reducido */
+    color: #92400e; /* Marrón oscuro */
+}
+
+.qr-alternative strong {
+    color: #78350f; /* Marrón más oscuro */
+}
+
+.qr-actions {
+    display: flex;
+    gap: 10px; /* Espacio reducido */
+    flex-wrap: wrap;
+    padding-top: 16px; /* Padding reducido */
+    border-top: 1px solid #f3f4f6; /* Borde más fino */
+}
+
+.qr-actions .btn {
+    height: 38px; /* Altura ligeramente reducida */
+    padding: 0 14px; /* Padding ajustado */
+    font-size: 13px; /* Tamaño reducido */
+}
+
+.qr-actions form {
+    display: inline; /* Para que el botón de regenerar se alinee */
+}
+
+.qr-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 40px 20px; /* Padding reducido */
+    text-align: center;
+}
+
+.qr-empty svg {
+    color: #d1d5db;
+    width: 60px; /* Tamaño reducido */
+    height: 60px;
+}
+
+.qr-empty h4 {
+    margin: 0;
+    font-size: 18px; /* Tamaño reducido */
+    color: #111827;
+}
+
+.qr-empty p {
+    margin: 0;
+    color: #6b7280;
+    max-width: 350px; /* Ancho ajustado */
+    font-size: 14px; /* Tamaño estándar */
+    line-height: 1.5;
+}
+
+.qr-empty .btn-lg {
+    padding: 12px 24px; /* Padding ajustado */
+    font-size: 15px; /* Tamaño ajustado */
+}
+
+/* =================================== */
+/* ESTILOS RESPONSIVE */
+/* =================================== */
+@media (max-width: 1024px) {
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .detail-sidebar {
+        order: -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .qr-container {
+        grid-template-columns: 1fr; /* Una columna */
+        gap: 20px;
+    }
+    
+    .qr-image-wrapper {
+        margin: 0 auto; /* Centrar la imagen */
+        width: fit-content; 
+    }
+    
+    .qr-image {
+        width: 100%; 
+        max-width: 240px; /* Un poco más pequeño en móvil */
+    }
+
+    .qr-actions {
+        flex-direction: column; /* Botones uno debajo del otro */
+    }
+    
+    .qr-actions .btn,
+    .qr-actions form {
+        width: 100%;
+    }
+    
+    .qr-actions .btn {
+        justify-content: center; /* Centrar contenido del botón */
+    }
+}
+</style>
+{% endblock %}

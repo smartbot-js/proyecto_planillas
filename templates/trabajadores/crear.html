@@ -1,0 +1,1329 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Nuevo Trabajador{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="breadcrumb">
+            <a href="{% url 'trabajadores_lista' %}" style="color: var(--text-secondary); text-decoration: none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                </svg>
+                Trabajadores
+            </a>
+            <span style="color: var(--text-muted); margin: 0 8px;">/</span>
+            <span style="color: var(--text-primary); font-weight: 600;">Nuevo trabajador</span>
+        </div>
+        <h1>Nuevo trabajador</h1>
+        <p class="page-subtitle">Registro único por trabajador - Validación por cédula</p>
+    </div>
+</div>
+
+<div class="content-wrapper">
+    <form method="POST" enctype="multipart/form-data" class="form-container" id="trabajadorForm">
+        {% csrf_token %}
+        
+        <!-- Tabs Navigation -->
+        <div class="tabs-nav">
+            <button type="button" class="tab-btn active" data-tab="datos-basicos">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                </svg>
+                Datos básicos
+            </button>
+            <button type="button" class="tab-btn" data-tab="identificacion">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                </svg>
+                Identificación
+            </button>
+            <button type="button" class="tab-btn" data-tab="proyecto-rol">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                </svg>
+                Proyecto/rol
+            </button>
+            <button type="button" class="tab-btn" data-tab="revision">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                Revisión
+            </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tabs-content">
+            
+            <!-- TAB 1: Datos Básicos -->
+            <div class="tab-pane active" data-pane="datos-basicos">
+                <div class="form-notice">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <span>Evita duplicados: se valida por número de cédula.</span>
+                </div>
+                
+                <div class="required-notice">
+                    Obligatorio: Nombre, Cédula, Cargo
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label for="nombre_completo">Nombre completo *</label>
+                        <input 
+                            type="text" 
+                            id="nombre_completo" 
+                            name="nombre_completo" 
+                            class="form-control" 
+                            placeholder="Ej: Juan Pérez"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="numero_cedula">Número de cédula *</label>
+                        <input 
+                            type="text" 
+                            id="numero_cedula" 
+                            name="numero_cedula" 
+                            class="form-control" 
+                            placeholder="Ej: 4234567"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cargo">Cargo *</label>
+                        <select id="cargo" name="cargo" class="form-control" required>
+                            <option value="">Seleccionar cargo</option>
+                            <option value="Operario">Operario</option>
+                            <option value="Maestro">Maestro</option>
+                            <option value="Ayudante">Ayudante</option>
+                            <option value="Supervisor">Supervisor</option>
+                            <option value="Albañil">Albañil</option>
+                            <option value="Electricista">Electricista</option>
+                            <option value="Plomero">Plomero</option>
+                            <option value="Soldador">Soldador</option>
+                            <option value="Carpintero">Carpintero</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="salario_normal">Tarifa por hora</label>
+                        <input 
+                            type="number" 
+                            id="salario_normal" 
+                            name="salario_normal" 
+                            class="form-control" 
+                            placeholder="Gs. 25.000"
+                            step="0.01"
+                            min="0"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tarifa_hora_extra">Tarifa por día base</label>
+                        <input 
+                            type="number" 
+                            id="tarifa_hora_extra" 
+                            name="tarifa_hora_extra" 
+                            class="form-control" 
+                            placeholder="Gs. 200.000"
+                            step="0.01"
+                            min="0"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="periodo_pago">Período de pago</label>
+                        <select id="periodo_pago" name="periodo_pago" class="form-control">
+                            <option value="Semanal">Semanal</option>
+                            <option value="Quincenal">Quincenal</option>
+                            <option value="Mensual">Mensual</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="notas">Notas (opcional)</label>
+                        <textarea 
+                            id="notas" 
+                            name="notas" 
+                            class="form-control" 
+                            rows="3"
+                            placeholder="Observaciones..."
+                        ></textarea>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN DE DOCUMENTOS -->
+                <div class="documents-section">
+                    <h3>Documentos del Trabajador</h3>
+                    <p class="section-subtitle">Formatos permitidos: JPG, PNG, PDF (máx. 5MB)</p>
+
+                    <div class="form-grid">
+                        <!-- Foto del trabajador -->
+                        <div class="form-group full-width">
+                            <label for="foto">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                                Foto del trabajador (opcional)
+                            </label>
+                            <div class="file-upload-box">
+                                <input 
+                                    type="file" 
+                                    id="foto" 
+                                    name="foto" 
+                                    accept="image/*"
+                                    onchange="previewFile(this, 'preview-foto')"
+                                >
+                                <div class="file-upload-content">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="17 8 12 3 7 8"></polyline>
+                                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                                    </svg>
+                                    <span>Subir foto del trabajador</span>
+                                    <small>JPG, PNG - Máx. 5MB</small>
+                                </div>
+                                <div id="preview-foto" class="file-preview"></div>
+                            </div>
+                        </div>
+
+                        <!-- Cédula - Opción de carga -->
+                        <div class="form-group full-width">
+                            <label>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                                    <line x1="9" y1="8" x2="15" y2="8"></line>
+                                    <line x1="9" y1="12" x2="15" y2="12"></line>
+                                </svg>
+                                Cédula de identidad
+                            </label>
+                            <div class="cedula-upload-options">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="cedula-dos-caras" onchange="toggleCedulaUpload()">
+                                    <span>Subir ambas caras de la cédula por separado</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Opción 1: Una sola imagen -->
+                        <div class="form-group full-width" id="cedula-single-option">
+                            <div class="file-upload-box">
+                                <input 
+                                    type="file" 
+                                    id="foto_cedula" 
+                                    name="foto_cedula" 
+                                    accept="image/*,.pdf"
+                                    onchange="previewFile(this, 'preview-cedula')"
+                                >
+                                <div class="file-upload-content">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="17 8 12 3 7 8"></polyline>
+                                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                                    </svg>
+                                    <span>Subir cédula (ambas caras en un archivo)</span>
+                                    <small>JPG, PNG, PDF - Máx. 5MB</small>
+                                </div>
+                                <div id="preview-cedula" class="file-preview"></div>
+                            </div>
+                        </div>
+
+                        <!-- Opción 2: Dos archivos (frontal y posterior) -->
+                        <div id="cedula-double-option" style="display: none;">
+                            <div class="form-grid" style="grid-column: 1 / -1;">
+                                <div class="form-group">
+                                    <label for="foto_cedula_frontal">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                                        </svg>
+                                        Cédula (Frontal)
+                                    </label>
+                                    <div class="file-upload-box">
+                                        <input 
+                                            type="file" 
+                                            id="foto_cedula_frontal" 
+                                            name="foto_cedula_frontal" 
+                                            accept="image/*"
+                                            onchange="previewFile(this, 'preview-cedula-frontal')"
+                                        >
+                                        <div class="file-upload-content">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                                <polyline points="17 8 12 3 7 8"></polyline>
+                                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                                            </svg>
+                                            <span>Cara frontal</span>
+                                        </div>
+                                        <div id="preview-cedula-frontal" class="file-preview"></div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="foto_cedula_posterior">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                                        </svg>
+                                        Cédula (Posterior)
+                                    </label>
+                                    <div class="file-upload-box">
+                                        <input 
+                                            type="file" 
+                                            id="foto_cedula_posterior" 
+                                            name="foto_cedula_posterior" 
+                                            accept="image/*"
+                                            onchange="previewFile(this, 'preview-cedula-posterior')"
+                                        >
+                                        <div class="file-upload-content">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                                <polyline points="17 8 12 3 7 8"></polyline>
+                                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                                            </svg>
+                                            <span>Cara posterior</span>
+                                        </div>
+                                        <div id="preview-cedula-posterior" class="file-preview"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Record de policía -->
+                        <div class="form-group full-width">
+                            <label for="record_policia_doc">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                Record de policía (opcional)
+                            </label>
+                            <div class="file-upload-box">
+                                <input 
+                                    type="file" 
+                                    id="record_policia_doc" 
+                                    name="record_policia_doc" 
+                                    accept="image/*,.pdf"
+                                    onchange="previewFile(this, 'preview-record')"
+                                >
+                                <div class="file-upload-content">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="17 8 12 3 7 8"></polyline>
+                                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                                    </svg>
+                                    <span>Subir record de policía</span>
+                                    <small>JPG, PNG, PDF - Máx. 5MB</small>
+                                </div>
+                                <div id="preview-record" class="file-preview"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Identificación -->
+            <div class="tab-pane" data-pane="identificacion">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="nombre">Nombre *</label>
+                        <input 
+                            type="text" 
+                            id="nombre" 
+                            name="nombre" 
+                            class="form-control"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="apellido">Apellido *</label>
+                        <input 
+                            type="text" 
+                            id="apellido" 
+                            name="apellido" 
+                            class="form-control"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fecha_nacimiento">Fecha de nacimiento *</label>
+                        <input 
+                            type="date" 
+                            id="fecha_nacimiento" 
+                            name="fecha_nacimiento" 
+                            class="form-control"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sexo">Sexo *</label>
+                        <select id="sexo" name="sexo" class="form-control" required>
+                            <option value="">Seleccionar...</option>
+                            {% for value, label in sexos %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tipo_sangre">Tipo de sangre</label>
+                        <select id="tipo_sangre" name="tipo_sangre" class="form-control">
+                            <option value="">Seleccionar...</option>
+                            {% for value, label in tipos_sangre %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="telefono">Teléfono *</label>
+                        <input 
+                            type="tel" 
+                            id="telefono" 
+                            name="telefono" 
+                            class="form-control"
+                            placeholder="+595 981 234567"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="direccion">Dirección *</label>
+                        <textarea 
+                            id="direccion" 
+                            name="direccion" 
+                            class="form-control"
+                            rows="2"
+                            required
+                        ></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="departamento">Departamento *</label>
+                        <input 
+                            type="text" 
+                            id="departamento" 
+                            name="departamento" 
+                            class="form-control"
+                            placeholder="Ej: Central"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="municipio">Municipio *</label>
+                        <input 
+                            type="text" 
+                            id="municipio" 
+                            name="municipio" 
+                            class="form-control"
+                            placeholder="Ej: Asunción"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="contacto_emergencia">Contacto de emergencia *</label>
+                        <input 
+                            type="text" 
+                            id="contacto_emergencia" 
+                            name="contacto_emergencia" 
+                            class="form-control"
+                            placeholder="Nombre completo | Teléfono"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="numero_seguro_social">Número de seguro social</label>
+                        <input 
+                            type="text" 
+                            id="numero_seguro_social" 
+                            name="numero_seguro_social" 
+                            class="form-control"
+                            placeholder="Ej: 123456789"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Correo electrónico</label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            class="form-control"
+                            placeholder="trabajador@email.com"
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: Proyecto/Rol -->
+            <div class="tab-pane" data-pane="proyecto-rol">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label for="proyecto_asignado">Proyecto asignado</label>
+                        <select id="proyecto_asignado" name="proyecto_asignado" class="form-control">
+                            <option value="">Sin asignar</option>
+                            {% for proyecto in proyectos %}
+                            <option value="{{ proyecto.id }}">{{ proyecto.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="puesto_laboral">Puesto laboral *</label>
+                        <input 
+                            type="text" 
+                            id="puesto_laboral" 
+                            name="puesto_laboral" 
+                            class="form-control"
+                            placeholder="Ej: Operario"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="area_cargo">Área/Cargo *</label>
+                        <input 
+                            type="text" 
+                            id="area_cargo" 
+                            name="area_cargo" 
+                            class="form-control"
+                            placeholder="Ej: Albañilería"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fecha_ingreso">Fecha de ingreso *</label>
+                        <input 
+                            type="date" 
+                            id="fecha_ingreso" 
+                            name="fecha_ingreso" 
+                            class="form-control"
+                            value="{{ today|date:'Y-m-d' }}"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="estado">Estado *</label>
+                        <select id="estado" name="estado" class="form-control" required>
+                            {% for value, label in estados %}
+                            <option value="{{ value }}" {% if value == 'activo' %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="record_policia" id="check_record_policia">
+                                <span>Record de policía entregado</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="asegurado" id="check_asegurado">
+                                <span>Trabajador asegurado</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: Revisión -->
+            <div class="tab-pane" data-pane="revision">
+                <div class="revision-summary">
+                    <h3>Resumen de información</h3>
+                    <p>Revisa los datos antes de guardar el trabajador</p>
+                    
+                    <div class="summary-section">
+                        <h4>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            </svg>
+                            Datos básicos
+                        </h4>
+                        <div id="summary-basicos" class="summary-content"></div>
+                    </div>
+                    
+                    <div class="summary-section">
+                        <h4>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                            </svg>
+                            Identificación
+                        </h4>
+                        <div id="summary-identificacion" class="summary-content"></div>
+                    </div>
+                    
+                    <div class="summary-section">
+                        <h4>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                            </svg>
+                            Proyecto y rol
+                        </h4>
+                        <div id="summary-proyecto" class="summary-content"></div>
+                    </div>
+
+                    <div class="summary-section">
+                        <h4>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            Documentos cargados
+                        </h4>
+                        <div id="summary-documentos" class="summary-content"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer con Navegación -->
+        <div class="form-footer">
+            <div class="step-indicator">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                </svg>
+                <span>Paso <span id="current-step">1</span> de 4</span>
+            </div>
+            
+            <div class="form-actions">
+                <a href="{% url 'trabajadores_lista' %}" class="btn btn-secondary">Cancelar</a>
+                <button type="button" class="btn btn-secondary" id="btn-prev" style="display: none;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    Anterior
+                </button>
+                <button type="button" class="btn btn-primary" id="btn-next">
+                    Siguiente
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+                <button type="submit" class="btn btn-primary" id="btn-submit" style="display: none;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    Guardar trabajador
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+// ============================================
+// NAVEGACIÓN DE TABS
+// ============================================
+let currentTab = 0;
+const tabs = document.querySelectorAll('.tab-btn');
+const panes = document.querySelectorAll('.tab-pane');
+
+function showTab(index) {
+    tabs.forEach((tab, i) => {
+        tab.classList.toggle('active', i === index);
+    });
+    panes.forEach((pane, i) => {
+        pane.classList.toggle('active', i === index);
+    });
+    
+    currentTab = index;
+    document.getElementById('current-step').textContent = index + 1;
+    
+    // Mostrar/ocultar botones
+    document.getElementById('btn-prev').style.display = index === 0 ? 'none' : 'inline-flex';
+    document.getElementById('btn-next').style.display = index === 3 ? 'none' : 'inline-flex';
+    document.getElementById('btn-submit').style.display = index === 3 ? 'inline-flex' : 'none';
+    
+    // Si es el último tab, actualizar resumen
+    if (index === 3) {
+        updateSummary();
+    }
+    
+    // Scroll al top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+tabs.forEach((tab, index) => {
+    tab.addEventListener('click', () => showTab(index));
+});
+
+document.getElementById('btn-next').addEventListener('click', () => {
+    if (currentTab < 3) showTab(currentTab + 1);
+});
+
+document.getElementById('btn-prev').addEventListener('click', () => {
+    if (currentTab > 0) showTab(currentTab - 1);
+});
+
+// ============================================
+// TOGGLE CÉDULA (1 o 2 archivos)
+// ============================================
+function toggleCedulaUpload() {
+    const checkbox = document.getElementById('cedula-dos-caras');
+    const singleOption = document.getElementById('cedula-single-option');
+    const doubleOption = document.getElementById('cedula-double-option');
+    
+    if (checkbox.checked) {
+        singleOption.style.display = 'none';
+        doubleOption.style.display = 'block';
+        document.getElementById('foto_cedula').value = '';
+        document.getElementById('preview-cedula').innerHTML = '';
+    } else {
+        singleOption.style.display = 'block';
+        doubleOption.style.display = 'none';
+        document.getElementById('foto_cedula_frontal').value = '';
+        document.getElementById('foto_cedula_posterior').value = '';
+        document.getElementById('preview-cedula-frontal').innerHTML = '';
+        document.getElementById('preview-cedula-posterior').innerHTML = '';
+    }
+}
+
+// ============================================
+// PREVIEW DE ARCHIVOS
+// ============================================
+function previewFile(input, previewId) {
+    const preview = document.getElementById(previewId);
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const fileType = file.type;
+        
+        // Validar tamaño (máx 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('El archivo es muy grande. Máximo 5MB.');
+            input.value = '';
+            return;
+        }
+        
+        // Si es imagen, mostrar preview
+        if (fileType.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.innerHTML = `
+                    <div class="file-preview-item">
+                        <img src="${e.target.result}" alt="Preview">
+                        <div class="file-info">
+                            <strong>${file.name}</strong>
+                            <span>${(file.size / 1024).toFixed(2)} KB</span>
+                        </div>
+                        <button type="button" class="btn-remove-file" onclick="removeFile('${input.id}', '${previewId}')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+            }
+            reader.readAsDataURL(file);
+        } else {
+            // Si es PDF u otro formato
+            preview.innerHTML = `
+                <div class="file-preview-doc">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <div class="file-info">
+                        <strong>${file.name}</strong>
+                        <span>${(file.size / 1024).toFixed(2)} KB</span>
+                    </div>
+                    <button type="button" class="btn-remove-file" onclick="removeFile('${input.id}', '${previewId}')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            `;
+        }
+    }
+}
+
+function removeFile(inputId, previewId) {
+    document.getElementById(inputId).value = '';
+    document.getElementById(previewId).innerHTML = '';
+}
+
+// ============================================
+// AUTO-SYNC NOMBRE COMPLETO
+// ============================================
+document.getElementById('nombre_completo').addEventListener('input', function() {
+    const partes = this.value.trim().split(' ');
+    if (partes.length >= 2) {
+        document.getElementById('nombre').value = partes[0];
+        document.getElementById('apellido').value = partes.slice(1).join(' ');
+    } else if (partes.length === 1) {
+        document.getElementById('nombre').value = partes[0];
+    }
+});
+
+// Auto-sync puesto laboral con cargo
+document.getElementById('cargo').addEventListener('change', function() {
+    const puestoField = document.getElementById('puesto_laboral');
+    const areaField = document.getElementById('area_cargo');
+    if (!puestoField.value) {
+        puestoField.value = this.value;
+    }
+    if (!areaField.value) {
+        areaField.value = this.value;
+    }
+});
+
+// ============================================
+// ACTUALIZAR RESUMEN
+// ============================================
+function updateSummary() {
+    const form = document.getElementById('trabajadorForm');
+    const formData = new FormData(form);
+    
+    // Datos básicos
+    const nombreCompleto = formData.get('nombre_completo') || '—';
+    const cedula = formData.get('numero_cedula') || '—';
+    const cargo = formData.get('cargo') || '—';
+    const salarioNormal = formData.get('salario_normal') || '0';
+    const tarifaExtra = formData.get('tarifa_hora_extra') || '0';
+    
+    document.getElementById('summary-basicos').innerHTML = `
+        <div class="summary-row">
+            <span class="label">Nombre completo:</span>
+            <span class="value">${nombreCompleto}</span>
+        </div>
+        <div class="summary-row">
+            <span class="label">Cédula:</span>
+            <span class="value">${cedula}</span>
+        </div>
+        <div class="summary-row">
+            <span class="label">Cargo:</span>
+            <span class="value">${cargo}</span>
+        </div>
+        <div class="summary-row">
+            <span class="label">Tarifa por hora:</span>
+            <span class="value">Gs. ${parseFloat(salarioNormal).toLocaleString('es-PY')}</span>
+        </div>
+        <div class="summary-row">
+            <span class="label">Tarifa por día:</span>
+            <span class="value">Gs. ${parseFloat(tarifaExtra).toLocaleString('es-PY')}</span>
+        </div>
+    `;
+    
+    // Identificación
+    const telefono = formData.get('telefono') || '—';
+    const direccion = formData.get('direccion') || '—';
+    const departamento = formData.get('departamento') || '—';
+    const municipio = formData.get('municipio') || '—';
+    const contactoEmergencia = formData.get('contacto_emergencia') || '—';
+    
+    document.getElementById('summary-identificacion').innerHTML = `
+        <div class="summary-row">
+            <span class="label">Teléfono:</span>
+            <span class="value">${telefono}</span>
+        </div>
+        <div class="summary-row">
+            <span class="label">Dirección:</span>
+            <span class="value">${direccion}</span>
+        </div>
+        <div class="summary-row">
+            <span class="label">Ubicación:</span>
+            <span class="value">${departamento}, ${municipio}</span>
+        </div>
+        <div class="summary-row">
+            <span class="label">Contacto emergencia:</span>
+            <span class="value">${contactoEmergencia}</span>
+        </div>
+    `;
+    
+    // Proyecto y rol
+    const proyectoSelect = document.getElementById('proyecto_asignado');
+    const proyectoText = proyectoSelect.value ? proyectoSelect.options[proyectoSelect.selectedIndex].text : 'Sin asignar';
+    const puestoLaboral = formData.get('puesto_laboral') || '—';
+    const areaCargo = formData.get('area_cargo') || '—';
+    const fechaIngreso = formData.get('fecha_ingreso') || '—';
+    const recordPolicia = formData.get('record_policia') ? 'Sí' : 'No';
+    const asegurado = formData.get('asegurado') ? 'Sí' : 'No';
+    
+    document.getElementById('summary-proyecto').innerHTML = `
+        <div class="summary-row">
+            <span class="label">Proyecto:</span>
+            <span class="value">${proyectoText}</span>
+        </div>
+        <div class="summary-row">
+            <span class="label">Puesto:</span>
+            <span class="value">${puestoLaboral}</span>
+        </div>
+        <div class="summary-row">
+            <span class="label">Área:</span>
+            <span class="value">${areaCargo}</span>
+        </div>
+        <div class="summary-row">
+            <span class="label">Fecha de ingreso:</span>
+            <span class="value">${fechaIngreso}</span>
+        </div>
+        <div class="summary-row">
+            <span class="label">Record de policía:</span>
+            <span class="value">${recordPolicia}</span>
+        </div>
+        <div class="summary-row">
+            <span class="label">Asegurado:</span>
+            <span class="value">${asegurado}</span>
+        </div>
+    `;
+    
+    // Documentos
+    let documentosHTML = '';
+    
+    if (document.getElementById('foto').files.length > 0) {
+        documentosHTML += '<div class="doc-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> Foto del trabajador</div>';
+    }
+    
+    if (document.getElementById('foto_cedula').files.length > 0) {
+        documentosHTML += '<div class="doc-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> Cédula de identidad</div>';
+    } else if (document.getElementById('foto_cedula_frontal').files.length > 0 || document.getElementById('foto_cedula_posterior').files.length > 0) {
+        documentosHTML += '<div class="doc-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> Cédula (frontal y posterior)</div>';
+    }
+    
+    if (document.getElementById('record_policia_doc').files.length > 0) {
+        documentosHTML += '<div class="doc-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> Record de policía</div>';
+    }
+    
+    if (!documentosHTML) {
+        documentosHTML = '<p style="color: var(--text-secondary); font-style: italic;">No se han cargado documentos</p>';
+    }
+    
+    document.getElementById('summary-documentos').innerHTML = documentosHTML;
+}
+
+// ============================================
+// VALIDACIÓN ANTES DE ENVIAR
+// ============================================
+document.getElementById('trabajadorForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Validar campos obligatorios del tab actual
+    const nombreCompleto = document.getElementById('nombre_completo').value.trim();
+    const cedula = document.getElementById('numero_cedula').value.trim();
+    const cargo = document.getElementById('cargo').value;
+    
+    if (!nombreCompleto || !cedula || !cargo) {
+        alert('Por favor completa los campos obligatorios: Nombre, Cédula y Cargo');
+        showTab(0);
+        return;
+    }
+    
+    // Mostrar indicador de carga
+    const submitBtn = document.getElementById('btn-submit');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+            <circle cx="12" cy="12" r="10"></circle>
+        </svg>
+        Guardando...
+    `;
+    
+    // Enviar formulario
+    this.submit();
+});
+</script>
+
+<style>
+/* ============================================
+   ESTILOS DEL FORMULARIO
+   ============================================ */
+
+.form-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+/* Tabs */
+.tabs-nav {
+    display: flex;
+    border-bottom: 2px solid var(--border-color);
+    background: #f9fafb;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 16px 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    background: white;
+    color: var(--text-primary);
+}
+
+.tab-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-bottom-color: var(--primary-color);
+}
+
+.tabs-content {
+    padding: 32px;
+}
+
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+/* Notices */
+.form-notice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #fef3c7;
+    border-left: 4px solid #f59e0b;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: #92400e;
+}
+
+.required-notice {
+    padding: 12px 16px;
+    background: #dbeafe;
+    border-radius: 6px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: #1e40af;
+    text-align: right;
+}
+
+/* Form Grid */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+/* Documents Section */
+.documents-section {
+    margin-top: 32px;
+    padding-top: 32px;
+    border-top: 2px solid var(--border-color);
+}
+
+.documents-section h3 {
+    font-size: 18px;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.section-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+}
+
+/* File Upload Box */
+.file-upload-box {
+    position: relative;
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #fafbfc;
+}
+
+.file-upload-box:hover {
+    border-color: var(--primary-color);
+    background: #eff6ff;
+}
+
+.file-upload-box input[type="file"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.file-upload-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+}
+
+.file-upload-content svg {
+    color: var(--primary-color);
+}
+
+.file-upload-content small {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* File Preview */
+.file-preview {
+    margin-top: 12px;
+}
+
+.file-preview-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+}
+
+.file-preview-item img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.file-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.file-info strong {
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.file-info span {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.file-preview-doc {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+}
+
+.btn-remove-file {
+    padding: 6px;
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.btn-remove-file:hover {
+    background: #fee2e2;
+}
+
+/* Checkbox */
+.cedula-upload-options {
+    margin-bottom: 12px;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Footer */
+.form-footer {
+    padding: 20px 32px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f9fafb;
+}
+
+.step-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+}
+
+/* Revision Summary */
+.revision-summary {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.revision-summary h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+
+.revision-summary > p {
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+}
+
+.summary-section {
+    padding: 24px;
+    background: #f9fafb;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.summary-section h4 {
+    font-size: 16px;
+    margin-bottom: 16px;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.summary-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+}
+
+.summary-row:last-child {
+    border-bottom: none;
+}
+
+.summary-row .label {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.summary-row .value {
+    color: var(--text-primary);
+}
+
+.doc-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: white;
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .tabs-nav {
+        overflow-x: auto;
+    }
+    
+    .tab-btn {
+        flex: none;
+        min-width: 150px;
+    }
+    
+    .tabs-content {
+        padding: 20px;
+    }
+    
+    .form-footer {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .form-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+    
+    .form-actions .btn {
+        flex: 1;
+    }
+}
+
+/* Animation */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+</style>
+{% endblock %}

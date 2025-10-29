@@ -20,6 +20,7 @@ urlpatterns = [
 
     # Proyectos (incluye API y Templates)
     path('', include('apps.proyectos.urls')),
+    path('', include('apps.trabajadores.urls')),
 ]
 
 # Servir archivos media y static en desarrollo

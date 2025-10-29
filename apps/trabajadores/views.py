@@ -1,3 +1,1124 @@
-from django.shortcuts import render
+"""
+Vistas para el módulo de trabajadores
+Gestiona CRUD, importación/exportación CSV, traslados y reportes
+"""
 
-# Create your views here.
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views import View
+from django.views.generic import ListView, DetailView
+from django.db.models import Q
+from django.contrib import messages
+from django.utils import timezone
+from django.http import HttpResponse
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+import csv
+import io
+
+from .models import Trabajador, HistorialProyecto, DocumentoTrabajador
+from .serializers import TrabajadorSerializer, TrabajadorListSerializer
+from .utils import generar_qr_trabajador, parsear_cedula_paraguaya, validar_identificacion_trabajador
+
+from apps.proyectos.models import Proyecto
+
+
+# ============================================
+# VISTAS WEB (TEMPLATES)
+# ============================================
+
+class TrabajadorListView(LoginRequiredMixin, ListView):
+    """Vista para listar trabajadores con filtros y búsqueda"""
+    model = Trabajador
+    template_name = 'trabajadores/lista.html'
+    context_object_name = 'trabajadores'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        """Obtiene el queryset con filtros aplicados"""
+        queryset = Trabajador.objects.filter(eliminado=False).select_related('proyecto_asignado')
+        
+        # Búsqueda por nombre o cédula
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            queryset = queryset.filter(
+                Q(nombre__icontains=search_query) |
+                Q(apellido__icontains=search_query) |
+                Q(numero_cedula__icontains=search_query)
+            )
+        
+        # Filtro por proyecto
+        proyecto_id = self.request.GET.get('proyecto')
+        if proyecto_id and proyecto_id != 'todos':
+            queryset = queryset.filter(proyecto_asignado_id=proyecto_id)
+        
+        # Filtro por cargo
+        cargo = self.request.GET.get('cargo')
+        if cargo and cargo != 'todos':
+            queryset = queryset.filter(puesto_laboral=cargo)
+        
+        # Filtro por estado
+        estado = self.request.GET.get('estado')
+        if estado and estado != 'todos':
+            queryset = queryset.filter(estado=estado)
+        
+        # Filtro por asegurado
+        asegurado = self.request.GET.get('asegurado')
+        if asegurado == 'si':
+            queryset = queryset.filter(asegurado=True)
+        elif asegurado == 'no':
+            queryset = queryset.filter(asegurado=False)
+        
+        return queryset.order_by('-creado_en')
+    
+    def get_context_data(self, **kwargs):
+        """Añade contexto adicional"""
+        context = super().get_context_data(**kwargs)
+        
+        # Proyectos para el filtro
+        context['proyectos'] = Proyecto.objects.filter(
+            activo=True,
+            eliminado=False
+        ).order_by('nombre')
+        
+        # Choices para los filtros
+        context['estados'] = Trabajador.Estado.choices
+        
+        # Estadísticas
+        context['total_trabajadores'] = Trabajador.objects.filter(eliminado=False).count()
+        context['trabajadores_activos'] = Trabajador.objects.filter(
+            eliminado=False,
+            estado=Trabajador.Estado.ACTIVO
+        ).count()
+        context['trabajadores_asegurados'] = Trabajador.objects.filter(
+            eliminado=False,
+            asegurado=True
+        ).count()
+        
+        # Mantener los valores de los filtros
+        context['search_query'] = self.request.GET.get('search', '')
+        context['proyecto_actual'] = self.request.GET.get('proyecto', 'todos')
+        context['cargo_actual'] = self.request.GET.get('cargo', 'todos')
+        context['estado_actual'] = self.request.GET.get('estado', 'todos')
+        context['asegurado_actual'] = self.request.GET.get('asegurado', 'todos')
+        
+        return context
+
+
+class TrabajadorCreateView(LoginRequiredMixin, View):
+    """Vista para crear un nuevo trabajador"""
+    template_name = 'trabajadores/crear.html'
+    
+    def get(self, request):
+        """Muestra el formulario de creación"""
+        proyectos = Proyecto.objects.filter(
+            activo=True,
+            eliminado=False
+        ).order_by('nombre')
+        
+        context = {
+            'proyectos': proyectos,
+            'tipos_sangre': Trabajador.TipoSangre.choices,
+            'sexos': Trabajador.Sexo.choices,
+            'estados': Trabajador.Estado.choices,
+            'today': timezone.now().date(),
+        }
+        return render(request, self.template_name, context)
+    
+    def post(self, request):
+        """Procesa el formulario de creación"""
+        try:
+            # Verificar si ya existe un trabajador con esa cédula
+            numero_cedula = request.POST.get('numero_cedula')
+            if Trabajador.objects.filter(numero_cedula=numero_cedula, eliminado=False).exists():
+                messages.error(
+                    request,
+                    f'❌ Ya existe un trabajador registrado con la cédula {numero_cedula}'
+                )
+                return redirect('trabajador_crear')
+            
+            trabajador = Trabajador()
+            
+            # Información personal - Extraer nombre y apellido del nombre completo
+            nombre_completo = request.POST.get('nombre_completo', '')
+            partes_nombre = nombre_completo.split(' ', 1)
+            
+            trabajador.nombre = request.POST.get('nombre') or (partes_nombre[0] if partes_nombre else '')
+            trabajador.apellido = request.POST.get('apellido') or (partes_nombre[1] if len(partes_nombre) > 1 else '')
+            trabajador.numero_cedula = numero_cedula
+            trabajador.fecha_nacimiento = request.POST.get('fecha_nacimiento') or None
+            trabajador.sexo = request.POST.get('sexo', 'masculino')
+            trabajador.tipo_sangre = request.POST.get('tipo_sangre', '')
+            
+            # Ubicación
+            trabajador.departamento = request.POST.get('departamento', '')
+            trabajador.municipio = request.POST.get('municipio', '')
+            trabajador.direccion = request.POST.get('direccion', '')
+            
+            # Contacto
+            trabajador.telefono = request.POST.get('telefono', '')
+            trabajador.email = request.POST.get('email', '')
+            trabajador.contacto_emergencia = request.POST.get('contacto_emergencia', '')
+            
+            # Laboral
+            proyecto_id = request.POST.get('proyecto_asignado')
+            if proyecto_id:
+                trabajador.proyecto_asignado = Proyecto.objects.get(id=proyecto_id)
+            
+            trabajador.puesto_laboral = request.POST.get('puesto_laboral') or request.POST.get('cargo', '')
+            trabajador.area_cargo = request.POST.get('area_cargo') or request.POST.get('cargo', '')
+            trabajador.salario_normal = request.POST.get('salario_normal') or 0
+            trabajador.tarifa_hora_extra = request.POST.get('tarifa_hora_extra') or 0
+            trabajador.numero_seguro_social = request.POST.get('numero_seguro_social', '')
+            
+            # Extras
+            trabajador.record_policia = 'record_policia' in request.POST
+            trabajador.asegurado = 'asegurado' in request.POST
+            trabajador.estado = request.POST.get('estado', 'activo')
+            trabajador.fecha_ingreso = request.POST.get('fecha_ingreso') or timezone.now().date()
+            trabajador.notas = request.POST.get('notas', '')
+            
+            # Guardar primero para obtener el ID (necesario para los paths de archivos)
+            trabajador.creado_por = request.user
+            trabajador.modificado_por = request.user
+            trabajador.save()
+            
+            # ARCHIVOS - Guardar después de tener el ID
+            if 'foto' in request.FILES:
+                trabajador.foto = request.FILES['foto']
+            
+            if 'foto_cedula_frontal' in request.FILES:
+                trabajador.foto_cedula_frontal = request.FILES['foto_cedula_frontal']
+            
+            if 'foto_cedula_posterior' in request.FILES:
+                trabajador.foto_cedula_posterior = request.FILES['foto_cedula_posterior']
+            
+            if 'foto_cedula' in request.FILES:
+                trabajador.foto_cedula = request.FILES['foto_cedula']
+            
+            if 'record_policia_doc' in request.FILES:
+                trabajador.record_policia_doc = request.FILES['record_policia_doc']
+            
+            trabajador.save()
+            
+            # Crear historial de proyecto si fue asignado
+            if trabajador.proyecto_asignado:
+                HistorialProyecto.objects.create(
+                    trabajador=trabajador,
+                    proyecto=trabajador.proyecto_asignado,
+                    fecha_asignacion=trabajador.fecha_ingreso,
+                    creado_por=request.user
+                )
+            
+            messages.success(
+                request,
+                f'✅ Trabajador "{trabajador.nombre_completo}" creado exitosamente.'
+            )
+            return redirect('trabajadores_lista')
+            
+        except Exception as e:
+            messages.error(
+                request,
+                f'❌ Error al crear el trabajador: {str(e)}'
+            )
+            return redirect('trabajador_crear')
+
+
+class TrabajadorDetalleView(LoginRequiredMixin, DetailView):
+    """Vista para mostrar el detalle completo de un trabajador"""
+    model = Trabajador
+    template_name = 'trabajadores/detalle.html'
+    context_object_name = 'trabajador'
+    
+    def get_queryset(self):
+        """Filtra trabajadores no eliminados"""
+        return Trabajador.objects.filter(eliminado=False).select_related(
+            'proyecto_asignado',
+            'creado_por',
+            'modificado_por'
+        )
+    
+    def get_context_data(self, **kwargs):
+        """Añade información adicional al contexto"""
+        context = super().get_context_data(**kwargs)
+        trabajador = self.object
+        
+        # Historial de proyectos
+        context['historial_proyectos'] = HistorialProyecto.objects.filter(
+            trabajador=trabajador
+        ).select_related('proyecto', 'creado_por').order_by('-fecha_asignacion')
+        
+        # Verificar permisos de edición
+        context['puede_editar'] = (
+            self.request.user.es_administrador or 
+            trabajador.creado_por == self.request.user
+        )
+        
+        # Calcular estadísticas
+        context['dias_trabajados'] = trabajador.tiempo_servicio
+        context['edad'] = trabajador.edad
+        
+        return context
+
+
+class TrabajadorEditarView(LoginRequiredMixin, View):
+    """Vista para editar un trabajador existente"""
+    template_name = 'trabajadores/editar.html'
+    
+    def get(self, request, pk):
+        """Renderiza el formulario de edición con los datos del trabajador"""
+        trabajador = get_object_or_404(Trabajador, pk=pk, eliminado=False)
+        
+        # Validación de permisos
+        if not request.user.es_administrador and trabajador.creado_por != request.user:
+            messages.warning(
+                request, 
+                '⚠️ No tienes permisos suficientes para editar este trabajador.'
+            )
+            return redirect('trabajadores_lista')
+        
+        # Obtener proyectos activos
+        proyectos = Proyecto.objects.filter(
+            activo=True,
+            eliminado=False
+        ).order_by('nombre')
+        
+        context = {
+            'trabajador': trabajador,
+            'proyectos': proyectos,
+            'tipos_sangre': Trabajador.TipoSangre.choices,
+            'sexos': Trabajador.Sexo.choices,
+            'estados': Trabajador.Estado.choices,
+        }
+        
+        return render(request, self.template_name, context)
+    
+    def post(self, request, pk):
+        """Procesa la actualización del trabajador"""
+        trabajador = get_object_or_404(Trabajador, pk=pk, eliminado=False)
+        
+        # Validación de permisos
+        if not request.user.es_administrador and trabajador.creado_por != request.user:
+            messages.error(
+                request,
+                '❌ No tienes permisos suficientes para editar este trabajador.'
+            )
+            return redirect('trabajadores_lista')
+        
+        try:
+            # Validar cédula única
+            nuevo_numero_cedula = request.POST.get('numero_cedula')
+            if nuevo_numero_cedula != trabajador.numero_cedula:
+                if Trabajador.objects.filter(
+                    numero_cedula=nuevo_numero_cedula,
+                    eliminado=False
+                ).exclude(pk=trabajador.pk).exists():
+                    messages.error(
+                        request,
+                        f'❌ Ya existe un trabajador con la cédula {nuevo_numero_cedula}'
+                    )
+                    return redirect('trabajador_editar', pk=pk)
+            
+            # Actualizar campos básicos
+            nombre_completo = request.POST.get('nombre_completo', '')
+            if nombre_completo:
+                partes = nombre_completo.split(' ', 1)
+                trabajador.nombre = partes[0]
+                trabajador.apellido = partes[1] if len(partes) > 1 else ''
+            
+            trabajador.numero_cedula = nuevo_numero_cedula
+            
+            if request.POST.get('fecha_nacimiento'):
+                trabajador.fecha_nacimiento = request.POST.get('fecha_nacimiento')
+            
+            trabajador.sexo = request.POST.get('sexo', trabajador.sexo)
+            trabajador.tipo_sangre = request.POST.get('tipo_sangre', trabajador.tipo_sangre)
+            
+            # Ubicación
+            trabajador.departamento = request.POST.get('departamento', trabajador.departamento)
+            trabajador.municipio = request.POST.get('municipio', trabajador.municipio)
+            trabajador.direccion = request.POST.get('direccion', trabajador.direccion)
+            
+            # Contacto
+            trabajador.telefono = request.POST.get('telefono', trabajador.telefono)
+            trabajador.email = request.POST.get('email', trabajador.email)
+            trabajador.contacto_emergencia = request.POST.get('contacto_emergencia', trabajador.contacto_emergencia)
+            
+            # Proyecto
+            proyecto_id = request.POST.get('proyecto_asignado')
+            if proyecto_id:
+                nuevo_proyecto = get_object_or_404(Proyecto, pk=proyecto_id)
+                if trabajador.proyecto_asignado != nuevo_proyecto:
+                    # Cerrar historial anterior
+                    if trabajador.proyecto_asignado:
+                        HistorialProyecto.objects.filter(
+                            trabajador=trabajador,
+                            fecha_salida__isnull=True
+                        ).update(fecha_salida=timezone.now().date())
+                    
+                    # Crear nuevo historial
+                    HistorialProyecto.objects.create(
+                        trabajador=trabajador,
+                        proyecto=nuevo_proyecto,
+                        fecha_asignacion=timezone.now().date(),
+                        motivo='Actualización de proyecto',
+                        creado_por=request.user
+                    )
+                
+                trabajador.proyecto_asignado = nuevo_proyecto
+            else:
+                # Si se desasigna el proyecto
+                if trabajador.proyecto_asignado:
+                    HistorialProyecto.objects.filter(
+                        trabajador=trabajador,
+                        fecha_salida__isnull=True
+                    ).update(fecha_salida=timezone.now().date())
+                trabajador.proyecto_asignado = None
+            
+            # Datos laborales
+            trabajador.puesto_laboral = request.POST.get('puesto_laboral', trabajador.puesto_laboral)
+            trabajador.area_cargo = request.POST.get('area_cargo', trabajador.area_cargo)
+            trabajador.salario_normal = request.POST.get('salario_normal', trabajador.salario_normal)
+            trabajador.tarifa_hora_extra = request.POST.get('tarifa_hora_extra', trabajador.tarifa_hora_extra)
+            trabajador.numero_seguro_social = request.POST.get('numero_seguro_social', trabajador.numero_seguro_social)
+            trabajador.notas = request.POST.get('notas', trabajador.notas)
+            
+            # Checkboxes
+            trabajador.record_policia = 'record_policia' in request.POST
+            trabajador.asegurado = 'asegurado' in request.POST
+            
+            # Estado y fecha
+            trabajador.estado = request.POST.get('estado', trabajador.estado)
+            
+            if request.POST.get('fecha_ingreso'):
+                trabajador.fecha_ingreso = request.POST.get('fecha_ingreso')
+            
+            # Archivos (solo si se suben nuevos)
+            if 'foto' in request.FILES:
+                trabajador.foto = request.FILES['foto']
+            
+            if 'foto_cedula' in request.FILES:
+                trabajador.foto_cedula = request.FILES['foto_cedula']
+            
+            if 'foto_cedula_frontal' in request.FILES:
+                trabajador.foto_cedula_frontal = request.FILES['foto_cedula_frontal']
+            
+            if 'foto_cedula_posterior' in request.FILES:
+                trabajador.foto_cedula_posterior = request.FILES['foto_cedula_posterior']
+            
+            if 'record_policia_doc' in request.FILES:
+                trabajador.record_policia_doc = request.FILES['record_policia_doc']
+            
+            # Auditoría
+            trabajador.modificado_por = request.user
+            trabajador.save()
+            
+            messages.success(
+                request,
+                f'✅ Trabajador "{trabajador.nombre_completo}" actualizado exitosamente.'
+            )
+            return redirect('trabajadores_lista')
+            
+        except Exception as e:
+            messages.error(
+                request,
+                f'❌ Error al actualizar el trabajador: {str(e)}'
+            )
+            return redirect('trabajador_editar', pk=pk)
+
+
+class TrabajadorEliminarView(LoginRequiredMixin, View):
+    """Vista para eliminar (soft delete) un trabajador"""
+    
+    def post(self, request, pk):
+        trabajador = get_object_or_404(Trabajador, pk=pk, eliminado=False)
+        
+        # Validar permisos (solo administradores)
+        if not request.user.es_administrador:
+            messages.error(
+                request,
+                '❌ No tienes permisos para eliminar trabajadores.'
+            )
+            return redirect('trabajadores_lista')
+        
+        try:
+            trabajador.soft_delete()
+            messages.success(
+                request,
+                f'✅ Trabajador "{trabajador.nombre_completo}" eliminado exitosamente.'
+            )
+        except Exception as e:
+            messages.error(
+                request,
+                f'❌ Error al eliminar el trabajador: {str(e)}'
+            )
+        
+        return redirect('trabajadores_lista')
+
+
+class TrabajadorTrasladarView(LoginRequiredMixin, View):
+    """Vista para trasladar un trabajador a otro proyecto"""
+    
+    def post(self, request, pk):
+        trabajador = get_object_or_404(Trabajador, pk=pk, eliminado=False)
+        proyecto_id = request.POST.get('proyecto_id')
+        
+        if not proyecto_id:
+            messages.error(request, '❌ Debe seleccionar un proyecto.')
+            return redirect('trabajadores_lista')
+        
+        try:
+            nuevo_proyecto = Proyecto.objects.get(id=proyecto_id)
+            
+            # Cerrar historial anterior si existe
+            if trabajador.proyecto_asignado:
+                HistorialProyecto.objects.filter(
+                    trabajador=trabajador,
+                    fecha_salida__isnull=True
+                ).update(fecha_salida=timezone.now().date())
+            
+            # Crear nuevo historial
+            HistorialProyecto.objects.create(
+                trabajador=trabajador,
+                proyecto=nuevo_proyecto,
+                fecha_asignacion=timezone.now().date(),
+                motivo=f'Traslado desde {trabajador.proyecto_asignado.nombre if trabajador.proyecto_asignado else "Sin proyecto"}',
+                creado_por=request.user
+            )
+            
+            # Asignar nuevo proyecto
+            trabajador.proyecto_asignado = nuevo_proyecto
+            trabajador.modificado_por = request.user
+            trabajador.save()
+            
+            messages.success(
+                request,
+                f'✅ Trabajador trasladado exitosamente a {nuevo_proyecto.nombre}.'
+            )
+        except Exception as e:
+            messages.error(
+                request,
+                f'❌ Error al trasladar el trabajador: {str(e)}'
+            )
+        
+        return redirect('trabajadores_lista')
+
+
+# ============================================
+# IMPORTACIÓN Y EXPORTACIÓN CSV
+# ============================================
+
+class TrabajadorImportarCSVView(LoginRequiredMixin, View):
+    """Vista para importar trabajadores desde archivo CSV"""
+    
+    def post(self, request):
+        if 'archivo_csv' not in request.FILES:
+            messages.error(request, '❌ No se ha seleccionado ningún archivo.')
+            return redirect('trabajadores_lista')
+        
+        archivo = request.FILES['archivo_csv']
+        
+        # Validar que sea CSV
+        if not archivo.name.endswith('.csv'):
+            messages.error(request, '❌ El archivo debe ser formato CSV.')
+            return redirect('trabajadores_lista')
+        
+        try:
+            # Leer el archivo CSV
+            decoded_file = archivo.read().decode('utf-8-sig')  # utf-8-sig para manejar BOM
+            io_string = io.StringIO(decoded_file)
+            reader = csv.DictReader(io_string)
+            
+            # Validar que tenga las columnas requeridas
+            columnas_requeridas = ['nombre', 'apellido', 'numero_cedula', 'telefono', 'puesto_laboral']
+            columnas_archivo = reader.fieldnames
+            
+            if not all(col in columnas_archivo for col in columnas_requeridas):
+                faltantes = [col for col in columnas_requeridas if col not in columnas_archivo]
+                messages.error(
+                    request,
+                    f'❌ El archivo CSV no tiene las columnas requeridas. Faltan: {", ".join(faltantes)}'
+                )
+                return redirect('trabajadores_lista')
+            
+            # Procesar filas
+            trabajadores_nuevos = []
+            trabajadores_duplicados = []
+            errores = []
+            filas_ignoradas = 0
+            
+            for idx, row in enumerate(reader, start=2):  # Empieza en 2 porque 1 es el header
+                numero_cedula = row.get('numero_cedula', '').strip()
+                
+                # IGNORAR FILA DE EJEMPLO
+                if numero_cedula == 'EJEMPLO-123' or row.get('nombre', '').upper() == 'EJEMPLO':
+                    filas_ignoradas += 1
+                    continue
+                
+                if not numero_cedula:
+                    errores.append(f"Fila {idx}: Cédula vacía")
+                    continue
+                
+                # Verificar si ya existe
+                if Trabajador.objects.filter(numero_cedula=numero_cedula, eliminado=False).exists():
+                    trabajadores_duplicados.append({
+                        'fila': idx,
+                        'cedula': numero_cedula,
+                        'nombre': f"{row.get('nombre', '')} {row.get('apellido', '')}".strip()
+                    })
+                    continue
+                
+                # Validar campos requeridos
+                if not row.get('nombre') or not row.get('apellido'):
+                    errores.append(f"Fila {idx}: Nombre o apellido vacío (Cédula: {numero_cedula})")
+                    continue
+                
+                if not row.get('puesto_laboral'):
+                    errores.append(f"Fila {idx}: Puesto laboral vacío (Cédula: {numero_cedula})")
+                    continue
+                
+                # Construir contacto de emergencia
+                nombre_contacto = row.get('nombre_contacto_emergencia', '').strip()
+                numero_contacto = row.get('numero_contacto_emergencia', '').strip()
+                
+                # Si ambos existen, combinarlos
+                if nombre_contacto and numero_contacto:
+                    contacto_emergencia = f"{nombre_contacto} | {numero_contacto}"
+                elif nombre_contacto:
+                    contacto_emergencia = nombre_contacto
+                elif numero_contacto:
+                    contacto_emergencia = numero_contacto
+                else:
+                    # Fallback al campo antiguo si existe
+                    contacto_emergencia = row.get('contacto_emergencia', '').strip()
+                
+                # Preparar datos del trabajador
+                trabajador_data = {
+                    'numero_cedula': numero_cedula,
+                    'nombre': row.get('nombre', '').strip(),
+                    'apellido': row.get('apellido', '').strip(),
+                    'telefono': row.get('telefono', '').strip(),
+                    'puesto_laboral': row.get('puesto_laboral', '').strip(),
+                    'area_cargo': row.get('area_cargo', row.get('puesto_laboral', '')).strip(),
+                    'departamento': row.get('departamento', '').strip(),
+                    'municipio': row.get('municipio', '').strip(),
+                    'direccion': row.get('direccion', '').strip(),
+                    'email': row.get('email', '').strip(),
+                    'contacto_emergencia': contacto_emergencia,
+                    'fecha_nacimiento': row.get('fecha_nacimiento', None) or None,
+                    'sexo': row.get('sexo', 'masculino').lower(),
+                    'salario_normal': row.get('salario_normal', 0) or 0,
+                    'tarifa_hora_extra': row.get('tarifa_hora_extra', 0) or 0,
+                    'numero_seguro_social': row.get('numero_seguro_social', '').strip(),
+                    'asegurado': row.get('asegurado', '').lower() in ['si', 'sí', 'yes', 'true', '1'],
+                    'estado': 'activo',
+                    'fecha_ingreso': timezone.now().date(),
+                    'creado_por': request.user,
+                    'modificado_por': request.user,
+                }
+                
+                # Validar sexo
+                if trabajador_data['sexo'] not in ['masculino', 'femenino', 'otro']:
+                    trabajador_data['sexo'] = 'masculino'
+                
+                trabajadores_nuevos.append(trabajador_data)
+            
+            # Mensaje informativo sobre filas ignoradas
+            if filas_ignoradas > 0:
+                messages.info(
+                    request,
+                    f'ℹ️ Se ignoraron {filas_ignoradas} fila(s) de ejemplo.'
+                )
+            
+            # Si hay duplicados, preguntar al usuario
+            if trabajadores_duplicados:
+                # Guardar datos en sesión para confirmación
+                request.session['trabajadores_importar'] = {
+                    'nuevos': trabajadores_nuevos,
+                    'duplicados': trabajadores_duplicados,
+                    'errores': errores,
+                    'ignoradas': filas_ignoradas,
+                }
+                
+                # Renderizar página de confirmación
+                return render(request, 'trabajadores/importar_confirmar.html', {
+                    'duplicados': trabajadores_duplicados,
+                    'nuevos_count': len(trabajadores_nuevos),
+                    'errores': errores,
+                    'ignoradas': filas_ignoradas,
+                })
+            
+            # Si no hay duplicados, crear directamente
+            if trabajadores_nuevos:
+                creados = self._crear_trabajadores(trabajadores_nuevos)
+                
+                mensaje_exito = f'✅ Se importaron exitosamente {creados} trabajadores.'
+                if filas_ignoradas > 0:
+                    mensaje_exito += f' Se ignoraron {filas_ignoradas} fila(s) de ejemplo.'
+                
+                messages.success(request, mensaje_exito)
+                
+                if errores:
+                    messages.warning(
+                        request,
+                        f'⚠️ Se encontraron {len(errores)} errores: {"; ".join(errores[:5])}'
+                    )
+            else:
+                messages.warning(request, '⚠️ No se encontraron trabajadores válidos para importar.')
+            
+            return redirect('trabajadores_lista')
+            
+        except Exception as e:
+            messages.error(
+                request,
+                f'❌ Error al procesar el archivo: {str(e)}'
+            )
+            return redirect('trabajadores_lista')
+    
+    def _crear_trabajadores(self, trabajadores_data):
+        """Crea trabajadores en lote y genera QRs automáticamente"""
+        from .utils import generar_qr_trabajador
+        
+        trabajadores = []
+        
+        for data in trabajadores_data:
+            try:
+                trabajador = Trabajador(**data)
+                trabajador.save()
+                
+                # Generar QR automáticamente
+                try:
+                    generar_qr_trabajador(trabajador)
+                    trabajador.save(update_fields=['codigo_qr'])
+                except Exception as e:
+                    # Si falla el QR, no detener la creación
+                    print(f"Error al generar QR para {trabajador.numero_cedula}: {str(e)}")
+                
+                trabajadores.append(trabajador)
+            except Exception as e:
+                print(f"Error al crear trabajador: {str(e)}")
+                continue
+        
+        return len(trabajadores)
+
+class TrabajadorImportarConfirmarView(LoginRequiredMixin, View):
+    """Vista para confirmar importación con duplicados"""
+    
+    def post(self, request):
+        accion = request.POST.get('accion')
+        
+        if accion not in ['confirmar', 'cancelar']:
+            messages.error(request, '❌ Acción inválida.')
+            return redirect('trabajadores_lista')
+        
+        # Recuperar datos de la sesión
+        datos_importar = request.session.get('trabajadores_importar')
+        
+        if not datos_importar:
+            messages.error(request, '❌ No se encontraron datos para importar.')
+            return redirect('trabajadores_lista')
+        
+        if accion == 'cancelar':
+            del request.session['trabajadores_importar']
+            messages.info(request, 'ℹ️ Importación cancelada.')
+            return redirect('trabajadores_lista')
+        
+        # Confirmar: crear trabajadores omitiendo duplicados
+        trabajadores_nuevos = datos_importar['nuevos']
+        duplicados_count = len(datos_importar['duplicados'])
+        
+        creados = 0
+        qr_generados = 0
+        
+        for data in trabajadores_nuevos:
+            try:
+                # Crear trabajador
+                trabajador = Trabajador(**data)
+                trabajador.save()
+                creados += 1
+                
+                # Generar QR automáticamente
+                try:
+                    generar_qr_trabajador(trabajador)
+                    trabajador.save(update_fields=['codigo_qr'])
+                    qr_generados += 1
+                except Exception as qr_error:
+                    print(f"Error generando QR para {trabajador.numero_cedula}: {str(qr_error)}")
+                
+            except Exception as e:
+                print(f"Error creando trabajador: {str(e)}")
+                continue
+        
+        # Limpiar sesión
+        del request.session['trabajadores_importar']
+        
+        messages.success(
+            request,
+            f'✅ Se importaron {creados} trabajadores con {qr_generados} códigos QR generados. '
+            f'Se omitieron {duplicados_count} duplicados.'
+        )
+        
+        if datos_importar['errores']:
+            messages.warning(
+                request,
+                f'⚠️ Se encontraron {len(datos_importar["errores"])} errores durante la importación.'
+            )
+        
+        return redirect('trabajadores_lista')
+
+def trabajadores_exportar(request):
+    """Exporta la lista completa de trabajadores a CSV"""
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="trabajadores_exportados.csv"'
+    response.write('\ufeff')  # BOM para UTF-8
+    
+    writer = csv.writer(response)
+    
+    # Header con todas las columnas
+    writer.writerow([
+        'nombre',
+        'apellido',
+        'numero_cedula',
+        'fecha_nacimiento',
+        'sexo',
+        'telefono',
+        'email',
+        'direccion',
+        'departamento',
+        'municipio',
+        'nombre_contacto_emergencia',
+        'numero_contacto_emergencia',
+        'puesto_laboral',
+        'area_cargo',
+        'salario_normal',
+        'tarifa_hora_extra',
+        'numero_seguro_social',
+        'asegurado',
+        'proyecto',
+        'estado',
+        'fecha_ingreso'
+    ])
+    
+    # Exportar todos los trabajadores no eliminados
+    trabajadores = Trabajador.objects.filter(eliminado=False).select_related('proyecto_asignado')
+    
+    for t in trabajadores:
+        # Separar contacto de emergencia
+        contacto_nombre = ''
+        contacto_numero = ''
+        if t.contacto_emergencia:
+            # Formato esperado: "Nombre | Número" o "Nombre - Número"
+            if '|' in t.contacto_emergencia:
+                partes = t.contacto_emergencia.split('|')
+                contacto_nombre = partes[0].strip() if len(partes) > 0 else ''
+                contacto_numero = partes[1].strip() if len(partes) > 1 else ''
+            elif '-' in t.contacto_emergencia:
+                partes = t.contacto_emergencia.split('-')
+                contacto_nombre = partes[0].strip() if len(partes) > 0 else ''
+                contacto_numero = partes[1].strip() if len(partes) > 1 else ''
+            else:
+                contacto_nombre = t.contacto_emergencia
+        
+        writer.writerow([
+            t.nombre,
+            t.apellido,
+            t.numero_cedula,
+            t.fecha_nacimiento.strftime('%Y-%m-%d') if t.fecha_nacimiento else '',
+            t.sexo,
+            t.telefono,
+            t.email or '',
+            t.direccion,
+            t.departamento,
+            t.municipio,
+            contacto_nombre,
+            contacto_numero,
+            t.puesto_laboral,
+            t.area_cargo,
+            float(t.salario_normal) if t.salario_normal else 0,
+            float(t.tarifa_hora_extra) if t.tarifa_hora_extra else 0,
+            t.numero_seguro_social or '',
+            'si' if t.asegurado else 'no',
+            t.proyecto_asignado.nombre if t.proyecto_asignado else '',
+            t.estado,
+            t.fecha_ingreso.strftime('%Y-%m-%d') if t.fecha_ingreso else ''
+        ])
+    
+    return response
+
+
+def trabajadores_plantilla_csv(request):
+    """Genera una plantilla CSV actualizada con ejemplos y formato correcto"""
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="plantilla_trabajadores.csv"'
+    response.write('\ufeff')  # BOM para UTF-8
+    
+    writer = csv.writer(response)
+    
+    # Header con campos separados
+    writer.writerow([
+        'nombre',
+        'apellido',
+        'numero_cedula',
+        'fecha_nacimiento',
+        'sexo',
+        'telefono',
+        'email',
+        'direccion',
+        'departamento',
+        'municipio',
+        'nombre_contacto_emergencia',
+        'numero_contacto_emergencia',
+        'puesto_laboral',
+        'area_cargo',
+        'salario_normal',
+        'tarifa_hora_extra',
+        'numero_seguro_social',
+        'asegurado'
+    ])
+    
+    # Fila de ejemplo (será ignorada en la importación)
+    writer.writerow([
+        'EJEMPLO',
+        'IGNORAR',
+        'EJEMPLO-123',
+        '1990-01-15',
+        'masculino',
+        '0981234567',
+        'ejemplo@email.com',
+        'Av. Principal 123',
+        'Central',
+        'Asunción',
+        'María Pérez',
+        '0982345678',
+        'Operario',
+        'Albañilería',
+        '2500000',
+        '20000',
+        'SS123456',
+        'si'
+    ])
+    
+    return response
+
+# ============================================
+# API REST (PARA APP MÓVIL)
+# ============================================
+
+from .utils import generar_qr_trabajador, validar_identificacion_trabajador
+
+class TrabajadorGenerarQRView(LoginRequiredMixin, View):
+    """Vista para generar o regenerar código QR del trabajador"""
+    
+    def post(self, request, pk):
+        trabajador = get_object_or_404(Trabajador, pk=pk, eliminado=False)
+        
+        try:
+            # Generar/regenerar QR
+            generar_qr_trabajador(trabajador)
+            trabajador.save(update_fields=['codigo_qr'])
+            
+            messages.success(
+                request,
+                f'✅ Código QR generado exitosamente para {trabajador.nombre_completo}'
+            )
+        except Exception as e:
+            messages.error(
+                request,
+                f'❌ Error al generar código QR: {str(e)}'
+            )
+        
+        return redirect('trabajador_detalle', pk=pk)
+
+
+class TrabajadorRegenerarTodosQRView(LoginRequiredMixin, View):
+    """Vista para regenerar QR de todos los trabajadores que no lo tienen"""
+    
+    def post(self, request):
+        # Solo administradores
+        if not request.user.es_administrador:
+            messages.error(request, '❌ No tienes permisos para esta acción.')
+            return redirect('trabajadores_lista')
+        
+        try:
+            # Obtener trabajadores sin QR
+            trabajadores_sin_qr = Trabajador.objects.filter(
+                eliminado=False,
+                codigo_qr__in=['', None]
+            )
+            
+            total = trabajadores_sin_qr.count()
+            exitosos = 0
+            errores = 0
+            
+            for trabajador in trabajadores_sin_qr:
+                try:
+                    generar_qr_trabajador(trabajador)
+                    trabajador.save(update_fields=['codigo_qr'])
+                    exitosos += 1
+                except Exception as e:
+                    errores += 1
+                    print(f"Error generando QR para {trabajador.numero_cedula}: {str(e)}")
+            
+            if exitosos > 0:
+                messages.success(
+                    request,
+                    f'✅ Se generaron {exitosos} códigos QR exitosamente.'
+                )
+            
+            if errores > 0:
+                messages.warning(
+                    request,
+                    f'⚠️ {errores} códigos QR no pudieron generarse.'
+                )
+            
+            if total == 0:
+                messages.info(
+                    request,
+                    'ℹ️ Todos los trabajadores ya tienen código QR generado.'
+                )
+        
+        except Exception as e:
+            messages.error(
+                request,
+                f'❌ Error al regenerar códigos QR: {str(e)}'
+            )
+        
+        return redirect('trabajadores_lista')  
+
+class TrabajadorViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para el API REST de trabajadores
+    Usado por la aplicación móvil
+    """
+    queryset = Trabajador.objects.filter(eliminado=False)
+    serializer_class = TrabajadorSerializer
+    
+    def get_serializer_class(self):
+        """Retorna el serializer apropiado según la acción"""
+        if self.action == 'list':
+            return TrabajadorListSerializer
+        return TrabajadorSerializer
+    
+    def get_queryset(self):
+        """Filtra el queryset según parámetros"""
+        queryset = super().get_queryset()
+        
+        # Filtro por proyecto
+        proyecto_id = self.request.query_params.get('proyecto')
+        if proyecto_id:
+            queryset = queryset.filter(proyecto_asignado_id=proyecto_id)
+        
+        # Filtro por estado
+        estado = self.request.query_params.get('estado')
+        if estado:
+            queryset = queryset.filter(estado=estado)
+        
+        # Búsqueda
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(nombre__icontains=search) |
+                Q(apellido__icontains=search) |
+                Q(numero_cedula__icontains=search)
+            )
+        
+        return queryset
+    
+    @action(detail=False, methods=['get'], url_path='por-cedula/(?P<cedula>[^/.]+)')
+    def por_cedula(self, request, cedula=None):
+        """
+        Endpoint para buscar trabajador por número de cédula
+        Usado por la app móvil para escaneo de asistencias
+        """
+        try:
+            trabajador = Trabajador.objects.get(
+                numero_cedula=cedula,
+                eliminado=False
+            )
+            serializer = self.get_serializer(trabajador)
+            return Response(serializer.data)
+        except Trabajador.DoesNotExist:
+            return Response(
+                {'error': 'Trabajador no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    @action(detail=False, methods=['get'])
+    def activos(self, request):
+        """Retorna solo trabajadores activos"""
+        trabajadores = self.get_queryset().filter(estado=Trabajador.Estado.ACTIVO)
+        serializer = self.get_serializer(trabajadores, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['post'], url_path='validar-identificacion')
+    def validar_identificacion(self, request):
+        """
+        Endpoint unificado para validar QR o código de barras de cédula
+        Detecta automáticamente el tipo de código
+        
+        POST /api/trabajadores/validar-identificacion/
+        Body: {"codigo": "1010124036"} o {"codigo": "0362284301��������..."}
+        
+        Response:
+        {
+            "valido": true,
+            "tipo_codigo": "QR_GENERADO" o "CEDULA_FISICA",
+            "trabajador": {...},
+            "datos_extraidos": {...}  // Solo si es cédula física
+        }
+        """
+        codigo = request.data.get('codigo')
+        
+        if not codigo:
+            return Response(
+                {'error': 'Debe proporcionar el código escaneado'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        resultado = validar_identificacion_trabajador(codigo)
+        
+        if resultado['valido']:
+            serializer = self.get_serializer(resultado['trabajador'])
+            
+            response_data = {
+                'valido': True,
+                'tipo_codigo': resultado['tipo_codigo'],
+                'trabajador': serializer.data
+            }
+            
+            # Si es cédula física, incluir datos extraídos
+            if resultado['tipo_codigo'] == 'CEDULA_FISICA' and 'datos_extraidos' in resultado:
+                response_data['datos_extraidos'] = resultado.get('datos_extraidos')
+            
+            return Response(response_data)
+        else:
+            return Response(
+                {
+                    'valido': False,
+                    'tipo_codigo': resultado.get('tipo_codigo'),
+                    'error': resultado['error']
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    @action(detail=False, methods=['post'], url_path='parsear-cedula')
+    def parsear_cedula(self, request):
+        """
+        Endpoint para parsear código de barras de cédula sin validar trabajador
+        Útil para debugging en la app móvil
+        
+        POST /api/trabajadores/parsear-cedula/
+        Body: {"codigo_barras": "0362284301��������..."}
+        """
+        codigo_barras = request.data.get('codigo_barras')
+        
+        if not codigo_barras:
+            return Response(
+                {'error': 'Debe proporcionar codigo_barras'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        resultado = parsear_cedula_paraguaya(codigo_barras)
+        resultado = "FALTA FUNCION PARA PARSEAR LA CEDULA"
+        return Response(resultado)
