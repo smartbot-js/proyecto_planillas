@@ -7,7 +7,7 @@
 <div class="page-header">
     <div>
         <div class="breadcrumb">
-            <a href="{% url 'proyectos_lista' %}" style="color: var(--text-secondary); text-decoration: none;">
+            <a href="{% url 'proyectos_lista' %}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
                 </svg>
@@ -25,7 +25,7 @@
         <p class="page-subtitle">Información detallada del proyecto</p>
     </div>
     
-    <div style="display: flex; gap: 12px;">
+    <div class="page-actions" style="display: flex; gap: 12px;">
         {% if user.es_administrador or proyecto.supervisor == user %}
         <a href="{% url 'proyecto_editar' proyecto.id %}" class="btn btn-secondary">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -54,7 +54,7 @@
             Volver
         </a>
     </div>
-    </div>
+</div>
 
 <div class="content-wrapper">
     
@@ -128,19 +128,15 @@
         </div>
     </div>
 
-    <div class="detalle-grid">
+    <div class="detail-grid">
         
-        <div class="detalle-main">
+        <div class="detail-main">
             
             {% if proyecto.descripcion %}
             <div class="info-card">
                 <div class="card-header">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="16" y1="13" x2="8" y2="13"></line>
-                        <line x1="16" y1="17" x2="8" y2="17"></line>
-                        <polyline points="10 9 9 9 8 9"></polyline>
                     </svg>
                     <h3>Descripción del Proyecto</h3>
                 </div>
@@ -179,9 +175,6 @@
                 <div class="card-header">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                     </svg>
                     <h3>Personal y Equipo</h3>
                 </div>
@@ -203,7 +196,6 @@
                 <div class="card-header">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="12" y1="1" x2="12" y2="23"></line>
-                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                     </svg>
                     <h3>Presupuesto y Gastos</h3>
                 </div>
@@ -233,21 +225,6 @@
                             <span class="stat-label">Anticipo</span>
                             <span class="stat-value">${{ proyecto.anticipo|floatformat:2 }}</span>
                         </div>
-                        
-                        <div class="stat-item">
-                            <span class="stat-label">Real / Pres. (Mano de Obra)</span>
-                            <span class="stat-value">
-                                ${{ proyecto.gasto_mano_obra_real|floatformat:2 }} / ${{ proyecto.presupuesto_mano_obra|floatformat:2 }}
-                            </span>
-                        </div>
-                        
-                        <div class="stat-item">
-                            <span class="stat-label">Real / Pres. (Administrativo)</span>
-                            <span class="stat-value">
-                                ${{ proyecto.gasto_administrativo_real|floatformat:2 }} / ${{ proyecto.presupuesto_administrativo|floatformat:2 }}
-                            </span>
-                        </div>
-                    
                     </div>
                 </div>
             </div>
@@ -265,7 +242,6 @@
                         <a href="{{ proyecto.archivo_contrato.url }}" target="_blank" class="documento-item">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
                             </svg>
                             <div>
                                 <span class="doc-title">Contrato</span>
@@ -273,8 +249,6 @@
                             </div>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                <polyline points="15 3 21 3 21 9"></polyline>
-                                <line x1="10" y1="14" x2="21" y2="3"></line>
                             </svg>
                         </a>
                         {% endif %}
@@ -283,7 +257,6 @@
                         <a href="{{ proyecto.archivo_avaluo.url }}" target="_blank" class="documento-item">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
                             </svg>
                             <div>
                                 <span class="doc-title">Avalúo</span>
@@ -291,8 +264,6 @@
                             </div>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                <polyline points="15 3 21 3 21 9"></polyline>
-                                <line x1="10" y1="14" x2="21" y2="3"></line>
                             </svg>
                         </a>
                         {% endif %}
@@ -301,7 +272,6 @@
                         <a href="{{ proyecto.archivo_presupuesto.url }}" target="_blank" class="documento-item">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
                             </svg>
                             <div>
                                 <span class="doc-title">Presupuesto</span>
@@ -309,8 +279,6 @@
                             </div>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                <polyline points="15 3 21 3 21 9"></polyline>
-                                <line x1="10" y1="14" x2="21" y2="3"></line>
                             </svg>
                         </a>
                         {% endif %}
@@ -335,7 +303,6 @@
                 <div class="card-header">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
                     <h3>Progreso</h3>
                 </div>
@@ -371,7 +338,6 @@
                 <div class="card-header">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                        <circle cx="12" cy="10" r="3"></circle>
                     </svg>
                     <h3>Ubicación</h3>
                 </div>
@@ -393,7 +359,6 @@
                             <a href="https://www.google.com/maps?q={{ proyecto.ubicacion_coordenadas }}" target="_blank" class="google-maps-link">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;">
                                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                    <circle cx="12" cy="10" r="3"></circle>
                                 </svg>
                                 Ver en Google Maps
                             </a>
@@ -408,7 +373,6 @@
                 <div class="card-header">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
                     </svg>
                     <h3>Avalúo</h3>
                 </div>
@@ -430,7 +394,6 @@
                 <div class="card-header">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
                     <h3>Información de Auditoría</h3>
                 </div>
@@ -462,21 +425,13 @@
                     </div>
                 </div>
             </div>
-            </div>
+        </div>
         
     </div>
 </div>
 
 <style>
-/* Breadcrumb */
-.breadcrumb {
-    display: flex;
-    align-items: center;
-    margin-bottom: 12px;
-    font-size: 14px;
-}
-
-/* Header Card */
+/* --- Clases Específicas (Mantenidas) --- */
 .proyecto-header-card {
     background: white;
     border-radius: 16px;
@@ -484,19 +439,16 @@
     box-shadow: var(--shadow-sm);
     margin-bottom: 24px;
 }
-
 .proyecto-header-image {
     position: relative;
     height: 300px;
     overflow: hidden;
 }
-
 .proyecto-header-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
-
 .proyecto-header-overlay {
     position: absolute;
     top: 20px;
@@ -504,9 +456,7 @@
     display: flex;
     gap: 10px;
 }
-
-.estado-badge,
-.tipo-badge {
+.estado-badge, .tipo-badge {
     padding: 8px 16px;
     border-radius: 20px;
     font-size: 12px;
@@ -516,385 +466,61 @@
     backdrop-filter: blur(10px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
+.estado-badge.estado-planificacion { background: #dbeafe; color: #1e40af; }
+.estado-badge.estado-ejecucion { background: #10b981; color: white; }
+.estado-badge.estado-pausado { background: #f59e0b; color: white; }
+.estado-badge.estado-finalizado { background: #6b7280; color: white; }
+.tipo-badge { background: rgba(255, 255, 255, 0.95); color: var(--text-primary); }
 
-.estado-badge.estado-planificacion {
-    background: rgba(219, 234, 254, 0.95);
-    color: #1e40af;
-}
-
-.estado-badge.estado-ejecucion {
-    background: rgba(16, 185, 129, 0.95);
-    color: white;
-}
-
-.estado-badge.estado-pausado {
-    background: rgba(245, 158, 11, 0.95);
-    color: white;
-}
-
-.estado-badge.estado-finalizado {
-    background: rgba(107, 114, 128, 0.95);
-    color: white;
-}
-
-.tipo-badge {
-    background: rgba(255, 255, 255, 0.95);
-    color: var(--text-primary);
-}
-
-.proyecto-header-content {
-    padding: 24px 32px;
-}
-
+.proyecto-header-content { padding: 24px 32px; }
 .proyecto-meta {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 24px;
 }
+.meta-item { display: flex; align-items: flex-start; gap: 12px; }
+.meta-item svg { color: var(--primary-color); flex-shrink: 0; margin-top: 2px; }
+.meta-label { display: block; font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 4px; }
+.meta-value { display: block; font-size: 14px; color: var(--text-primary); font-weight: 600; }
 
-.meta-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-}
+.proyecto-descripcion { line-height: 1.6; color: var(--text-primary); }
 
-.meta-item svg {
-    color: var(--primary-color);
-    flex-shrink: 0;
-    margin-top: 2px;
-}
+.stat-item { display: flex; flex-direction: column; }
+.stat-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px; }
+.stat-value { font-size: 18px; color: var(--text-primary); font-weight: 700; }
+.stat-value.stat-primary { color: var(--primary-color); }
+.stat-value.stat-success { color: #10b981; }
+.stat-value.stat-warning { color: #f59e0b; }
 
-.meta-label {
-    display: block;
-    font-size: 12px;
-    color: var(--text-secondary);
-    font-weight: 500;
-    margin-bottom: 4px;
-}
+.progress-circle { text-align: center; margin-bottom: 24px; }
+.progress-value { font-size: 48px; font-weight: 700; color: var(--primary-color); line-height: 1; }
+.progress-label { font-size: 13px; color: var(--text-secondary); margin-top: 8px; }
 
-.meta-value {
-    display: block;
-    font-size: 14px;
-    color: var(--text-primary);
-    font-weight: 600;
-}
+.progress-bar-container { margin-bottom: 16px; }
+.progress-bar-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; font-weight: 600; }
+.progress-bar { height: 8px; background: var(--bg-page); border-radius: 4px; overflow: hidden; }
+.progress-bar-fill { height: 100%; background: var(--primary-color); border-radius: 4px; transition: width 0.3s; }
+.progress-bar-fill.warning { background: #f59e0b; }
 
-/* Detalle Grid */
-.detalle-grid {
-    display: grid;
-    grid-template-columns: 1fr 380px;
-    gap: 24px;
-}
+.ubicacion-info p { margin-bottom: 12px; font-size: 14px; color: var(--text-primary); }
+.ubicacion-info p:last-child { margin-bottom: 0; }
+.ubicacion-info code { background: var(--bg-page); padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+.google-maps-link { display: inline-flex; align-items: center; font-size: 13px; font-weight: 600; color: var(--primary-color); text-decoration: none; transition: all 0.2s; }
+.google-maps-link:hover { text-decoration: underline; opacity: 0.8; }
 
-.detalle-main {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-
-.detalle-sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-
-/* Info Cards */
-.info-card {
-    background: white;
-    border-radius: 12px;
-    box-shadow: var(--shadow-sm);
-    overflow: hidden;
-}
-
-.card-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--border-color);
-    background: var(--bg-page);
-}
-
-.card-header svg {
-    color: var(--primary-color);
-}
-
-.card-header h3 {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 0;
-}
-
-.card-content {
-    padding: 24px;
-}
-
-/* Descripción */
-.proyecto-descripcion {
-    line-height: 1.6;
-    color: var(--text-primary);
-}
-
-/* Stats Grid */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 20px;
-}
-
-.stat-item {
-    display: flex;
-    flex-direction: column;
-}
-
-.stat-label {
-    font-size: 12px;
-    color: var(--text-secondary);
-    font-weight: 500;
-    margin-bottom: 6px;
-}
-
-.stat-value {
-    font-size: 18px;
-    color: var(--text-primary);
-    font-weight: 700;
-}
-
-.stat-value.stat-primary {
-    color: var(--primary-color);
-}
-
-.stat-value.stat-success {
-    color: #10b981;
-}
-
-.stat-value.stat-warning {
-    color: #f59e0b;
-}
-
-/* Progress Circle */
-.progress-circle {
-    text-align: center;
-    margin-bottom: 24px;
-}
-
-.progress-value {
-    font-size: 48px;
-    font-weight: 700;
-    color: var(--primary-color);
-    line-height: 1;
-}
-
-.progress-label {
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-top: 8px;
-}
-
-/* Progress Bar */
-.progress-bar-container {
-    margin-bottom: 16px;
-}
-
-.progress-bar-container:last-child {
-    margin-bottom: 0;
-}
-
-.progress-bar-label {
-    display: flex;
-    justify-content: space-between;
-    font-size: 13px;
-    margin-bottom: 6px;
-    font-weight: 600;
-}
-
-.progress-bar {
-    height: 8px;
-    background: var(--bg-page);
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.progress-bar-fill {
-    height: 100%;
-    background: var(--primary-color);
-    border-radius: 4px;
-    transition: width 0.3s;
-}
-
-.progress-bar-fill.warning {
-    background: #f59e0b;
-}
-
-/* Ubicación */
-.ubicacion-info p {
-    margin-bottom: 12px;
-    font-size: 14px;
-    color: var(--text-primary);
-}
-
-.ubicacion-info p:last-child {
-    margin-bottom: 0;
-}
-
-.ubicacion-info code {
-    background: var(--bg-page);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-}
-
-/* Enlace Google Maps */
-.google-maps-link {
-    display: inline-flex;
-    align-items: center;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--primary-color);
-    text-decoration: none;
-    transition: all 0.2s;
-}
-
-.google-maps-link:hover {
-    text-decoration: underline;
-    opacity: 0.8;
-}
-
-/* Documentos */
-.documentos-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
+.documentos-grid { display: flex; flex-direction: column; gap: 12px; }
 .documento-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px;
-    background: var(--bg-page);
-    border-radius: 10px;
-    text-decoration: none;
+    display: flex; align-items: center; gap: 12px; padding: 16px;
+    background: var(--bg-page); border-radius: 10px; text-decoration: none;
     transition: all 0.2s;
 }
-
-.documento-item:hover {
-    background: #e0f2fe;
-    transform: translateX(4px);
-}
-
-.documento-item svg:first-child {
-    color: var(--primary-color);
-}
-
-.documento-item svg:last-child {
-    color: var(--text-secondary);
-    margin-left: auto;
-}
-
-.doc-title {
-    display: block;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.doc-subtitle {
-    display: block;
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
-.no-documentos {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--text-secondary);
-}
-
-.no-documentos svg {
-    margin-bottom: 12px;
-    opacity: 0.3;
-}
-
-/* Estilos para Botones */
-.btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px; /* Espacio entre ícono y texto */
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    text-decoration: none;
-    border: 1px solid transparent;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.btn svg {
-    vertical-align: -4px; 
-}
-
-/* Botón Editar */
-.btn.btn-secondary {
-    background-color: var(--primary-color, #0ea5e9);
-    color: white;
-    border-color: var(--primary-color, #0ea5e9);
-    box-shadow: var(--shadow-sm);
-}
-
-.btn.btn-secondary:hover {
-    background-color: #0284c7; 
-    border-color: #0284c7;
-}
-
-/* Botón Volver */
-.btn.btn-outline {
-    background-color: #ffffff;
-    color: var(--text-primary, #1f2937);
-    border-color: var(--border-color, #e5e7eb);
-    box-shadow: var(--shadow-sm);
-}
-
-.btn.btn-outline:hover {
-    background-color: var(--bg-page, #f9fafb);
-    border-color: #d1d5db;
-}
-
-/* === INICIO CAMBIO 4: ESTILO BOTÓN ELIMINAR === */
-.btn-danger {
-    background: #ef4444;
-    color: white;
-    border: none;
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.2s;
-}
-.btn-danger:hover {
-    background: #dc2626;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-}
-/* === FIN CAMBIO 4 === */
-
-/* Responsive */
-@media (max-width: 1024px) {
-    .detalle-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .proyecto-meta {
-        grid-template-columns: 1fr;
-    }
-}
+.documento-item:hover { background: #e0f2fe; }
+.documento-item svg:first-child { color: var(--primary-color); }
+.documento-item svg:last-child { color: var(--text-secondary); margin-left: auto; }
+.doc-title { display: block; font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.doc-subtitle { display: block; font-size: 12px; color: var(--text-secondary); }
+.no-documentos { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+.no-documentos svg { margin-bottom: 12px; opacity: 0.3; }
 </style>
 
 {% if user.es_administrador %}

@@ -3,6 +3,61 @@
 
 {% block title %}Reportes de Asistencias - Sistema de Gestión{% endblock %}
 
+{% block extra_css %}
+<style>
+/* Estilos específicos de esta página */
+.stats-grid-report {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+.stat-box-report {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+.stat-icon-report {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.stat-icon-report.primary { background: var(--color-info-bg); color: var(--color-info); }
+.stat-icon-report.success { background: var(--color-success-bg); color: var(--color-success); }
+.stat-icon-report.warning { background: var(--color-warning-bg); color: var(--color-warning); }
+.stat-icon-report.error { background: var(--color-danger-bg); color: var(--color-danger); }
+.stat-icon-report.info { background: #e0e7ff; color: #6366f1; }
+.stat-icon-report.secondary { background: #f3f4f6; color: #6b7280; }
+
+.stat-label-report {
+    display: block;
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+.stat-value-report {
+    display: block;
+    font-size: 32px;
+    font-weight: 700;
+    color: #111827;
+}
+.text-primary {
+    color: var(--primary-color);
+}
+.text-center {
+    text-align: center;
+    padding: 40px;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
@@ -37,27 +92,26 @@
     </div>
 </div>
 
-<!-- Filtros -->
 <div class="content-card">
     <div class="card-header">
         <h3>Período de Reporte</h3>
     </div>
     <div class="card-body">
         <form method="GET" class="filters-form">
-            <div class="form-grid">
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">
                 <div class="form-group">
-                    <label>Fecha Inicio *</label>
-                    <input type="date" name="fecha_inicio" class="form-control" value="{{ fecha_inicio }}" required>
+                    <label for="fecha_inicio">Fecha Inicio *</label>
+                    <input type="date" name="fecha_inicio" id="fecha_inicio" class="form-control" value="{{ fecha_inicio }}" required>
                 </div>
 
                 <div class="form-group">
-                    <label>Fecha Fin *</label>
-                    <input type="date" name="fecha_fin" class="form-control" value="{{ fecha_fin }}" required>
+                    <label for="fecha_fin">Fecha Fin *</label>
+                    <input type="date" name="fecha_fin" id="fecha_fin" class="form-control" value="{{ fecha_fin }}" required>
                 </div>
 
                 <div class="form-group">
-                    <label>Proyecto</label>
-                    <select name="proyecto" class="form-control">
+                    <label for="proyecto">Proyecto</label>
+                    <select name="proyecto" id="proyecto" class="form-control">
                         <option value="">Todos los proyectos</option>
                         {% for proyecto in proyectos %}
                         <option value="{{ proyecto.id }}" {% if proyecto_id == proyecto.id|stringformat:"s" %}selected{% endif %}>
@@ -81,7 +135,6 @@
     </div>
 </div>
 
-<!-- Estadísticas Generales -->
 <div class="content-card">
     <div class="card-header">
         <h3>Resumen General</h3>
@@ -176,7 +229,6 @@
     </div>
 </div>
 
-<!-- Resumen por Trabajador -->
 <div class="content-card">
     <div class="card-header">
         <h3>Resumen por Trabajador</h3>
@@ -193,6 +245,7 @@
                     <th>Horas Extras</th>
                     <th>Total Horas</th>
                     <th>Llegadas Tarde</th>
+                    <th>Salidas Tempranas</th>
                 </tr>
             </thead>
             <tbody>
@@ -212,10 +265,17 @@
                         <span class="badge badge-success">0</span>
                         {% endif %}
                     </td>
+                    <td>
+                        {% if trabajador.salidas_temprano_count > 0 %}
+                        <span class="badge badge-warning">{{ trabajador.salidas_temprano_count }}</span>
+                        {% else %}
+                        <span class="badge badge-success">0</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="text-center">No hay datos para el período seleccionado</td>
+                    <td colspan="9" class="text-center">No hay datos para el período seleccionado</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -223,7 +283,6 @@
     </div>
 </div>
 
-<!-- Resumen por Proyecto -->
 {% if resumen_proyectos %}
 <div class="content-card">
     <div class="card-header">
@@ -252,56 +311,4 @@
 </div>
 {% endif %}
 
-<style>
-.stats-grid-report {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-}
-
-.stat-box-report {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    padding: 20px;
-    background: white;
-    border-radius: 12px;
-    border: 2px solid #f3f4f6;
-}
-
-.stat-icon-report {
-    width: 56px;
-    height: 56px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.stat-icon-report.primary { background: #dbeafe; color: #3b82f6; }
-.stat-icon-report.success { background: #d1fae5; color: #10b981; }
-.stat-icon-report.warning { background: #fef3c7; color: #f59e0b; }
-.stat-icon-report.error { background: #fee2e2; color: #ef4444; }
-.stat-icon-report.info { background: #e0e7ff; color: #6366f1; }
-.stat-icon-report.secondary { background: #f3f4f6; color: #6b7280; }
-
-.stat-label-report {
-    display: block;
-    font-size: 14px;
-    color: #6b7280;
-    margin-bottom: 4px;
-}
-
-.stat-value-report {
-    display: block;
-    font-size: 32px;
-    font-weight: 700;
-    color: #111827;
-}
-
-.text-primary {
-    color: #3b82f6;
-}
-</style>
 {% endblock %}

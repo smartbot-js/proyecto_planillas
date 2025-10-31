@@ -39,8 +39,7 @@
 {% endif %}
 
 <div class="grid-layout">
-    <div class="main-content">
-        <!-- Formulario de edición -->
+    <div class="main-content" style="padding: 0;">
         <div class="content-card">
             <div class="card-header">
                 <h3>Editar Horarios</h3>
@@ -62,7 +61,7 @@
 
                     <div class="form-grid">
                         <div class="form-group">
-                            <label>Hora de Entrada *</label>
+                            <label for="horaEntrada">Hora de Entrada *</label>
                             <input type="time" 
                                    name="hora_entrada" 
                                    class="form-control" 
@@ -72,7 +71,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Hora de Salida</label>
+                            <label for="horaSalida">Hora de Salida</label>
                             <input type="time" 
                                    name="hora_salida" 
                                    class="form-control" 
@@ -83,14 +82,14 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Observaciones</label>
-                        <textarea name="observaciones" 
+                        <label for="observaciones">Observaciones</label>
+                        <textarea name="observaciones"
+                                  id="observaciones" 
                                   class="form-control" 
                                   rows="4" 
                                   placeholder="Motivo de la edición, notas adicionales...">{{ asistencia.observaciones }}</textarea>
                     </div>
 
-                    <!-- Preview de horas -->
                     <div id="previewHoras" class="preview-horas" style="display: none;">
                         <h4>Vista Previa de Horas:</h4>
                         <div class="horas-preview-grid">
@@ -123,8 +122,7 @@
         </div>
     </div>
 
-    <div class="sidebar-content">
-        <!-- Información actual -->
+    <div class="sidebar-content" style="padding-top: 24px;">
         <div class="content-card">
             <div class="card-header">
                 <h3>Datos Actuales</h3>
@@ -169,101 +167,89 @@
             </div>
         </div>
 
-        <!-- Ayuda -->
         <div class="content-card">
             <div class="card-header">
                 <h3>Ayuda</h3>
             </div>
             <div class="card-body">
                 <ul class="help-list">
-                    <li>Las horas normales se calculan hasta 8 horas diarias</li>
-                    <li>Las horas extras son las que exceden las 8 horas</li>
-                    <li>Si la salida es anterior a la entrada, se asume que es del día siguiente</li>
-                    <li>Solo se pueden editar asistencias del día actual o anterior</li>
+                    <li>Las horas normales se calculan según el día (L-J 8.5h, V 9h, S 5h).</li>
+                    <li>Las horas extras son las que exceden la jornada normal del día.</li>
+                    <li>Si la salida es anterior a la entrada, se asume que es del día siguiente.</li>
+                    <li>Solo se pueden editar asistencias del día actual o anterior.</li>
                 </ul>
             </div>
         </div>
     </div>
 </div>
 
+{% block extra_css %}
 <style>
+/* Estilos específicos de esta página */
 .preview-horas {
     padding: 20px;
     background: #f9fafb;
     border-radius: 12px;
     margin: 20px 0;
 }
-
 .preview-horas h4 {
     margin: 0 0 16px 0;
     font-size: 16px;
     color: #111827;
 }
-
 .horas-preview-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 16px;
 }
-
 .hora-preview-item {
     text-align: center;
     padding: 12px;
     background: white;
     border-radius: 8px;
+    border: 1px solid var(--border-color);
 }
-
 .hora-preview-item.total {
-    grid-column: 1 / -1;
     background: #dbeafe;
+    border-color: #bfdbfe;
 }
-
 .hora-preview-item .label {
     display: block;
     font-size: 13px;
     color: #6b7280;
     margin-bottom: 4px;
 }
-
 .hora-preview-item .value {
     display: block;
     font-size: 20px;
     font-weight: 700;
     color: #111827;
 }
-
 .hora-preview-item.total .value {
     color: #3b82f6;
 }
-
 .help-list {
     margin: 0;
     padding-left: 20px;
     color: #6b7280;
     font-size: 14px;
 }
-
 .help-list li {
     margin-bottom: 8px;
-}
-
-.alert-error {
-    background: #fee2e2;
-    border-color: #dc2626;
-    color: #991b1b;
 }
 
 @media (max-width: 768px) {
     .horas-preview-grid {
         grid-template-columns: 1fr;
     }
-    
     .hora-preview-item.total {
         grid-column: 1;
     }
 }
 </style>
+{% endblock %}
 
+{% block extra_js %}
 <script>
 // Calcular horas en tiempo real
 function calcularHoras() {
@@ -275,6 +261,19 @@ function calcularHoras() {
         return;
     }
     
+    // Simular la fecha de la asistencia para obtener el día de la semana
+    const fechaAsistencia = new Date("{{ asistencia.fecha|date:'Y-m-d' }}T00:00:00");
+    const diaSemana = fechaAsistencia.getDay(); // Domingo=0, Lunes=1, ..., Sábado=6
+    
+    let jornadaNormal = 0;
+    if (diaSemana >= 1 && diaSemana <= 4) { // Lunes a Jueves
+        jornadaNormal = 8.5;
+    } else if (diaSemana === 5) { // Viernes
+        jornadaNormal = 9.0;
+    } else if (diaSemana === 6) { // Sábado
+        jornadaNormal = 5.0;
+    }
+    
     // Convertir a minutos
     const [entradaH, entradaM] = entrada.split(':').map(Number);
     const [salidaH, salidaM] = salida.split(':').map(Number);
@@ -282,18 +281,16 @@ function calcularHoras() {
     let entradaMin = entradaH * 60 + entradaM;
     let salidaMin = salidaH * 60 + salidaM;
     
-    // Si la salida es menor, asumimos día siguiente
     if (salidaMin < entradaMin) {
-        salidaMin += 24 * 60;
+        salidaMin += 24 * 60; // Asumir día siguiente
     }
     
-    // Calcular total en horas
     const totalMin = salidaMin - entradaMin;
     const totalHoras = totalMin / 60;
     
     // Calcular normales y extras
-    const horasNormales = Math.min(totalHoras, 8);
-    const horasExtras = Math.max(totalHoras - 8, 0);
+    const horasNormales = Math.min(totalHoras, jornadaNormal);
+    const horasExtras = Math.max(totalHoras - jornadaNormal, 0);
     
     // Mostrar preview
     document.getElementById('previewNormales').textContent = horasNormales.toFixed(2) + 'h';

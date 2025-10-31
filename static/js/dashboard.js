@@ -1,77 +1,80 @@
 // ============================================
-// DASHBOARD JS
+// DASHBOARD JS v3.0 (Sidebar Blanco Responsivo)
 // ============================================
 
-// Inicialización
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Dashboard JS loaded successfully');
     
-    // Verificar que los modales existen
-    const modales = document.querySelectorAll('.modal');
-    console.log(`Found ${modales.length} modals`);
-});
+    const body = document.body;
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarToggleBtn = document.getElementById('sidebar-toggle');
+    
+    // --- LÓGICA DE SIDEBAR ---
 
-// ============================================
-// MODAL FUNCTIONS
-// ============================================
-
-window.showModal = function(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        console.log(`Modal ${modalId} opened`);
-    } else {
-        console.error(`Modal ${modalId} not found`);
+    if (sidebarToggleBtn) {
+        sidebarToggleBtn.addEventListener('click', function() {
+            const isMobile = window.innerWidth <= 1024;
+            
+            if (isMobile) {
+                // En móvil, activa el overlay
+                body.classList.toggle('sidebar-mobile-open');
+            } else {
+                // En desktop, colapsa el menú
+                body.classList.toggle('sidebar-collapsed-desktop');
+            }
+        });
     }
-}
 
-window.hideModal = function(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
-        console.log(`Modal ${modalId} closed`);
+    // --- CERRAR SIDEBAR MÓVIL AL CLICAR FUERA ---
+    document.addEventListener('click', function(e) {
+        // Si el menú móvil está abierto y se hace clic *fuera* del sidebar
+        if (body.classList.contains('sidebar-mobile-open') && !e.target.closest('.sidebar') && !e.target.closest('#sidebar-toggle')) {
+            e.preventDefault();
+            body.classList.remove('sidebar-mobile-open');
+        }
+    });
+
+
+    // --- MANEJO DE MODALES ---
+    window.showModal = function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        } else {
+            console.error(`Modal ${modalId} not found`);
+        }
     }
-}
 
-// Cerrar modal al hacer clic en overlay
-document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('modal-overlay')) {
-        const modal = e.target.closest('.modal');
+    window.hideModal = function(modalId) {
+        const modal = document.getElementById(modalId);
         if (modal) {
             modal.classList.remove('active');
             document.body.style.overflow = '';
         }
     }
-});
 
-// Cerrar modal con ESC
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        const activeModal = document.querySelector('.modal.active');
-        if (activeModal) {
-            activeModal.classList.remove('active');
+    // Cerrar modal al hacer clic en overlay (global)
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal-overlay')) {
+            e.target.classList.remove('active');
             document.body.style.overflow = '';
         }
-    }
-});
+    });
 
-// ============================================
-// OTRAS FUNCIONES GLOBALES
-// ============================================
+    // Cerrar modal con ESC (global)
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const activeModal = document.querySelector('.modal-overlay.active');
+            if (activeModal) {
+                activeModal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }
+    });
 
-// Ejemplo de función para mostrar notificaciones
-window.showNotification = function(message, type = 'info') {
-    // TODO: Implementar sistema de notificaciones
-    console.log(`[${type.toUpperCase()}] ${message}`);
-}
 
-// ============================================
-// AUTO-DISMISS MESSAGES
-// ============================================
-document.addEventListener('DOMContentLoaded', function() {
-    const alerts = document.querySelectorAll('.alert');
+    // --- AUTO-DESCARTAR ALERTAS (MENSAJES) ---
+    const alerts = document.querySelectorAll('.alert.alert-dismissible');
     
     alerts.forEach(alert => {
         // Auto-cerrar después de 5 segundos
@@ -81,5 +84,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert.remove();
             }, 500);
         }, 5000);
+
+        // Cierre manual con el botón
+        const closeButton = alert.querySelector('.alert-close');
+        if (closeButton) {
+            closeButton.addEventListener('click', function() {
+                alert.style.animation = 'fadeOut 0.3s ease-out forwards';
+                setTimeout(() => {
+                    alert.remove();
+                }, 300);
+            });
+        }
     });
+
 });

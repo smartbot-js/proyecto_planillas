@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.core.validators import MinValueValidator
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time  # <--- IMPORTADO time
 from decimal import Decimal
 
 
@@ -192,8 +192,31 @@ class Asistencia(models.Model):
     def __str__(self):
         return f"{self.trabajador.nombre_completo} - {self.fecha} ({self.get_estado_display()})"
     
+    def get_jornada_normal_horas(self):
+        """
+        Retorna la cantidad de horas normales según el día de la semana.
+        Basado en el requisito: L-J 7am-4:30pm (8.5h), V 7am-5pm (9h), S 7am-12pm (5h)
+        Asumiendo 1 hora de almuerzo para L-J y V.
+        """
+        dia_semana = self.fecha.weekday()  # Lunes=0, Martes=1, ..., Domingo=6
+        
+        if 0 <= dia_semana <= 3:  # Lunes a Jueves
+            # 7:00 a 16:30 = 9.5 horas. Asumiendo 1h almuerzo = 8.5h
+            return Decimal('8.50')
+        elif dia_semana == 4:  # Viernes
+            # 7:00 a 17:00 = 10 horas. Asumiendo 1h almuerzo = 9h
+            return Decimal('9.00')
+        elif dia_semana == 5:  # Sábado
+            # 7:00 a 12:00 = 5 horas.
+            return Decimal('5.00')
+        else:  # Domingo
+            return Decimal('0.00')
+
     def calcular_horas(self):
-        """Calcula las horas normales, extras y totales trabajadas"""
+        """
+        Calcula las horas normales, extras y totales trabajadas
+        basado en la jornada variable.
+        """
         if not self.hora_salida:
             self.horas_normales = Decimal('0.00')
             self.horas_extras = Decimal('0.00')
@@ -212,8 +235,9 @@ class Asistencia(models.Model):
         diferencia = salida - entrada
         total_horas = Decimal(str(diferencia.total_seconds() / 3600))
         
-        # Calcular horas normales (máximo 8) y extras
-        HORAS_NORMALES_MAX = Decimal('8.00')
+        # Obtener la jornada normal para este día
+        HORAS_NORMALES_MAX = self.get_jornada_normal_horas()
+        
         if total_horas <= HORAS_NORMALES_MAX:
             self.horas_normales = total_horas
             self.horas_extras = Decimal('0.00')
@@ -225,21 +249,28 @@ class Asistencia(models.Model):
     
     def verificar_llegada_tarde(self):
         """Verifica si el trabajador llegó tarde (después de las 7:00 AM)"""
-        from datetime import time
         HORA_LIMITE = time(7, 0)  # 7:00 AM
         
         # Asegurar que hora_entrada sea un objeto time
-        if isinstance(self.hora_entrada, str):
-            hora_entrada_time = datetime.strptime(self.hora_entrada, '%H:%M').time()
-        else:
-            hora_entrada_time = self.hora_entrada
+        hora_entrada_time = self.hora_entrada
+        if isinstance(hora_entrada_time, str):
+            try:
+                hora_entrada_time = datetime.strptime(hora_entrada_time, '%H:%M:%S').time()
+            except ValueError:
+                hora_entrada_time = datetime.strptime(hora_entrada_time, '%H:%M').time()
         
         self.llego_tarde = hora_entrada_time > HORA_LIMITE
     
     def verificar_salida_temprano(self):
-        """Verifica si el trabajador salió antes de cumplir las 8 horas"""
-        if self.hora_salida and self.horas_totales < Decimal('8.00'):
-            self.salio_temprano = True
+        """
+        Verifica si el trabajador salió antes de cumplir la jornada normal.
+        El CSV menciona "si hay miinutos de menos, siempre se contabiliza el dia, 
+        solo que se pone como la bandera de aviso". Esta es la bandera.
+        """
+        if self.hora_salida:
+            jornada_normal = self.get_jornada_normal_horas()
+            # Se marca si salió temprano Y no cumplió la jornada
+            self.salio_temprano = self.horas_totales < jornada_normal
         else:
             self.salio_temprano = False
     
@@ -249,8 +280,8 @@ class Asistencia(models.Model):
             hora_salida = timezone.now().time()
         
         self.hora_salida = hora_salida
-        self.calcular_horas()
-        self.verificar_salida_temprano()
+        self.calcular_horas()  # Ya usa la nueva lógica
+        self.verificar_salida_temprano()  # Ya usa la nueva lógica
         self.estado = 'cerrado'
         self.save()
     
@@ -274,8 +305,9 @@ class Asistencia(models.Model):
     
     def save(self, *args, **kwargs):
         """Override del save para cálculos automáticos"""
-        # Verificar llegada tarde
-        self.verificar_llegada_tarde()
+        # Verificar llegada tarde al crear/actualizar entrada
+        if self.hora_entrada:
+            self.verificar_llegada_tarde()
         
         # Calcular horas si hay hora de salida
         if self.hora_salida:

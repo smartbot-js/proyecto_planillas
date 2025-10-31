@@ -57,10 +57,16 @@ class AsistenciaListView(LoginRequiredMixin, ListView):
         llego_tarde = self.request.GET.get('llego_tarde')
         busqueda = self.request.GET.get('busqueda')
         
+        # Aplicar filtros de fecha (si existen)
         if fecha_inicio:
             queryset = queryset.filter(fecha__gte=fecha_inicio)
         if fecha_fin:
             queryset = queryset.filter(fecha__lte=fecha_fin)
+        
+        # Si no hay rango de fechas, filtrar por hoy por defecto
+        if not fecha_inicio and not fecha_fin:
+            queryset = queryset.filter(fecha=timezone.now().date())
+
         if proyecto:
             queryset = queryset.filter(proyecto_id=proyecto)
         if estado:
@@ -81,34 +87,57 @@ class AsistenciaListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Estadísticas
-        fecha_hoy = timezone.now().date()
-        asistencias_hoy = Asistencia.objects.filter(fecha=fecha_hoy)
+        # Determinar el rango de fechas para stats y resumen
+        fecha_inicio = self.request.GET.get('fecha_inicio')
+        fecha_fin = self.request.GET.get('fecha_fin')
         
-        context['stats'] = {
-            'total': asistencias_hoy.count(),
-            'cerrados': asistencias_hoy.filter(estado='cerrado').count(),
-            'abiertos': asistencias_hoy.filter(estado='abierto').count(),
-            'tarde': asistencias_hoy.filter(llego_tarde=True).count(),
-            'horas_totales': asistencias_hoy.aggregate(
-                total=Sum('horas_totales')
-            )['total'] or 0,
-            'horas_extras': asistencias_hoy.aggregate(
-                total=Sum('horas_extras')
-            )['total'] or 0,
-        }
+        if fecha_inicio and fecha_fin:
+            base_query = Asistencia.objects.filter(
+                fecha__range=[fecha_inicio, fecha_fin]
+            )
+            # Guardar fechas formateadas para los filtros
+            context['fecha_inicio_filtro'] = fecha_inicio
+            context['fecha_fin_filtro'] = fecha_fin
+        else:
+            # Si no hay rango, usar fecha de hoy
+            hoy = timezone.now().date()
+            base_query = Asistencia.objects.filter(fecha=hoy)
+            # Guardar fecha de hoy para los filtros
+            context['fecha_inicio_filtro'] = hoy.strftime('%Y-%m-%d')
+            context['fecha_fin_filtro'] = hoy.strftime('%Y-%m-%d')
+        
+        
+        # Aplicar filtro de proyecto si existe
+        proyecto_filtro = self.request.GET.get('proyecto')
+        if proyecto_filtro:
+            base_query = base_query.filter(proyecto_id=proyecto_filtro)
+
+        # Estadísticas (basadas en el rango de fechas)
+        context['stats'] = base_query.aggregate(
+            total=Count('id'),
+            cerrados=Count('id', filter=Q(estado='cerrado')),
+            abiertos=Count('id', filter=Q(estado='abierto')),
+            tarde=Count('id', filter=Q(llego_tarde=True)),
+            horas_totales=Sum('horas_totales'),
+            horas_extras=Sum('horas_extras')
+        )
+
+        # Limpiar agregados nulos
+        for key, value in context['stats'].items():
+            if value is None:
+                context['stats'][key] = 0
         
         # Para los filtros
-        context['proyectos'] = Proyecto.objects.filter(activo=True)
-        context['estados'] = Asistencia.ESTADO_CHOICES  # ← AHORA SÍ EXISTE
+        context['proyectos'] = Proyecto.objects.filter(activo=True, eliminado=False)
+        context['estados'] = Asistencia.ESTADO_CHOICES
         context['puestos'] = Asistencia.objects.values_list(
             'puesto_laboral', flat=True
         ).distinct()
         
         # Filtros aplicados
         context['filtros'] = {
-            'fecha_inicio': self.request.GET.get('fecha_inicio', ''),
-            'fecha_fin': self.request.GET.get('fecha_fin', ''),
+            'fecha_inicio': context['fecha_inicio_filtro'],
+            'fecha_fin': context['fecha_fin_filtro'],
             'proyecto': self.request.GET.get('proyecto', ''),
             'estado': self.request.GET.get('estado', ''),
             'puesto': self.request.GET.get('puesto', ''),
@@ -116,10 +145,8 @@ class AsistenciaListView(LoginRequiredMixin, ListView):
             'busqueda': self.request.GET.get('busqueda', ''),
         }
         
-        # Resumen por proyecto
-        context['resumen_proyectos'] = Asistencia.objects.filter(
-            fecha=fecha_hoy
-        ).values(
+        # Resumen por proyecto (basado en el rango de fechas)
+        context['resumen_proyectos'] = base_query.values(
             'proyecto__nombre'
         ).annotate(
             total_asistencias=Count('id'),
@@ -128,7 +155,7 @@ class AsistenciaListView(LoginRequiredMixin, ListView):
             total_tarde=Count('id', filter=Q(llego_tarde=True)),
             total_horas=Sum('horas_totales'),
             total_extras=Sum('horas_extras')
-        )
+        ).order_by('proyecto__nombre')
         
         return context
 
@@ -150,7 +177,10 @@ class AsistenciaMarcarEntradaView(LoginRequiredMixin, View):
         ).order_by('nombre', 'apellido')
         
         # Filtrar proyectos activos (asumiendo que tienen campo 'activo')
-        proyectos = Proyecto.objects.filter(activo=True).order_by('nombre')
+        proyectos = Proyecto.objects.filter(
+            activo=True,
+            eliminado=False
+        ).order_by('nombre')
         
         return render(request, 'asistencias/marcar_entrada.html', {
             'trabajadores': trabajadores,
@@ -185,7 +215,6 @@ class AsistenciaMarcarEntradaView(LoginRequiredMixin, View):
             # Procesar hora de entrada
             if hora_entrada_str:
                 # Convertir string a objeto time
-                from datetime import datetime
                 hora_entrada = datetime.strptime(hora_entrada_str, '%H:%M').time()
             else:
                 hora_entrada = timezone.now().time()
@@ -237,7 +266,6 @@ class AsistenciaCerrarTurnoView(LoginRequiredMixin, View):
             
             # Procesar hora de salida
             if hora_salida_str:
-                from datetime import datetime
                 hora_salida = datetime.strptime(hora_salida_str, '%H:%M').time()
             else:
                 hora_salida = timezone.now().time()
@@ -303,10 +331,21 @@ class AsistenciaEditarView(LoginRequiredMixin, View):
             
             if hora_salida:
                 asistencia.hora_salida = datetime.strptime(hora_salida, '%H:%M').time()
+            else:
+                asistencia.hora_salida = None # Permitir re-abrir el turno
+                asistencia.estado = 'abierto'
             
             asistencia.observaciones = observaciones
             asistencia.editado_por = request.user
-            asistencia.save()
+            
+            # Si se re-abre el turno, resetear horas
+            if not asistencia.hora_salida:
+                asistencia.horas_normales = 0
+                asistencia.horas_extras = 0
+                asistencia.horas_totales = 0
+                asistencia.salio_temprano = False
+            
+            asistencia.save() # Esto llamará a calcular_horas y verificar_llegada_tarde
             
             messages.success(request, '✅ Asistencia actualizada correctamente.')
             return redirect('asistencia_detalle', pk=pk)
@@ -320,22 +359,26 @@ class AsistenciaReportesView(LoginRequiredMixin, TemplateView):
     """Vista para generar reportes de asistencias"""
     template_name = 'asistencias/reportes.html'
     
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         # Obtener parámetros de filtro
-        fecha_inicio = request.GET.get('fecha_inicio')
-        fecha_fin = request.GET.get('fecha_fin')
+        fecha_inicio_str = request.GET.get('fecha_inicio')
+        fecha_fin_str = request.GET.get('fecha_fin')
         proyecto_id = request.GET.get('proyecto')
         
         # Valores por defecto: mes actual
-        if not fecha_inicio or not fecha_fin:
+        if not fecha_inicio_str or not fecha_fin_str:
             hoy = timezone.now().date()
             fecha_inicio = hoy.replace(day=1)
             fecha_fin = hoy
         else:
-            from datetime import datetime
-            fecha_inicio = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
-            fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
-        
+            try:
+                fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+                fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+            except ValueError:
+                hoy = timezone.now().date()
+                fecha_inicio = hoy.replace(day=1)
+                fecha_fin = hoy
+
         # Filtrar asistencias
         asistencias = Asistencia.objects.filter(
             fecha__gte=fecha_inicio,
@@ -346,32 +389,32 @@ class AsistenciaReportesView(LoginRequiredMixin, TemplateView):
             asistencias = asistencias.filter(proyecto_id=proyecto_id)
         
         # Estadísticas generales
-        stats = {
-            'total_asistencias': asistencias.count(),
-            'total_trabajadores': asistencias.values('trabajador').distinct().count(),
-            'horas_normales_total': asistencias.aggregate(
-                total=Sum('horas_normales')
-            )['total'] or 0,
-            'horas_extras_total': asistencias.aggregate(
-                total=Sum('horas_extras')
-            )['total'] or 0,
-            'llegadas_tarde': asistencias.filter(llego_tarde=True).count(),
-            'salidas_temprano': asistencias.filter(salio_temprano=True).count(),
-        }
+        stats = asistencias.aggregate(
+            total_asistencias=Count('id'),
+            total_trabajadores=Count('trabajador', distinct=True),
+            horas_normales_total=Sum('horas_normales'),
+            horas_extras_total=Sum('horas_extras'),
+            llegadas_tarde=Count('id', filter=Q(llego_tarde=True)),
+            salidas_temprano=Count('id', filter=Q(salio_temprano=True))
+        )
         
-        # Resumen por trabajador - CORREGIDO
+        # Limpiar agregados nulos
+        stats = {k: v or 0 for k, v in stats.items()}
+        
+        # Resumen por trabajador
         resumen_trabajadores = asistencias.values(
             'trabajador__id',
             'trabajador__nombre',
             'trabajador__apellido',
             'trabajador__numero_cedula',
-            'puesto_laboral'
+            'puesto_laboral' # Usar el puesto de la asistencia
         ).annotate(
             dias_trabajados=Count('id'),
             total_horas_normales=Sum('horas_normales'),
             total_horas_extras=Sum('horas_extras'),
             total_horas=Sum('horas_totales'),
-            llegadas_tarde=Count('id', filter=Q(llego_tarde=True))
+            llegadas_tarde=Count('id', filter=Q(llego_tarde=True)),
+            salidas_temprano_count=Count('id', filter=Q(salio_temprano=True)) # <-- CAMBIO AQUÍ
         ).order_by('trabajador__nombre', 'trabajador__apellido')
         
         # Combinar nombre y apellido para cada trabajador
@@ -387,7 +430,7 @@ class AsistenciaReportesView(LoginRequiredMixin, TemplateView):
         ).order_by('proyecto__nombre')
         
         # Lista de proyectos para el filtro
-        proyectos = Proyecto.objects.filter(activo=True)
+        proyectos = Proyecto.objects.filter(activo=True, eliminado=False)
         
         context = {
             'stats': stats,
@@ -439,6 +482,7 @@ def asistencias_exportar_csv(request):
         'Horas Extras',
         'Horas Totales',
         'Llegó Tarde',
+        'Salió Temprano', # Añadido
         'Estado',
         'Observaciones'
     ])
@@ -457,6 +501,7 @@ def asistencias_exportar_csv(request):
             float(asistencia.horas_extras),
             float(asistencia.horas_totales),
             'Sí' if asistencia.llego_tarde else 'No',
+            'Sí' if asistencia.salio_temprano else 'No', # Añadido
             asistencia.get_estado_display(),
             asistencia.observaciones
         ])
@@ -479,6 +524,12 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'list':
             return AsistenciaListSerializer
+        elif self.action == 'check_in':
+            return CheckInSerializer
+        elif self.action == 'check_out':
+            return CheckOutSerializer
+        elif self.action == 'sincronizar':
+            return SincronizarAsistenciasSerializer
         return AsistenciaSerializer
     
     def get_queryset(self):
@@ -512,20 +563,8 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
     def check_in(self, request):
         """
         Endpoint para marcar entrada (check-in)
-        
-        POST /api/asistencias/check-in/
-        Body: {
-            "trabajador_cedula": "1234567890",
-            "proyecto_id": 1,
-            "hora_entrada": "07:30:00",  // Opcional
-            "latitud": -25.2637,  // Opcional
-            "longitud": -57.5759,  // Opcional
-            "metodo_identificacion": "qr",  // qr, cedula, manual
-            "dispositivo_id": "ABC123",
-            "observaciones": ""
-        }
         """
-        serializer = CheckInSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -536,45 +575,58 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
             # Buscar trabajador
             trabajador = Trabajador.objects.get(
                 numero_cedula=data['trabajador_cedula'],
-                eliminado=False
+                eliminado=False,
+                estado='activo' # Solo trabajadores activos pueden marcar
             )
             
             # Buscar proyecto
-            proyecto = Proyecto.objects.get(id=data['proyecto_id'])
+            proyecto = Proyecto.objects.get(id=data['proyecto_id'], eliminado=False, activo=True)
             
             # Verificar si ya tiene asistencia hoy
             hoy = timezone.now().date()
             asistencia_existente = Asistencia.objects.filter(
                 trabajador=trabajador,
-                fecha=hoy,
-                estado__in=['abierto', 'cerrado']
+                fecha=hoy
             ).first()
             
             if asistencia_existente:
-                return Response(
-                    {
-                        'error': 'El trabajador ya tiene una asistencia registrada hoy',
-                        'asistencia': AsistenciaSerializer(asistencia_existente).data
-                    },
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
+                if asistencia_existente.estado == 'abierto':
+                    return Response(
+                        {
+                            'error': 'El trabajador ya tiene un turno abierto hoy',
+                            'asistencia': AsistenciaSerializer(asistencia_existente).data
+                        },
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                else:
+                    return Response(
+                        {
+                            'error': 'El trabajador ya tiene un turno cerrado hoy',
+                            'asistencia': AsistenciaSerializer(asistencia_existente).data
+                        },
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+            # Hora de entrada
+            hora_entrada = data.get('hora_entrada') or timezone.now().time()
+
             # Crear asistencia
-            asistencia = Asistencia()
-            asistencia.trabajador = trabajador
-            asistencia.proyecto = proyecto
-            asistencia.marcar_entrada(
-                hora=data.get('hora_entrada'),
-                latitud=data.get('latitud'),
-                longitud=data.get('longitud'),
-                metodo=data.get('metodo_identificacion', 'qr'),
+            asistencia = Asistencia.objects.create(
+                trabajador=trabajador,
+                proyecto=proyecto,
+                fecha=hoy,
+                puesto_laboral=trabajador.puesto_laboral,
+                hora_entrada=hora_entrada,
+                latitud_entrada=data.get('latitud'),
+                longitud_entrada=data.get('longitud'),
+                metodo_identificacion=data.get('metodo_identificacion', 'qr'),
                 dispositivo_id=data.get('dispositivo_id', ''),
-                usuario=request.user
+                observaciones=data.get('observaciones', ''),
+                registrado_por=request.user,
+                estado='abierto'
             )
             
-            if data.get('observaciones'):
-                asistencia.observaciones = data['observaciones']
-                asistencia.save(update_fields=['observaciones'])
+            # TODO: Validar geolocalización aquí si es necesario
             
             return Response(
                 {
@@ -586,13 +638,13 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
         
         except Trabajador.DoesNotExist:
             return Response(
-                {'error': 'Trabajador no encontrado'},
+                {'error': 'Trabajador no encontrado o inactivo'},
                 status=status.HTTP_404_NOT_FOUND
             )
         
         except Proyecto.DoesNotExist:
             return Response(
-                {'error': 'Proyecto no encontrado'},
+                {'error': 'Proyecto no encontrado o inactivo'},
                 status=status.HTTP_404_NOT_FOUND
             )
         
@@ -606,17 +658,8 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
     def check_out(self, request):
         """
         Endpoint para marcar salida (check-out)
-        
-        POST /api/asistencias/check-out/
-        Body: {
-            "asistencia_id": 1,
-            "hora_salida": "17:00:00",  // Opcional
-            "latitud": -25.2637,  // Opcional
-            "longitud": -57.5759,  // Opcional
-            "observaciones": ""
-        }
         """
-        serializer = CheckOutSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -632,16 +675,25 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            asistencia.marcar_salida(
-                hora=data.get('hora_salida'),
-                latitud=data.get('latitud'),
-                longitud=data.get('longitud'),
-                usuario=request.user
-            )
+            hora_salida = data.get('hora_salida') or timezone.now().time()
+
+            # Usar el método del modelo para cerrar el turno
+            asistencia.cerrar_turno(hora_salida=hora_salida)
+            
+            # Actualizar campos de salida
+            asistencia.latitud_salida=data.get('latitud')
+            asistencia.longitud_salida=data.get('longitud')
             
             if data.get('observaciones'):
-                asistencia.observaciones = data['observaciones']
-                asistencia.save(update_fields=['observaciones'])
+                if asistencia.observaciones:
+                    asistencia.observaciones += f"\n[SALIDA]: {data['observaciones']}"
+                else:
+                    asistencia.observaciones = f"[SALIDA]: {data['observaciones']}"
+            
+            asistencia.editado_por = request.user
+            asistencia.save()
+            
+            # TODO: Validar geolocalización de salida aquí
             
             return Response(
                 {
@@ -654,7 +706,7 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
         except Asistencia.DoesNotExist:
             return Response(
                 {'error': 'Asistencia no encontrada'},
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_44_NOT_FOUND
             )
         
         except Exception as e:
@@ -681,24 +733,8 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
     def sincronizar(self, request):
         """
         Sincronización batch desde app móvil offline
-        
-        POST /api/asistencias/sincronizar/
-        Body: {
-            "asistencias": [
-                {
-                    "trabajador_cedula": "1234567890",
-                    "proyecto_id": 1,
-                    "fecha": "2025-10-28",
-                    "hora_entrada": "07:30:00",
-                    "hora_salida": "17:00:00",
-                    "latitud_entrada": -25.2637,
-                    "longitud_entrada": -57.5759,
-                    ...
-                }
-            ]
-        }
         """
-        serializer = SincronizarAsistenciasSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -719,42 +755,39 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
                 )
                 proyecto = Proyecto.objects.get(id=data['proyecto_id'])
                 
-                # Verificar duplicados
-                fecha = datetime.strptime(data['fecha'], '%Y-%m-%d').date()
-                existe = Asistencia.objects.filter(
-                    trabajador=trabajador,
-                    fecha=fecha
-                ).exists()
+                fecha = data['fecha']
                 
-                if existe:
-                    resultados['fallidas'] += 1
-                    resultados['errores'].append(f"Asistencia duplicada para {trabajador.nombre_completo} en {fecha}")
-                    continue
-                
-                # Crear asistencia
-                asistencia = Asistencia.objects.create(
+                # Usar update_or_create para manejar duplicados de sincronización
+                asistencia, created = Asistencia.objects.update_or_create(
                     trabajador=trabajador,
-                    proyecto=proyecto,
                     fecha=fecha,
-                    hora_entrada=data.get('hora_entrada'),
-                    hora_salida=data.get('hora_salida'),
-                    latitud_entrada=data.get('latitud_entrada'),
-                    longitud_entrada=data.get('longitud_entrada'),
-                    latitud_salida=data.get('latitud_salida'),
-                    longitud_salida=data.get('longitud_salida'),
-                    metodo_identificacion=data.get('metodo_identificacion', 'qr'),
-                    dispositivo_id=data.get('dispositivo_id', ''),
-                    observaciones=data.get('observaciones', ''),
-                    registrado_por=request.user,
-                    estado='sincronizado',
-                    sincronizado_en=timezone.now()
+                    defaults={
+                        'proyecto': proyecto,
+                        'hora_entrada': data.get('hora_entrada'),
+                        'hora_salida': data.get('hora_salida'),
+                        'puesto_laboral': trabajador.puesto_laboral,
+                        'latitud_entrada': data.get('latitud_entrada'),
+                        'longitud_entrada': data.get('longitud_entrada'),
+                        'latitud_salida': data.get('latitud_salida'),
+                        'longitud_salida': data.get('longitud_salida'),
+                        'metodo_identificacion': data.get('metodo_identificacion', 'qr'),
+                        'dispositivo_id': data.get('dispositivo_id', ''),
+                        'observaciones': data.get('observaciones', ''),
+                        'registrado_por': request.user,
+                        'editado_por': request.user,
+                        'estado': 'cerrado' if data.get('hora_salida') else 'abierto',
+                        'sincronizado_en': timezone.now()
+                    }
                 )
+                
+                # Recalcular horas (save() lo hace)
+                asistencia.save()
                 
                 resultados['exitosas'] += 1
             
             except Exception as e:
                 resultados['fallidas'] += 1
-                resultados['errores'].append(str(e))
+                resultados['errores'].append(f"Cédula {data.get('trabajador_cedula')}: {str(e)}")
         
         return Response(resultados, status=status.HTTP_200_OK)
     

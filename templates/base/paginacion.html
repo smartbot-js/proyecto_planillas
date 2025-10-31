@@ -1,0 +1,49 @@
+{% comment %}
+Este es el componente de paginación reutilizable.
+Recibe automáticamente el objeto 'page_obj' de las Vistas de Lista (ListView) de Django.
+Usa 'request.GET.urlencode' para preservar los filtros de búsqueda al cambiar de página.
+{% endcomment %}
+
+{% if is_paginated %}
+<div class="pagination-footer">
+    
+    <div class="pagination-info">
+        Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} registros
+    </div>
+    
+    <div class="pagination-clean">
+        
+        {% if page_obj.has_previous %}
+            <a href="?page=1{{ request.GET.urlencode|default_if_none:'' }}" class="page-btn" title="Primera página">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="11 17 6 12 11 7"></polyline>
+                    <polyline points="18 17 13 12 18 7"></polyline>
+                </svg>
+            </a>
+            <a href="?page={{ page_obj.previous_page_number }}{{ request.GET.urlencode|default_if_none:'' }}" class="page-btn" title="Anterior">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </a>
+        {% endif %}
+        
+        <span class="page-info">
+            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+        </span>
+        
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{{ request.GET.urlencode|default_if_none:'' }}" class="page-btn" title="Siguiente">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{{ request.GET.urlencode|default_if_none:'' }}" class="page-btn" title="Última página">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="13 17 18 12 13 7"></polyline>
+                    <polyline points="6 17 11 12 6 7"></polyline>
+                </svg>
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

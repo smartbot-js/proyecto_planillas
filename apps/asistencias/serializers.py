@@ -5,7 +5,7 @@ API REST para app móvil y web
 
 from rest_framework import serializers
 from .models import Asistencia, ResumenDiario
-from apps.trabajadores.serializers import TrabajadorSerializer
+from apps.trabajadores.serializers import TrabajadorListSerializer
 from apps.proyectos.serializers import ProyectoSerializer
 from django.utils import timezone
 
@@ -13,7 +13,7 @@ from django.utils import timezone
 class AsistenciaSerializer(serializers.ModelSerializer):
     """Serializer completo para asistencias"""
     
-    trabajador_info = TrabajadorSerializer(source='trabajador', read_only=True)
+    trabajador_info = TrabajadorListSerializer(source='trabajador', read_only=True)
     proyecto_info = ProyectoSerializer(source='proyecto', read_only=True)
     duracion_jornada = serializers.CharField(read_only=True)
     puede_editar = serializers.BooleanField(read_only=True)
@@ -33,8 +33,8 @@ class AsistenciaSerializer(serializers.ModelSerializer):
             'horas_extras',
             'horas_totales',
             'puesto_laboral',
-            'salario_dia',
-            'tarifa_hora_extra',
+            # 'salario_dia',  <-- ELIMINADO
+            # 'tarifa_hora_extra', <-- ELIMINADO
             'latitud_entrada',
             'longitud_entrada',
             'distancia_entrada',
@@ -116,16 +116,16 @@ class AsistenciaListSerializer(serializers.ModelSerializer):
 class CheckInSerializer(serializers.Serializer):
     """Serializer para marcar entrada (check-in)"""
     
-    trabajador_cedula = serializers.CharField(max_length=20, required=True)
+    trabajador_cedula = serializers.CharField(max_length=50, required=True) # Aumentado a 50 por si acaso
     proyecto_id = serializers.IntegerField(required=True)
     hora_entrada = serializers.TimeField(required=False, allow_null=True)
     latitud = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
     longitud = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
     metodo_identificacion = serializers.ChoiceField(
-        choices=['qr', 'cedula', 'manual'],
+        choices=Asistencia.METODO_CHOICES, # Usar choices del modelo
         default='qr'
     )
-    dispositivo_id = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    dispositivo_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
     observaciones = serializers.CharField(required=False, allow_blank=True)
 
 
@@ -139,11 +139,29 @@ class CheckOutSerializer(serializers.Serializer):
     observaciones = serializers.CharField(required=False, allow_blank=True)
 
 
+class SincronizarAsistenciaItemSerializer(serializers.Serializer):
+    """Serializer para un item de asistencia en el batch"""
+    trabajador_cedula = serializers.CharField(max_length=50, required=True)
+    proyecto_id = serializers.IntegerField(required=True)
+    fecha = serializers.DateField(format="%Y-%m-%d")
+    hora_entrada = serializers.TimeField()
+    hora_salida = serializers.TimeField(required=False, allow_null=True)
+    latitud_entrada = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
+    longitud_entrada = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
+    latitud_salida = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
+    longitud_salida = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
+    metodo_identificacion = serializers.ChoiceField(
+        choices=Asistencia.METODO_CHOICES,
+        default='qr'
+    )
+    dispositivo_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    observaciones = serializers.CharField(required=False, allow_blank=True)
+
 class SincronizarAsistenciasSerializer(serializers.Serializer):
     """Serializer para sincronización batch desde app móvil"""
     
     asistencias = serializers.ListField(
-        child=serializers.DictField(),
+        child=SincronizarAsistenciaItemSerializer(),
         allow_empty=False
     )
 
@@ -164,13 +182,9 @@ class ResumenDiarioSerializer(serializers.ModelSerializer):
             'proyecto_nombre',
             'fecha',
             'asistio',
-            'hora_entrada',
-            'hora_salida',
-            'horas_normales',
-            'horas_extras',
-            'horas_totales',
             'llego_tarde',
-            'salio_temprano',
+            'horas_totales',
+            'horas_extras',
             'observaciones',
         ]
         

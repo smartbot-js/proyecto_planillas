@@ -35,7 +35,7 @@
                     {% csrf_token %}
                     
                     <div class="form-group">
-                        <label>Trabajador *</label>
+                        <label for="selectTrabajador">Trabajador *</label>
                         <select name="trabajador_id" class="form-control" required id="selectTrabajador">
                             <option value="">Seleccione un trabajador...</option>
                             {% for trabajador in trabajadores %}
@@ -53,24 +53,24 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Proyecto *</label>
+                        <label for="selectProyecto">Proyecto *</label>
                         <select name="proyecto_id" class="form-control" required id="selectProyecto">
                             <option value="">Seleccione un proyecto...</option>
                             {% for proyecto in proyectos %}
-                            <option value="{{ proyecto.id }}">{{ proyecto.nombre }} - {{ proyecto.codigo }}</option>
+                            <option value="{{ proyecto.id }}">{{ proyecto.nombre }}</option>
                             {% endfor %}
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label>Hora de Entrada</label>
+                        <label for="horaEntrada">Hora de Entrada</label>
                         <input type="time" name="hora_entrada" class="form-control" id="horaEntrada">
                         <small class="form-text">Dejar vacío para usar la hora actual</small>
                     </div>
 
                     <div class="form-group">
-                        <label>Observaciones</label>
-                        <textarea name="observaciones" class="form-control" rows="3" placeholder="Notas adicionales (opcional)..."></textarea>
+                        <label for="observaciones">Observaciones</label>
+                        <textarea name="observaciones" id="observaciones" class="form-control" rows="3" placeholder="Notas adicionales (opcional)..."></textarea>
                     </div>
 
                     <div class="form-actions">
@@ -88,7 +88,6 @@
     </div>
 
     <div class="form-sidebar">
-        <!-- Preview del trabajador -->
         <div class="content-card" id="previewCard" style="display: none;">
             <div class="card-header">
                 <h3>Vista Previa</h3>
@@ -108,7 +107,6 @@
             </div>
         </div>
 
-        <!-- Información útil -->
         <div class="content-card">
             <div class="card-header">
                 <h3>Información</h3>
@@ -153,23 +151,12 @@
     </div>
 </div>
 
+{% block extra_css %}
 <style>
-.form-layout {
-    display: grid;
-    grid-template-columns: 1fr 400px;
-    gap: 24px;
-}
-
-@media (max-width: 1024px) {
-    .form-layout {
-        grid-template-columns: 1fr;
-    }
-}
-
+/* Estilos específicos de esta página */
 .preview-foto {
     margin-bottom: 16px;
 }
-
 .preview-foto img {
     width: 120px;
     height: 120px;
@@ -177,7 +164,6 @@
     object-fit: cover;
     border: 4px solid #f3f4f6;
 }
-
 .avatar-preview {
     width: 120px;
     height: 120px;
@@ -189,7 +175,6 @@
     margin: 0 auto;
     color: #9ca3af;
 }
-
 .info-item {
     display: flex;
     gap: 12px;
@@ -198,64 +183,29 @@
     border-radius: 8px;
     margin-bottom: 12px;
 }
-
 .info-item svg {
     color: #3b82f6;
     flex-shrink: 0;
 }
-
 .info-item strong {
     display: block;
     color: #111827;
     margin-bottom: 4px;
     font-size: 14px;
 }
-
 .info-item p {
     margin: 0;
     color: #6b7280;
     font-size: 14px;
 }
-
-.alert-info {
-    display: flex;
-    gap: 12px;
-    padding: 16px;
-    background: #dbeafe;
-    border-left: 4px solid #3b82f6;
-    border-radius: 8px;
-    margin-top: 16px;
-}
-
-.alert-info svg {
-    color: #3b82f6;
-    flex-shrink: 0;
-}
-
-.alert-info strong {
-    color: #1e40af;
-}
-
-.alert-info div {
-    color: #1e3a8a;
-    font-size: 14px;
-}
-
-.back-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: #6b7280;
-    text-decoration: none;
-    margin-bottom: 16px;
-    font-size: 14px;
-}
-
-.back-link:hover {
-    color: #374151;
+.text-center {
+    text-align: center;
 }
 </style>
+{% endblock %}
 
+
+{% block extra_js %}
 <script>
     // Actualizar hora actual
     function actualizarHora() {
@@ -273,8 +223,9 @@
         document.getElementById('fechaActual').textContent = `${day}/${month}/${year}`;
         
         // Establecer hora de entrada por defecto
-        if (!document.getElementById('horaEntrada').value) {
-            document.getElementById('horaEntrada').value = `${hours}:${minutes}`;
+        const horaEntradaInput = document.getElementById('horaEntrada');
+        if (!horaEntradaInput.value) {
+            horaEntradaInput.value = `${hours}:${minutes}`;
         }
     }
     
@@ -333,5 +284,4 @@
         }
     });
 </script>
-
 {% endblock %}
