@@ -21,6 +21,21 @@ urlpatterns = [
     # Proyectos (incluye API y Templates)
     path('', include('apps.proyectos.urls')),
     path('', include('apps.trabajadores.urls')),
+    path('', include('apps.asistencias.urls')),
+]
+
+# API REST
+from rest_framework.routers import DefaultRouter
+from apps.trabajadores.views import TrabajadorViewSet
+from apps.asistencias.views import AsistenciaViewSet  # ← AGREGAR
+
+router = DefaultRouter()
+router.register(r'trabajadores', TrabajadorViewSet, basename='trabajador')
+router.register(r'asistencias', AsistenciaViewSet, basename='asistencia')  # ← AGREGAR
+
+urlpatterns += [
+    path('api/', include(router.urls)),
+    path('api-auth/', include('rest_framework.urls')),
 ]
 
 # Servir archivos media y static en desarrollo

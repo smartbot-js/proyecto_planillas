@@ -1,0 +1,307 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Reportes de Asistencias - Sistema de Gestión{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="{% url 'asistencias_lista' %}" class="back-link">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Volver a Asistencias
+        </a>
+        <h1>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            Reportes de Asistencias
+        </h1>
+        <p class="page-description">Análisis y estadísticas de asistencias por período</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'asistencias_exportar' %}?fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}&proyecto={{ proyecto_id }}" class="btn btn-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Exportar CSV
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="content-card">
+    <div class="card-header">
+        <h3>Período de Reporte</h3>
+    </div>
+    <div class="card-body">
+        <form method="GET" class="filters-form">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Fecha Inicio *</label>
+                    <input type="date" name="fecha_inicio" class="form-control" value="{{ fecha_inicio }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Fecha Fin *</label>
+                    <input type="date" name="fecha_fin" class="form-control" value="{{ fecha_fin }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Proyecto</label>
+                    <select name="proyecto" class="form-control">
+                        <option value="">Todos los proyectos</option>
+                        {% for proyecto in proyectos %}
+                        <option value="{{ proyecto.id }}" {% if proyecto_id == proyecto.id|stringformat:"s" %}selected{% endif %}>
+                            {{ proyecto.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    Generar Reporte
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Estadísticas Generales -->
+<div class="content-card">
+    <div class="card-header">
+        <h3>Resumen General</h3>
+    </div>
+    <div class="card-body">
+        <div class="stats-grid-report">
+            <div class="stat-box-report">
+                <div class="stat-icon-report primary">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                </div>
+                <div>
+                    <span class="stat-label-report">Total Asistencias</span>
+                    <span class="stat-value-report">{{ stats.total_asistencias }}</span>
+                </div>
+            </div>
+
+            <div class="stat-box-report">
+                <div class="stat-icon-report success">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                </div>
+                <div>
+                    <span class="stat-label-report">Total Trabajadores</span>
+                    <span class="stat-value-report">{{ stats.total_trabajadores }}</span>
+                </div>
+            </div>
+
+            <div class="stat-box-report">
+                <div class="stat-icon-report info">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                </div>
+                <div>
+                    <span class="stat-label-report">Horas Normales</span>
+                    <span class="stat-value-report">{{ stats.horas_normales_total|floatformat:1 }}h</span>
+                </div>
+            </div>
+
+            <div class="stat-box-report">
+                <div class="stat-icon-report secondary">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                        <path d="M2 17l10 5 10-5"></path>
+                        <path d="M2 12l10 5 10-5"></path>
+                    </svg>
+                </div>
+                <div>
+                    <span class="stat-label-report">Horas Extras</span>
+                    <span class="stat-value-report">{{ stats.horas_extras_total|floatformat:1 }}h</span>
+                </div>
+            </div>
+
+            <div class="stat-box-report">
+                <div class="stat-icon-report warning">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                </div>
+                <div>
+                    <span class="stat-label-report">Llegadas Tarde</span>
+                    <span class="stat-value-report">{{ stats.llegadas_tarde }}</span>
+                </div>
+            </div>
+
+            <div class="stat-box-report">
+                <div class="stat-icon-report error">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                </div>
+                <div>
+                    <span class="stat-label-report">Salidas Tempranas</span>
+                    <span class="stat-value-report">{{ stats.salidas_temprano }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resumen por Trabajador -->
+<div class="content-card">
+    <div class="card-header">
+        <h3>Resumen por Trabajador</h3>
+    </div>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Trabajador</th>
+                    <th>Cédula</th>
+                    <th>Puesto</th>
+                    <th>Días Trabajados</th>
+                    <th>Horas Normales</th>
+                    <th>Horas Extras</th>
+                    <th>Total Horas</th>
+                    <th>Llegadas Tarde</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trabajador in resumen_trabajadores %}
+                <tr>
+                    <td><strong>{{ trabajador.trabajador__nombre_completo }}</strong></td>
+                    <td>{{ trabajador.trabajador__numero_cedula }}</td>
+                    <td>{{ trabajador.puesto_laboral }}</td>
+                    <td>{{ trabajador.dias_trabajados }}</td>
+                    <td>{{ trabajador.total_horas_normales|floatformat:2 }}h</td>
+                    <td><strong class="text-primary">{{ trabajador.total_horas_extras|floatformat:2 }}h</strong></td>
+                    <td><strong>{{ trabajador.total_horas|floatformat:2 }}h</strong></td>
+                    <td>
+                        {% if trabajador.llegadas_tarde > 0 %}
+                        <span class="badge badge-error">{{ trabajador.llegadas_tarde }}</span>
+                        {% else %}
+                        <span class="badge badge-success">0</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center">No hay datos para el período seleccionado</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Resumen por Proyecto -->
+{% if resumen_proyectos %}
+<div class="content-card">
+    <div class="card-header">
+        <h3>Resumen por Proyecto</h3>
+    </div>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Proyecto</th>
+                    <th>Total Asistencias</th>
+                    <th>Total Horas</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for proyecto in resumen_proyectos %}
+                <tr>
+                    <td><strong>{{ proyecto.proyecto__nombre }}</strong></td>
+                    <td>{{ proyecto.total_asistencias }}</td>
+                    <td><strong>{{ proyecto.total_horas|floatformat:2 }}h</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.stats-grid-report {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.stat-box-report {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    border: 2px solid #f3f4f6;
+}
+
+.stat-icon-report {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.stat-icon-report.primary { background: #dbeafe; color: #3b82f6; }
+.stat-icon-report.success { background: #d1fae5; color: #10b981; }
+.stat-icon-report.warning { background: #fef3c7; color: #f59e0b; }
+.stat-icon-report.error { background: #fee2e2; color: #ef4444; }
+.stat-icon-report.info { background: #e0e7ff; color: #6366f1; }
+.stat-icon-report.secondary { background: #f3f4f6; color: #6b7280; }
+
+.stat-label-report {
+    display: block;
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.stat-value-report {
+    display: block;
+    font-size: 32px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.text-primary {
+    color: #3b82f6;
+}
+</style>
+{% endblock %}

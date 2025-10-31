@@ -707,3 +707,4 @@ Este software es propiedad de [Nombre de la Empresa] y está protegido por las l
 **Versión**: 1.0.0  
 **Última actualización**: Octubre 2025  
 **Estado**: En Desarrollo
+
