@@ -273,53 +273,73 @@ body {
 /* ===================================================================
    3. ESTADO COLAPSADO Y RESPONSIVE (LA MAGIA)
    =================================================================== */
-
 /* --- Lógica de Colapso (controlado por JS) --- */
-body.sidebar-collapsed .sidebar {
+body.sidebar-collapsed-desktop .sidebar {
     width: 73px; /* 72px + 1px borde */
 }
-body.sidebar-collapsed .content-container {
+body.sidebar-collapsed-desktop .content-container {
     margin-left: 73px;
     width: calc(100% - 73px);
 }
-body.sidebar-collapsed .logo-sidebar img {
+body.sidebar-collapsed-desktop .logo-sidebar img {
     max-width: 40px;
 }
-body.sidebar-collapsed .menu-label {
+body.sidebar-collapsed-desktop .menu-label {
     text-align: center;
     font-size: 10px;
     padding-left: 0;
     padding-right: 0;
+    opacity: 0; /* AÑADIDO - ocultar completamente */
+    visibility: hidden; /* AÑADIDO */
 }
-body.sidebar-collapsed .nav-item {
+body.sidebar-collapsed-desktop .nav-item {
     margin: 4px 10px;
     justify-content: center;
     padding: 12px;
 }
-body.sidebar-collapsed .nav-item span {
+body.sidebar-collapsed-desktop .nav-item span:not(.material-symbols-outlined) {
     opacity: 0;
     visibility: hidden;
-    position: absolute; /* Evita que ocupen espacio */
+    width: 0; /* AÑADIDO - para que no ocupe espacio */
+    overflow: hidden; /* AÑADIDO */
 }
 
 /* --- Lógica de Hover en Desktop Colapsado --- */
-/* Solo se expande el texto, no todo el menú */
-body.sidebar-collapsed .nav-item:hover span {
+body.sidebar-collapsed-desktop .nav-item:hover span:not(.material-symbols-outlined) {
     visibility: visible;
     opacity: 1;
     position: absolute;
-    left: 78px; /* 72px + 6px padding */
+    left: 78px;
+    width: auto; /* AÑADIDO */
     background: var(--text-primary);
-    color: var(--sidebar-text-active);
+    color: white;
     padding: 8px 12px;
     border-radius: 6px;
     font-size: 13px;
     font-weight: 500;
     z-index: 1001;
+    white-space: nowrap; /* AÑADIDO */
 }
 
+body.sidebar-collapsed-desktop .nav-item:hover span:not(.material-symbols-outlined) {
+    visibility: visible;
+    opacity: 1;
+    position: absolute;
+    left: 78px;
+    width: auto; /* AÑADIDO */
+    background: var(--text-primary);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 1001;
+    white-space: nowrap; /* AÑADIDO */
+}
+
+
 /* --- Lógica de Pantalla Pequeña (Móvil/Tablet) --- */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     /* Por defecto, el menú está colapsado y el botón visible */
     body {
         /* No colapsar por defecto en móvil, dejar que JS decida */
