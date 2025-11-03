@@ -162,12 +162,26 @@
                         <span class="horas-label">Horas Normales</span>
                         <span class="horas-value normal">{{ asistencia.horas_normales|floatformat:2 }}h</span>
                     </div>
-
+                
                     <div class="horas-box">
                         <span class="horas-label">Horas Extras</span>
                         <span class="horas-value extra">{{ asistencia.horas_extras|floatformat:2 }}h</span>
                     </div>
-
+                
+                    {% if asistencia.horas_nocturnas > 0 %}
+                    <div class="horas-box">
+                        <span class="horas-label">Horas Nocturnas</span>
+                        <span class="horas-value nocturna">{{ asistencia.horas_nocturnas|floatformat:2 }}h</span>
+                    </div>
+                    {% endif %}
+                
+                    {% if asistencia.es_dia_festivo %}
+                    <div class="horas-box">
+                        <span class="horas-label">Horas Festivas</span>
+                        <span class="horas-value festiva">{{ asistencia.horas_festivas|floatformat:2 }}h</span>
+                    </div>
+                    {% endif %}
+                
                     <div class="horas-box total">
                         <span class="horas-label">Total Horas</span>
                         <span class="horas-value">{{ asistencia.horas_totales|floatformat:2 }}h</span>
@@ -391,6 +405,13 @@
 }
 .horas-value.normal { color: #10b981; }
 .horas-value.extra { color: #3b82f6; }
+.horas-value.nocturna {
+    color: #8b5cf6; /* Morado */
+}
+
+.horas-value.festiva {
+    color: #f59e0b; /* Naranja */
+}
 .foto-trabajador {
     width: 100%;
     max-width: 300px;

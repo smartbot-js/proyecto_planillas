@@ -101,6 +101,10 @@
                                 <span class="label">Horas Extras:</span>
                                 <span class="value" id="previewExtras">0.00h</span>
                             </div>
+                            <div class="hora-preview-item">
+                                <span class="label">Horas Nocturnas:</span>
+                                <span class="value" id="previewNocturnas">0.00h</span>
+                            </div>
                             <div class="hora-preview-item total">
                                 <span class="label">Total:</span>
                                 <span class="value" id="previewTotal">0.00h</span>
@@ -213,6 +217,15 @@
     background: #dbeafe;
     border-color: #bfdbfe;
 }
+.horas-preview-grid {
+    grid-template-columns: repeat(4, 1fr); /* Cambiar de 3 a 4 columnas */
+}
+
+@media (max-width: 768px) {
+    .horas-preview-grid {
+        grid-template-columns: repeat(2, 1fr); /* 2 columnas en móvil */
+    }
+}
 .hora-preview-item .label {
     display: block;
     font-size: 13px;
@@ -251,6 +264,36 @@
 
 {% block extra_js %}
 <script>
+// Función auxiliar para calcular horas nocturnas
+function calcularHorasNocturnas(entrada, salida) {
+    const [entradaH, entradaM] = entrada.split(':').map(Number);
+    const [salidaH, salidaM] = salida.split(':').map(Number);
+    
+    let horasNocturnas = 0;
+    
+    // Recorrer cada hora
+    for (let h = entradaH; h <= salidaH; h++) {
+        let horaActual = h % 24;
+        
+        // Si está entre 18:00 (6pm) y 23:59, o entre 00:00 y 05:59 (6am)
+        if (horaActual >= 18 || horaActual < 6) {
+            // Si es la primera hora, contar desde los minutos de entrada
+            // Si es la última hora, contar hasta los minutos de salida
+            if (h === entradaH && h === salidaH) {
+                horasNocturnas += (salidaM - entradaM) / 60;
+            } else if (h === entradaH) {
+                horasNocturnas += (60 - entradaM) / 60;
+            } else if (h === salidaH) {
+                horasNocturnas += salidaM / 60;
+            } else {
+                horasNocturnas += 1;
+            }
+        }
+    }
+    
+    return Math.max(0, horasNocturnas);
+}
+
 // Calcular horas en tiempo real
 function calcularHoras() {
     const entrada = document.getElementById('horaEntrada').value;
@@ -292,9 +335,13 @@ function calcularHoras() {
     const horasNormales = Math.min(totalHoras, jornadaNormal);
     const horasExtras = Math.max(totalHoras - jornadaNormal, 0);
     
+    // Calcular horas nocturnas (6pm - 6am)
+    const horasNocturnas = calcularHorasNocturnas(entrada, salida);
+
     // Mostrar preview
     document.getElementById('previewNormales').textContent = horasNormales.toFixed(2) + 'h';
     document.getElementById('previewExtras').textContent = horasExtras.toFixed(2) + 'h';
+    document.getElementById('previewNocturnas').textContent = horasNocturnas.toFixed(2) + 'h';
     document.getElementById('previewTotal').textContent = totalHoras.toFixed(2) + 'h';
     document.getElementById('previewHoras').style.display = 'block';
 }

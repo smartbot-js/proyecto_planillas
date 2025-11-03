@@ -63,8 +63,9 @@ class AsistenciaListView(LoginRequiredMixin, ListView):
         if fecha_fin:
             queryset = queryset.filter(fecha__lte=fecha_fin)
         
-        # Si no hay rango de fechas, filtrar por hoy por defecto
-        if not fecha_inicio and not fecha_fin:
+        # Si no hay rango de fechas Y no se especificó "ver_todos", filtrar por hoy
+        ver_todos = self.request.GET.get('ver_todos')
+        if not fecha_inicio and not fecha_fin and not ver_todos:
             queryset = queryset.filter(fecha=timezone.now().date())
 
         if proyecto:
@@ -91,18 +92,24 @@ class AsistenciaListView(LoginRequiredMixin, ListView):
         fecha_inicio = self.request.GET.get('fecha_inicio')
         fecha_fin = self.request.GET.get('fecha_fin')
         
+        ver_todos = self.request.GET.get('ver_todos')
+
         if fecha_inicio and fecha_fin:
             base_query = Asistencia.objects.filter(
                 fecha__range=[fecha_inicio, fecha_fin]
             )
-            # Guardar fechas formateadas para los filtros
             context['fecha_inicio_filtro'] = fecha_inicio
             context['fecha_fin_filtro'] = fecha_fin
+        elif ver_todos:
+            # Mostrar todos los registros sin filtro de fecha
+            base_query = Asistencia.objects.all()
+            context['fecha_inicio_filtro'] = ''
+            context['fecha_fin_filtro'] = ''
+            context['ver_todos'] = True
         else:
-            # Si no hay rango, usar fecha de hoy
+            # Si no hay rango ni ver_todos, usar fecha de hoy
             hoy = timezone.now().date()
             base_query = Asistencia.objects.filter(fecha=hoy)
-            # Guardar fecha de hoy para los filtros
             context['fecha_inicio_filtro'] = hoy.strftime('%Y-%m-%d')
             context['fecha_fin_filtro'] = hoy.strftime('%Y-%m-%d')
         
@@ -394,6 +401,8 @@ class AsistenciaReportesView(LoginRequiredMixin, TemplateView):
             total_trabajadores=Count('trabajador', distinct=True),
             horas_normales_total=Sum('horas_normales'),
             horas_extras_total=Sum('horas_extras'),
+            horas_nocturnas_total=Sum('horas_nocturnas'),
+            horas_festivas_total=Sum('horas_festivas'),
             llegadas_tarde=Count('id', filter=Q(llego_tarde=True)),
             salidas_temprano=Count('id', filter=Q(salio_temprano=True))
         )
@@ -407,14 +416,16 @@ class AsistenciaReportesView(LoginRequiredMixin, TemplateView):
             'trabajador__nombre',
             'trabajador__apellido',
             'trabajador__numero_cedula',
-            'puesto_laboral' # Usar el puesto de la asistencia
+            'puesto_laboral'
         ).annotate(
             dias_trabajados=Count('id'),
             total_horas_normales=Sum('horas_normales'),
             total_horas_extras=Sum('horas_extras'),
+            total_horas_nocturnas=Sum('horas_nocturnas'),
+            total_horas_festivas=Sum('horas_festivas'),
             total_horas=Sum('horas_totales'),
             llegadas_tarde=Count('id', filter=Q(llego_tarde=True)),
-            salidas_temprano_count=Count('id', filter=Q(salio_temprano=True)) # <-- CAMBIO AQUÍ
+            salidas_temprano_count=Count('id', filter=Q(salio_temprano=True))
         ).order_by('trabajador__nombre', 'trabajador__apellido')
         
         # Combinar nombre y apellido para cada trabajador

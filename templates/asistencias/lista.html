@@ -3,327 +3,788 @@
 
 {% block title %}Asistencias - Sistema de Gestión{% endblock %}
 
-{% block extra_css %}
-{% comment %}
-    Todos los estilos han sido movidos a /static/css/dashboard.css
-{% endcomment %}
-{% endblock %}
-
-
 {% block content %}
-<div class="asistencias-page">
-
-    <header class="page-header">
+<div class="asistencias-container">
+    <!-- Header -->
+    <div class="page-header-simple">
         <div class="header-tabs">
-            <a href="{% url 'asistencias_lista' %}" class="tab-button {% if not filtros.fecha_inicio and not filtros.fecha_fin %}active{% endif %}">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                Asistencias de Hoy
+            <a href="{% url 'asistencias_lista' %}" class="tab-link active">
+                <span class="material-symbols-outlined">today</span>
+                Asistencias
             </a>
-            <a href="{% url 'asistencias_reportes' %}" class="tab-button">
-                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                </svg>
+            <a href="{% url 'asistencias_reportes' %}" class="tab-link">
+                <span class="material-symbols-outlined">assessment</span>
                 Reportes
             </a>
         </div>
         <div class="header-actions">
-            <a href="{% url 'asistencias_exportar' %}?{{ request.GET.urlencode }}" class="btn btn-secondary">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                Exportar
-            </a>
-            <a href="{% url 'asistencia_marcar_entrada' %}" class="btn btn-primary">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                Marcar Manual
-            </a>
-        </div>
-    </header>
-
-    <div class="stats-grid">
-        <div class="stat-card">
-            <span class="stat-label">Registrados</span>
-            <span class="stat-value">{{ stats.total }}</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-label">Presentes (Cerrados)</span>
-            <span class="stat-value" style="color: #065f46;">{{ stats.cerrados }}</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-label">Ausentes (Abiertos)</span>
-            <span class="stat-value" style="color: #991b1b;">{{ stats.abiertos }}</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-label">Lleg. Tarde</span>
-            <span class="stat-value" style="color: #92400e;">{{ stats.tarde }}</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-label">Horas Extras</span>
-            <span class="stat-value" style="color: var(--color-primary);">{{ stats.horas_extras|floatformat:1 }}h</span>
+            <button class="btn-ghost">Exportar</button>
+            <a href="{% url 'asistencia_marcar_entrada' %}" class="btn-primary">Marcar manual</a>
         </div>
     </div>
 
-    <div class="filters-container">
-        <form method="GET" class="filter-form">
-            <div class="filter-row">
-                <input type="text" name="busqueda" class="filter-input filter-input-search" placeholder="Buscar trabajador por nombre o cédula..." value="{{ filtros.busqueda|default:'' }}">
-            </div>
-            <div class="filter-row">
-                <div class="filter-group">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                    <span class="filter-label">Rango de Fechas:</span>
-                </div>
-                <div class="filter-group">
-                    <input type="date" name="fecha_inicio" class="filter-input-date" value="{{ filtros.fecha_inicio }}">
-                </div>
-                <div class="filter-group">
-                    <input type="date" name="fecha_fin" class="filter-input-date" value="{{ filtros.fecha_fin }}">
-                </div>
-                
-                <div class="filter-group">
-                    <select name="proyecto" class="filter-select">
-                        <option value="">Todos los Proyectos</option>
-                        {% for proyecto in proyectos %}
-                        <option value="{{ proyecto.id }}" {% if filtros.proyecto == proyecto.id|stringformat:"s" %}selected{% endif %}>
-                            {{ proyecto.nombre }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <select name="puesto" class="filter-select">
-                        <option value="">Todos los Puestos</option>
-                        {% for puesto in puestos %}
-                        <option value="{{ puesto }}" {% if filtros.puesto == puesto %}selected{% endif %}>{{ puesto }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+    <!-- Stats Cards -->
+    <div class="stats-row">
+        <div class="stat-box">
+            <div class="stat-label">Registrados</div>
+            <div class="stat-value">{{ stats.total }}</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Presentes</div>
+            <div class="stat-value">{{ stats.cerrados }}</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Ausentes</div>
+            <div class="stat-value">{{ stats.abiertos }}</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Tarde</div>
+            <div class="stat-value">{{ stats.tarde }}</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Horas extras</div>
+            <div class="stat-value">{{ stats.horas_extras|floatformat:0 }}h</div>
+        </div>
+    </div>
 
-                <div class="filter-group">
-                    <select name="estado" class="filter-select">
-                        <option value="">Todos los Estados</option>
-                        {% for value, label in estados %}
-                        <option value="{{ value }}" {% if filtros.estado == value %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
+    <!-- Filters -->
+    <div class="filters-section">
+        <form method="GET" class="filters-form-inline">
+            <input type="text" name="busqueda" placeholder="Buscar trabajador..." class="search-input" value="{{ filtros.busqueda }}">
+            
+            <select name="proyecto" class="filter-select">
+                <option value="">Proyecto</option>
+                {% for proyecto in proyectos %}
+                <option value="{{ proyecto.id }}" {% if filtros.proyecto == proyecto.id|stringformat:"s" %}selected{% endif %}>
+                    {{ proyecto.nombre }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <select name="puesto" class="filter-select">
+                <option value="">Puesto laboral</option>
+                {% for puesto in puestos %}
+                <option value="{{ puesto }}" {% if filtros.puesto == puesto %}selected{% endif %}>
+                    {{ puesto }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <select name="estado" class="filter-select">
+                <option value="">Estado</option>
+                {% for value, label in estados %}
+                <option value="{{ value }}" {% if filtros.estado == value %}selected{% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <div class="filter-actions">
+                <button type="submit" class="btn-ghost">
+                    <span class="material-symbols-outlined">filter_alt</span>
+                    Aplicar
+                </button>
+                <a href="{% url 'asistencias_lista' %}?ver_todos=1" class="btn-ghost">
+                    <span class="material-symbols-outlined">view_list</span>
+                    Ver Todos
+                </a>
+            </div>
+        </form>
+
+        <div class="date-filters">
+            <form method="GET" class="date-form">
+                <span class="material-symbols-outlined">schedule</span>
+                <span>Turno</span>
+                <span class="material-symbols-outlined">event</span>
+                <input type="date" name="fecha_inicio" value="{{ filtros.fecha_inicio }}" class="date-input">
+                <span class="material-symbols-outlined">event</span>
+                <input type="date" name="fecha_fin" value="{{ filtros.fecha_fin }}" class="date-input">
+                <button type="submit" class="btn-ghost-sm">Aplicar</button>
+            </form>
+            <div class="extra-actions">
+                <button class="btn-ghost-sm">Importar</button>
+                <button class="btn-ghost-sm">Configurar reglas</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- List Header -->
+    <div class="list-section">
+        <div class="list-header">
+            <div class="col-trabajador">Trabajador</div>
+            <div class="col-proyecto">Proyecto</div>
+            <div class="col-puesto">Puesto</div>
+            <div class="col-entrada">Entrada</div>
+            <div class="col-salida">Salida</div>
+            <div class="col-estado">Estado</div>
+            <div class="col-horas">Horas</div>
+            <div class="col-extras">Extras</div>
+            <div class="col-actions"></div>
+        </div>
+
+        <!-- List Items -->
+        {% if asistencias %}
+        {% for asistencia in asistencias %}
+        <div class="list-card">
+            <div class="col-trabajador">
+                <div class="worker-info">
+                    {% if asistencia.trabajador.foto %}
+                    <img src="{{ asistencia.trabajador.foto.url }}" alt="" class="worker-avatar">
+                    {% else %}
+                    <div class="worker-avatar">
+                        {{ asistencia.trabajador.nombre|first }}{{ asistencia.trabajador.apellido|first }}
+                    </div>
+                    {% endif %}
+                    <div>
+                        <div class="worker-name">{{ asistencia.trabajador.nombre }} {{ asistencia.trabajador.apellido }}</div>
+                        <div class="worker-ci">CI: {{ asistencia.trabajador.numero_cedula }}</div>
+                    </div>
                 </div>
-                
-                <button type="submit" class="btn btn-primary btn-apply">Aplicar</button>
-                {% if request.GET %}
-                <a href="{% url 'asistencias_lista' %}" class="btn-link">Limpiar filtros</a>
+            </div>
+            
+            <div class="col-proyecto">{{ asistencia.proyecto.nombre }}</div>
+            <div class="col-puesto">{{ asistencia.puesto_laboral }}</div>
+            
+            <div class="col-entrada">
+                <span class="time-value {% if asistencia.llego_tarde %}late{% endif %}">{{ asistencia.hora_entrada|time:"H:i" }}</span>
+                {% if asistencia.llego_tarde %}
+                <span class="badge-late">Tarde</span>
                 {% endif %}
             </div>
-        </form>
+            
+            <div class="col-salida">
+                {% if asistencia.hora_salida %}
+                <span class="time-value">{{ asistencia.hora_salida|time:"H:i" }}</span>
+                {% else %}
+                <span class="time-empty">—</span>
+                {% endif %}
+            </div>
+            
+            <div class="col-estado">
+                {% if asistencia.estado == 'cerrado' %}
+                <span class="status-badge present">Presente</span>
+                {% elif asistencia.estado == 'abierto' %}
+                <span class="status-badge absent">Ausente</span>
+                {% else %}
+                <span class="status-badge">{{ asistencia.get_estado_display }}</span>
+                {% endif %}
+            </div>
+            
+            <div class="col-horas">
+                <div class="hours-info">
+                    <div class="hours-label">Normales:</div>
+                    <div class="hours-value">{{ asistencia.horas_normales|floatformat:0 }}h</div>
+                </div>
+            </div>
+            
+            <div class="col-extras">
+                <div class="hours-info">
+                    <div class="hours-label">Extras:</div>
+                    <div class="hours-value">{{ asistencia.horas_extras|floatformat:0 }}h</div>
+                </div>
+            </div>
+            
+            <div class="col-actions">
+                <div class="actions-dropdown">
+                    <button class="actions-trigger">⋮</button>
+                    <div class="actions-menu">
+                        <a href="{% url 'asistencia_detalle' asistencia.id %}">Editar</a>
+                        {% if asistencia.estado == 'abierto' %}
+                        <button onclick="abrirModalCerrar({{ asistencia.id }}, '{{ asistencia.trabajador.nombre }} {{ asistencia.trabajador.apellido }}')">Cerrar turno</button>
+                        {% endif %}
+                        <a href="{% url 'asistencia_marcar_entrada' %}">Marcar entrada</a>
+                        <a href="{% url 'asistencias_reportes' %}">Reportes</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="pagination-modern">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-btn">Anterior</a>
+            {% endif %}
+            
+            <div class="page-numbers">
+                <span class="page-current">{{ page_obj.number }}</span>
+                <span class="page-total">{{ page_obj.paginator.num_pages }}</span>
+            </div>
+            
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-btn">Siguiente</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="empty-state-modern">
+            <span class="material-symbols-outlined">inbox</span>
+            <p>No hay asistencias para mostrar</p>
+        </div>
+        {% endif %}
     </div>
 
-    <div class="table-wrapper">
-        <div class="table-scroll">
-            <table class="table-clean">
-                <thead>
-                    <tr>
-                        <th>Trabajador</th>
-                        <th>Proyecto</th>
-                        <th>Puesto</th>
-                        <th>Entrada</th>
-                        <th>Salida</th>
-                        <th>Estado</th>
-                        <th>Salió Temprano</th>
-                        <th>Horas Normales</th>
-                        <th>Horas Extras</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for asistencia in asistencias %}
-                    <tr>
-                        <td>
-                            <a href="{% url 'trabajador_detalle' asistencia.trabajador.id %}" class="table-user-info table-user-name">
-                                {% if asistencia.trabajador.foto %}
-                                <img src="{{ asistencia.trabajador.foto.url }}" alt="{{ asistencia.trabajador.nombre_completo }}" class="table-user-avatar">
-                                {% else %}
-                                <img src="https://ui-avatars.com/api/?name={{ asistencia.trabajador.nombre_completo|default:'N A' }}&background=e5e7eb&color=6b7280" class="table-user-avatar">
-                                {% endif %}
-                                <span>{{ asistencia.trabajador.nombre_completo|default:'N/A' }}</span>
-                            </a>
-                        </td>
-                        <td>{{ asistencia.proyecto.nombre|default:'N/A' }}</td>
-                        <td>{{ asistencia.puesto_laboral|default:'N/A' }}</td>
-                        <td>
-                            <span class="table-hours-value">{{ asistencia.hora_entrada|time:"H:i"|default:'N/A' }}</span>
-                        </td>
-                        <td>
-                            {% if asistencia.hora_salida %}
-                                <span class="table-hours-value">{{ asistencia.hora_salida|time:"H:i" }}</span>
-                            {% else %}
-                                <span class="badge badge-abierto">En Curso</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if asistencia.llego_tarde %}
-                                <span class="badge badge-warning">Llegó Tarde</span>
-                            {% elif asistencia.estado == 'abierto' %}
-                                <span class="badge badge-abierto">Turno Abierto</span>
-                            {% elif asistencia.estado == 'cerrado' %}
-                                <span class="badge badge-success">Turno Cerrado</span>
-                            {% else %}
-                                 <span class="badge">{{ asistencia.get_estado_display }}</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if asistencia.salio_temprano %}
-                                <span class="badge badge-warning">Sí</span>
-                            {% else %}
-                                <span style="color: var(--color-text-secondary);">No</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="table-hours-info">
-                                <span class="table-hours-value">{{ asistencia.horas_normales|floatformat:2 }}h</span>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="table-hours-info">
-                                <span class="table-hours-value extras">{{ asistencia.horas_extras|floatformat:2 }}h</span>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="table-actions">
-                                {% if asistencia.estado == 'abierto' %}
-                                <button onclick="abrirModalCerrarTurno({{ asistencia.id }}, '{{ asistencia.trabajador.nombre_completo }}')" class="action-btn btn-cerrar" title="Cerrar Turno">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                                    </svg>
-                                </button>
-                                {% endif %}
-                                <a href="{% url 'asistencia_detalle' asistencia.id %}" class="action-btn action-btn-link" title="Ver Detalle / Editar">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                    </svg>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="10" style="text-align: center; padding: 60px 20px;">
-                            No se encontraron asistencias para los filtros seleccionados.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <!-- Project Summary -->
+    {% if resumen_proyectos %}
+    <div class="summary-section">
+        <h3>Resumen por proyecto</h3>
+        <div class="summary-table">
+            <div class="summary-header">
+                <div>Proyecto</div>
+                <div>Presentes</div>
+                <div>Ausentes</div>
+                <div>Tarde</div>
+                <div>Horas</div>
+                <div>Extras</div>
+            </div>
+            {% for proyecto in resumen_proyectos %}
+            <div class="summary-row">
+                <div>{{ proyecto.proyecto__nombre }}</div>
+                <div>{{ proyecto.total_presentes }}</div>
+                <div>{{ proyecto.total_ausentes }}</div>
+                <div>{{ proyecto.total_tarde }}</div>
+                <div>{{ proyecto.total_horas|floatformat:0 }}h</div>
+                <div>{{ proyecto.total_extras|floatformat:0 }}h</div>
+            </div>
+            {% endfor %}
         </div>
     </div>
-
-    {% include 'base/paginacion.html' %}
-
-    <h3 class="section-title">Resumen por proyecto (Rango de fechas seleccionado)</h3>
-    <div class="table-wrapper">
-        <table class="table-clean">
-            <thead>
-                <tr>
-                    <th>Proyecto</th>
-                    <th>Asistencias</th>
-                    <th>Presentes</th>
-                    <th>Ausentes</th>
-                    <th>Tarde</th>
-                    <th>Total Horas</th>
-                    <th>Total Extras</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for proyecto in resumen_proyectos %}
-                <tr>
-                    <td><strong>{{ proyecto.proyecto__nombre }}</strong></td>
-                    <td>{{ proyecto.total_asistencias|default:"0" }}</td>
-                    <td>{{ proyecto.total_presentes|default:"0" }}</td>
-                    <td>{{ proyecto.total_ausentes|default:"0" }}</td>
-                    <td>{{ proyecto.total_tarde|default:"0" }}</td>
-                    <td><span class="table-hours-value">{{ proyecto.total_horas|floatformat:1|default:"0" }}h</span></td>
-                    <td><span class="table-hours-value extras">{{ proyecto.total_extras|floatformat:1|default:"0" }}h</span></td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" style="text-align: center; padding: 40px 20px;">
-                        No hay datos de resumen para mostrar.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
+    {% endif %}
 </div>
-{% endblock %}
 
-
-{% block modal %}
-<div id="modalCerrarTurno" class="modal-overlay" onclick="cerrarModalCerrarTurno()">
-    <div class="modal-box" onclick="event.stopPropagation()">
-        <div class="modal-header-simple">
-            <h3>Cerrar Turno</h3>
-            <button type="button" class="modal-close-btn" onclick="cerrarModalCerrarTurno()">×</button>
-        </div>
-        <form id="formCerrarTurno" method="POST">
+<!-- Modal -->
+<div id="modalCerrarTurno" class="modal-overlay" style="display: none;" onclick="cerrarModal()">
+    <div class="modal-modern" onclick="event.stopPropagation()">
+        <h3>Cerrar Turno</h3>
+        <form method="POST" id="formCerrarTurno">
             {% csrf_token %}
-            <div class="modal-body-simple">
-                <p>Cerrar turno para: <strong id="nombreTrabajador"></strong></p>
-                
-                <div class="form-group">
-                    <label for="hora_salida_modal">Hora de Salida</label>
-                    <input type="time" name="hora_salida" id="hora_salida_modal" class="form-control" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="observaciones_modal">Observaciones</label>
-                    <textarea name="observaciones" id="observaciones_modal" class="form-control" rows="3"></textarea>
-                </div>
+            <p id="nombreTrabajador" style="margin-bottom: 20px;"></p>
+            <div class="form-group">
+                <label>Hora de Salida</label>
+                <input type="time" name="hora_salida" class="form-control" id="horaSalidaModal" required>
             </div>
-            <div class="modal-footer-simple">
-                <button type="button" class="btn btn-secondary" onclick="cerrarModalCerrarTurno()">Cancelar</button>
-                <button type="submit" class="btn btn-primary">Confirmar Cierre</button>
+            <div class="form-group">
+                <label>Observaciones</label>
+                <textarea name="observaciones" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-ghost" onclick="cerrarModal()">Cancelar</button>
+                <button type="submit" class="btn-primary">Cerrar Turno</button>
             </div>
         </form>
     </div>
 </div>
-{% endblock modal %}
 
+<style>
+* {
+    box-sizing: border-box;
+}
 
-{% block extra_js %}
+.asistencias-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* ==================== HEADER ==================== */
+.page-header-simple {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.header-tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.tab-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #6b7280;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.tab-link.active {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-primary {
+    background: #2563eb;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-ghost {
+    background: transparent;
+    border: 1px solid #e5e7eb;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.btn-ghost-sm {
+    background: transparent;
+    border: 1px solid #e5e7eb;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+/* ==================== STATS ==================== */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-box {
+    background: #f9fafb;
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #111827;
+}
+
+/* ==================== FILTERS ==================== */
+.filters-section {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.filters-form-inline {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.filter-select {
+    padding: 10px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+    min-width: 150px;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.date-filters {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.date-form {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+}
+
+.date-input {
+    padding: 6px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.extra-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* ==================== LIST ==================== */
+.list-section {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.list-header {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr 1fr 1fr 1fr 80px;
+    gap: 16px;
+    padding: 16px 20px;
+    background: #f9fafb;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.list-card {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr 1fr 1fr 1fr 80px;
+    gap: 16px;
+    padding: 20px;
+    border-bottom: 1px solid #f3f4f6;
+    align-items: center;
+    transition: background 0.2s;
+}
+
+.list-card:hover {
+    background: #f9fafb;
+}
+
+/* Worker Info */
+.worker-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.worker-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #3b82f6;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.worker-name {
+    font-weight: 600;
+    color: #111827;
+    font-size: 14px;
+}
+
+.worker-ci {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* Time */
+.time-value {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.time-value.late {
+    color: #ef4444;
+}
+
+.time-empty {
+    color: #d1d5db;
+}
+
+/* Badge */
+.badge-late {
+    display: inline-block;
+    background: #fef3c7;
+    color: #f59e0b;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-badge.present {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.absent {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Hours */
+.hours-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.hours-label {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.hours-value {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* Actions */
+.actions-dropdown {
+    position: relative;
+}
+
+.actions-trigger {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    color: #6b7280;
+}
+
+.actions-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    padding: 4px;
+    min-width: 160px;
+    z-index: 10;
+}
+
+.actions-dropdown:hover .actions-menu {
+    display: block;
+}
+
+.actions-menu a,
+.actions-menu button {
+    display: block;
+    padding: 8px 12px;
+    text-decoration: none;
+    color: #374151;
+    font-size: 14px;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.actions-menu a:hover,
+.actions-menu button:hover {
+    background: #f3f4f6;
+}
+
+/* Pagination */
+.pagination-modern {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+}
+
+.page-btn {
+    padding: 8px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #374151;
+    font-size: 14px;
+}
+
+.page-numbers {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.page-current {
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.page-total {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+/* Empty State */
+.empty-state-modern {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+}
+
+.empty-state-modern .material-symbols-outlined {
+    font-size: 64px;
+    color: #d1d5db;
+    margin-bottom: 16px;
+}
+
+/* Summary */
+.summary-section {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.summary-section h3 {
+    margin: 0 0 20px 0;
+    font-size: 16px;
+    color: #6b7280;
+}
+
+.summary-table {
+    font-size: 14px;
+}
+
+.summary-header,
+.summary-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+    gap: 16px;
+    padding: 12px 0;
+}
+
+.summary-header {
+    font-weight: 600;
+    color: #6b7280;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.summary-row {
+    border-bottom: 1px solid #f3f4f6;
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-modern {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 500px;
+    width: 90%;
+}
+
+.modal-modern h3 {
+    margin: 0 0 20px 0;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+}
+
+@media (max-width: 1200px) {
+    .stats-row {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .list-header,
+    .list-card {
+        font-size: 12px;
+        padding: 12px;
+    }
+}
+</style>
+
 <script>
-    function abrirModalCerrarTurno(id, nombre) {
-        document.getElementById('nombreTrabajador').textContent = nombre;
-        document.getElementById('formCerrarTurno').action = `/asistencias/${id}/cerrar-turno/`;
-        
-        // Poner la hora actual por defecto
-        const now = new Date();
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        document.getElementById('hora_salida_modal').value = `${hours}:${minutes}`;
-        
-        document.getElementById('modalCerrarTurno').style.display = 'flex';
-    }
+function abrirModalCerrar(asistenciaId, nombreTrabajador) {
+    document.getElementById('nombreTrabajador').textContent = `¿Confirmar cierre de turno de ${nombreTrabajador}?`;
+    document.getElementById('formCerrarTurno').action = `/asistencias/${asistenciaId}/cerrar-turno/`;
+    
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('horaSalidaModal').value = `${hours}:${minutes}`;
+    
+    document.getElementById('modalCerrarTurno').style.display = 'flex';
+}
 
-    function cerrarModalCerrarTurno() {
-        document.getElementById('modalCerrarTurno').style.display = 'none';
-    }
-
-    // Cerrar modal con ESC
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            cerrarModalCerrarTurno();
-        }
-    });
+function cerrarModal() {
+    document.getElementById('modalCerrarTurno').style.display = 'none';
+}
 </script>
 {% endblock %}

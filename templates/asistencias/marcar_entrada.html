@@ -7,17 +7,11 @@
 <div class="page-header">
     <div>
         <a href="{% url 'asistencias_lista' %}" class="back-link">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="19" y1="12" x2="5" y2="12"></line>
-                <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
+            <span class="material-symbols-outlined">arrow_back</span>
             Volver
         </a>
         <h1>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
+            <span class="material-symbols-outlined">login</span>
             Marcar Entrada
         </h1>
         <p class="page-description">Registrar asistencia de trabajador manualmente</p>
@@ -75,9 +69,7 @@
 
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
+                            <span class="material-symbols-outlined">check</span>
                             Registrar Entrada
                         </button>
                         <a href="{% url 'asistencias_lista' %}" class="btn btn-secondary">Cancelar</a>
@@ -95,10 +87,7 @@
             <div class="card-body text-center">
                 <div id="previewFoto" class="preview-foto">
                     <div class="avatar-preview">
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
+                        <span class="material-symbols-outlined" style="font-size: 48px;">person</span>
                     </div>
                 </div>
                 <h4 id="previewNombre" style="margin: 16px 0 8px;"></h4>
@@ -113,10 +102,7 @@
             </div>
             <div class="card-body">
                 <div class="info-item">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
+                    <span class="material-symbols-outlined">schedule</span>
                     <div>
                         <strong>Hora Actual</strong>
                         <p id="horaActual">--:--:--</p>
@@ -124,12 +110,7 @@
                 </div>
                 
                 <div class="info-item">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
+                    <span class="material-symbols-outlined">event</span>
                     <div>
                         <strong>Fecha</strong>
                         <p id="fechaActual">--/--/----</p>
@@ -137,11 +118,7 @@
                 </div>
 
                 <div class="alert-info">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="16" x2="12" y2="12"></line>
-                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                    </svg>
+                    <span class="material-symbols-outlined">info</span>
                     <div>
                         <strong>Nota:</strong> El sistema verificará si el trabajador ya tiene una asistencia registrada hoy.
                     </div>
@@ -151,12 +128,37 @@
     </div>
 </div>
 
-{% block extra_css %}
 <style>
-/* Estilos específicos de esta página */
+.form-layout {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 24px;
+}
+
+@media (max-width: 1024px) {
+    .form-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #6b7280;
+    text-decoration: none;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+.back-link:hover {
+    color: var(--primary-color);
+}
+
 .preview-foto {
     margin-bottom: 16px;
 }
+
 .preview-foto img {
     width: 120px;
     height: 120px;
@@ -164,6 +166,7 @@
     object-fit: cover;
     border: 4px solid #f3f4f6;
 }
+
 .avatar-preview {
     width: 120px;
     height: 120px;
@@ -175,6 +178,7 @@
     margin: 0 auto;
     color: #9ca3af;
 }
+
 .info-item {
     display: flex;
     gap: 12px;
@@ -183,105 +187,126 @@
     border-radius: 8px;
     margin-bottom: 12px;
 }
-.info-item svg {
-    color: #3b82f6;
+
+.info-item .material-symbols-outlined {
+    color: var(--primary-color);
     flex-shrink: 0;
 }
+
 .info-item strong {
     display: block;
     color: #111827;
     margin-bottom: 4px;
     font-size: 14px;
 }
+
 .info-item p {
     margin: 0;
     color: #6b7280;
     font-size: 14px;
 }
+
+.alert-info {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    background: #dbeafe;
+    border-left: 4px solid #3b82f6;
+    border-radius: 8px;
+    margin-top: 16px;
+}
+
+.alert-info .material-symbols-outlined {
+    color: #3b82f6;
+    flex-shrink: 0;
+}
+
+.alert-info strong {
+    color: #1e40af;
+}
+
+.alert-info div {
+    color: #1e3a8a;
+    font-size: 14px;
+}
+
 .text-center {
     text-align: center;
 }
 </style>
-{% endblock %}
 
-
-{% block extra_js %}
 <script>
-    // Actualizar hora actual
-    function actualizarHora() {
-        const now = new Date();
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const seconds = String(now.getSeconds()).padStart(2, '0');
-        
-        document.getElementById('horaActual').textContent = `${hours}:${minutes}:${seconds}`;
-        
-        const day = String(now.getDate()).padStart(2, '0');
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const year = now.getFullYear();
-        
-        document.getElementById('fechaActual').textContent = `${day}/${month}/${year}`;
-        
-        // Establecer hora de entrada por defecto
-        const horaEntradaInput = document.getElementById('horaEntrada');
-        if (!horaEntradaInput.value) {
-            horaEntradaInput.value = `${hours}:${minutes}`;
-        }
+// Actualizar hora actual
+function actualizarHora() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    
+    document.getElementById('horaActual').textContent = `${hours}:${minutes}:${seconds}`;
+    
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    
+    document.getElementById('fechaActual').textContent = `${day}/${month}/${year}`;
+    
+    const horaEntradaInput = document.getElementById('horaEntrada');
+    if (!horaEntradaInput.value) {
+        horaEntradaInput.value = `${hours}:${minutes}`;
     }
+}
+
+setInterval(actualizarHora, 1000);
+actualizarHora();
+
+// Preview del trabajador
+document.getElementById('selectTrabajador').addEventListener('change', function() {
+    const option = this.options[this.selectedIndex];
     
-    // Actualizar cada segundo
-    setInterval(actualizarHora, 1000);
-    actualizarHora();
-    
-    // Preview del trabajador y autocompletar proyecto
-    document.getElementById('selectTrabajador').addEventListener('change', function() {
-        const option = this.options[this.selectedIndex];
+    if (this.value) {
+        const foto = option.getAttribute('data-foto');
+        const nombre = option.getAttribute('data-nombre');
+        const cedula = option.getAttribute('data-cedula');
+        const puesto = option.getAttribute('data-puesto');
+        const proyectoId = option.getAttribute('data-proyecto');
         
-        if (this.value) {
-            const foto = option.getAttribute('data-foto');
-            const nombre = option.getAttribute('data-nombre');
-            const cedula = option.getAttribute('data-cedula');
-            const puesto = option.getAttribute('data-puesto');
-            const proyectoId = option.getAttribute('data-proyecto');
-            
-            // Actualizar preview
-            document.getElementById('previewNombre').textContent = nombre;
-            document.getElementById('previewCedula').textContent = `CI: ${cedula}`;
-            document.getElementById('previewPuesto').textContent = puesto;
-            
-            const previewFoto = document.getElementById('previewFoto');
-            if (foto) {
-                previewFoto.innerHTML = `<img src="${foto}" alt="Foto">`;
-            } else {
-                const initials = nombre.split(' ').map(n => n[0]).join('').substring(0, 2);
-                previewFoto.innerHTML = `
-                    <div class="avatar-preview" style="background: #e5e7eb; color: #6b7280; font-size: 32px; font-weight: 600;">
-                        ${initials}
-                    </div>
-                `;
-            }
-            
-            // Autocompletar proyecto si el trabajador tiene uno asignado
-            if (proyectoId) {
-                document.getElementById('selectProyecto').value = proyectoId;
-            }
-            
-            document.getElementById('previewCard').style.display = 'block';
+        document.getElementById('previewNombre').textContent = nombre;
+        document.getElementById('previewCedula').textContent = `CI: ${cedula}`;
+        document.getElementById('previewPuesto').textContent = puesto;
+        
+        const previewFoto = document.getElementById('previewFoto');
+        if (foto) {
+            previewFoto.innerHTML = `<img src="${foto}" alt="Foto">`;
         } else {
-            document.getElementById('previewCard').style.display = 'none';
+            const initials = nombre.split(' ').map(n => n[0]).join('').substring(0, 2);
+            previewFoto.innerHTML = `
+                <div class="avatar-preview" style="background: #e5e7eb; color: #6b7280; font-size: 32px; font-weight: 600;">
+                    ${initials}
+                </div>
+            `;
         }
-    });
-    
-    // Validación del formulario
-    document.getElementById('formMarcarEntrada').addEventListener('submit', function(e) {
-        const trabajadorId = document.querySelector('select[name="trabajador_id"]').value;
-        const proyectoId = document.querySelector('select[name="proyecto_id"]').value;
         
-        if (!trabajadorId || !proyectoId) {
-            e.preventDefault();
-            alert('Por favor complete todos los campos requeridos');
-            return false;
+        if (proyectoId) {
+            document.getElementById('selectProyecto').value = proyectoId;
         }
-    });
+        
+        document.getElementById('previewCard').style.display = 'block';
+    } else {
+        document.getElementById('previewCard').style.display = 'none';
+    }
+});
+
+// Validación
+document.getElementById('formMarcarEntrada').addEventListener('submit', function(e) {
+    const trabajadorId = document.querySelector('select[name="trabajador_id"]').value;
+    const proyectoId = document.querySelector('select[name="proyecto_id"]').value;
+    
+    if (!trabajadorId || !proyectoId) {
+        e.preventDefault();
+        alert('Por favor complete todos los campos requeridos');
+        return false;
+    }
+});
 </script>
 {% endblock %}

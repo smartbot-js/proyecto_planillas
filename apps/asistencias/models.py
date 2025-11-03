@@ -39,7 +39,25 @@ class Asistencia(models.Model):
     # Datos básicos
     fecha = models.DateField(default=timezone.now, verbose_name='Fecha')
     puesto_laboral = models.CharField(max_length=100, verbose_name='Puesto Laboral')
-    
+
+    # Salarios (copiados del trabajador al momento de la asistencia)
+    salario_dia = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Salario del Día',
+        help_text='Salario normal del trabajador este día'
+    )
+    tarifa_hora_extra = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Tarifa Hora Extra',
+        help_text='Tarifa por hora extra este día'
+    )
+
     # Horarios
     hora_entrada = models.TimeField(verbose_name='Hora de Entrada')
     hora_salida = models.TimeField(null=True, blank=True, verbose_name='Hora de Salida')
@@ -65,6 +83,45 @@ class Asistencia(models.Model):
         default=0,
         validators=[MinValueValidator(Decimal('0.00'))],
         verbose_name='Horas Totales'
+    )
+
+    # Horas especiales
+    horas_festivas = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Horas en Festivo',
+        help_text='Horas trabajadas en día festivo'
+    )
+    horas_nocturnas = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Horas Nocturnas',
+        help_text='Horas trabajadas entre 6pm y 6am'
+    )
+    salario_hora_festiva = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Tarifa Hora Festiva',
+        help_text='Tarifa especial por hora en festivo'
+    )
+    salario_hora_nocturna = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Tarifa Hora Nocturna',
+        help_text='Tarifa especial por hora nocturna'
+    )
+    es_dia_festivo = models.BooleanField(
+        default=False,
+        verbose_name='Es Día Festivo',
+        help_text='Indica si este día es festivo'
     )
     
     # Estado y control
@@ -214,13 +271,15 @@ class Asistencia(models.Model):
 
     def calcular_horas(self):
         """
-        Calcula las horas normales, extras y totales trabajadas
-        basado en la jornada variable.
+        Calcula las horas normales, extras, nocturnas y totales trabajadas
+        basado en la jornada variable y horarios especiales.
         """
         if not self.hora_salida:
             self.horas_normales = Decimal('0.00')
             self.horas_extras = Decimal('0.00')
             self.horas_totales = Decimal('0.00')
+            self.horas_nocturnas = Decimal('0.00')
+            self.horas_festivas = Decimal('0.00')
             return
         
         # Convertir a datetime para cálculos
@@ -235,18 +294,69 @@ class Asistencia(models.Model):
         diferencia = salida - entrada
         total_horas = Decimal(str(diferencia.total_seconds() / 3600))
         
-        # Obtener la jornada normal para este día
-        HORAS_NORMALES_MAX = self.get_jornada_normal_horas()
+        # Calcular horas nocturnas
+        self.calcular_horas_nocturnas()
         
-        if total_horas <= HORAS_NORMALES_MAX:
-            self.horas_normales = total_horas
+        # Si es día festivo, todas las horas son festivas
+        if self.es_dia_festivo:
+            self.horas_festivas = total_horas
+            self.horas_normales = Decimal('0.00')
             self.horas_extras = Decimal('0.00')
         else:
-            self.horas_normales = HORAS_NORMALES_MAX
-            self.horas_extras = total_horas - HORAS_NORMALES_MAX
+            # Obtener la jornada normal para este día
+            HORAS_NORMALES_MAX = self.get_jornada_normal_horas()
+            
+            if total_horas <= HORAS_NORMALES_MAX:
+                self.horas_normales = total_horas
+                self.horas_extras = Decimal('0.00')
+            else:
+                self.horas_normales = HORAS_NORMALES_MAX
+                self.horas_extras = total_horas - HORAS_NORMALES_MAX
+            
+            self.horas_festivas = Decimal('0.00')
         
         self.horas_totales = total_horas
+            
+    def calcular_horas_nocturnas(self):
     
+        """
+        Calcula las horas trabajadas en horario nocturno (6pm - 6am)
+        Según legislación laboral panameña
+        """
+        if not self.hora_salida:
+            self.horas_nocturnas = Decimal('0.00')
+            return
+        
+        # Horario nocturno: 6:00 PM (18:00) hasta 6:00 AM (06:00)
+        INICIO_NOCTURNO = time(18, 0)  # 6:00 PM
+        FIN_NOCTURNO = time(6, 0)      # 6:00 AM
+        
+        entrada = datetime.combine(self.fecha, self.hora_entrada)
+        salida = datetime.combine(self.fecha, self.hora_salida)
+        
+        # Si salida es menor que entrada, es del día siguiente
+        if salida < entrada:
+            salida += timedelta(days=1)
+        
+        horas_nocturnas = Decimal('0.00')
+        
+        # Recorrer cada hora trabajada
+        tiempo_actual = entrada
+        while tiempo_actual < salida:
+            hora_actual = tiempo_actual.time()
+            
+            # Verificar si está en horario nocturno
+            # De 6pm a medianoche O de medianoche a 6am
+            if hora_actual >= INICIO_NOCTURNO or hora_actual < FIN_NOCTURNO:
+                # Agregar fracción de hora (en incrementos de 1 minuto para precisión)
+                siguiente = min(tiempo_actual + timedelta(minutes=1), salida)
+                minutos = (siguiente - tiempo_actual).total_seconds() / 60
+                horas_nocturnas += Decimal(str(minutos / 60))
+            
+            tiempo_actual += timedelta(minutes=1)
+        
+        self.horas_nocturnas = horas_nocturnas.quantize(Decimal('0.01'))
+
     def verificar_llegada_tarde(self):
         """Verifica si el trabajador llegó tarde (después de las 7:00 AM)"""
         HORA_LIMITE = time(7, 0)  # 7:00 AM
@@ -305,6 +415,17 @@ class Asistencia(models.Model):
     
     def save(self, *args, **kwargs):
         """Override del save para cálculos automáticos"""
+        # Copiar salarios del trabajador si no existen (primera vez)
+        if not self.pk and self.trabajador:
+            if not self.salario_dia:
+                self.salario_dia = self.trabajador.salario_normal or Decimal('0.00')
+            if not self.tarifa_hora_extra:
+                self.tarifa_hora_extra = self.trabajador.tarifa_hora_extra or Decimal('0.00')
+            if not self.salario_hora_festiva:
+                self.salario_hora_festiva = self.trabajador.salario_festivo or Decimal('0.00')
+            if not self.salario_hora_nocturna:
+                self.salario_hora_nocturna = self.trabajador.salario_nocturno or Decimal('0.00')
+        
         # Verificar llegada tarde al crear/actualizar entrada
         if self.hora_entrada:
             self.verificar_llegada_tarde()
@@ -315,7 +436,6 @@ class Asistencia(models.Model):
             self.verificar_salida_temprano()
         
         super().save(*args, **kwargs)
-
 
 class ResumenDiario(models.Model):
     """Modelo para almacenar resúmenes diarios de asistencias"""
