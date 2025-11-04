@@ -1,462 +1,1078 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Detalle Asistencia - Sistema de Gestión{% endblock %}
+{% block title %}Detalle de Asistencia - {{ asistencia.trabajador.nombre_completo }}{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div>
-        <a href="{% url 'asistencias_lista' %}" class="back-link">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="19" y1="12" x2="5" y2="12"></line>
-                <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-            Volver a Asistencias
-        </a>
-        <h1>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-            </svg>
-            Detalle de Asistencia
-        </h1>
-        <p class="page-description">{{ asistencia.fecha|date:"l, d \d\e F \d\e Y" }}</p>
+<div class="detalle-page">
+    <!-- Header -->
+    <div class="detalle-header">
+        <div class="header-left">
+            <span class="material-symbols-outlined">today</span>
+            <span class="breadcrumb">Asistencias / Detalle</span>
+            <span class="material-symbols-outlined">person</span>
+            <span class="worker-name">{{ asistencia.trabajador.nombre_completo }}</span>
+        </div>
+        <div class="header-right">
+            <a href="{% url 'asistencias_lista' %}?busqueda={{ asistencia.trabajador.numero_cedula }}" class="btn-outline">
+                Volver
+            </a>
+            <a href="{% url 'asistencia_historial' asistencia.trabajador.id %}" class="btn-outline">
+                <span class="material-symbols-outlined">history</span>
+                Historial
+            </a>
+        </div>
     </div>
-    <div class="page-actions">
-        {% if asistencia.estado == 'abierto' %}
-        <button type="button" class="btn btn-primary" onclick="cerrarTurno()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 11 12 14 22 4"></polyline>
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-            </svg>
-            Cerrar Turno
-        </button>
-        {% endif %}
-        
-        {% if asistencia.puede_editar %}
-        <a href="{% url 'asistencia_editar' asistencia.id %}" class="btn btn-secondary">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
-            Editar
-        </a>
-        {% endif %}
-    </div>
-</div>
 
-{% if asistencia.estado == 'abierto' %}
-<div class="alert alert-warning">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"></circle>
-        <line x1="12" y1="8" x2="12" y2="12"></line>
-        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-    </svg>
-    <div>
-        <strong>Turno Abierto</strong>
-        <p>El turno está abierto. Recuerde cerrar el turno al finalizar la jornada.</p>
-    </div>
-</div>
-{% elif asistencia.estado == 'cerrado' %}
-<div class="alert alert-success">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="9 11 12 14 22 4"></polyline>
-        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-    </svg>
-    <div>
-        <strong>Turno Cerrado</strong>
-        <p>Horas trabajadas: {{ asistencia.duracion_jornada }}</p>
-    </div>
-</div>
-{% endif %}
+    <!-- Main Content -->
+    <div class="detalle-grid">
+        <!-- Left Column -->
+        <div class="left-column">
+            <!-- Worker Info Card -->
+            <div class="info-card">
+                <div class="worker-profile-header">
+                    {% if asistencia.trabajador.foto %}
+                    <img src="{{ asistencia.trabajador.foto.url }}" alt="" class="worker-photo-large">
+                    {% else %}
+                    <div class="worker-photo-placeholder-large">
+                        {{ asistencia.trabajador.nombre|first }}{{ asistencia.trabajador.apellido|first }}
+                    </div>
+                    {% endif %}
+                    <div>
+                        <h2>{{ asistencia.trabajador.nombre_completo }}</h2>
+                        <p class="worker-meta">Cédula: {{ asistencia.trabajador.numero_cedula }} • Asegurado: {% if asistencia.trabajador.asegurado %}Sí{% else %}No{% endif %}</p>
+                    </div>
+                </div>
 
-<div class="grid-layout">
-    <div class="main-content" style="padding: 0;"> <div class="content-card">
-            <div class="card-header">
-                <h3>Información del Trabajador</h3>
-            </div>
-            <div class="card-body">
-                <div class="detail-grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
-                    <div class="detail-item">
-                        <span class="detail-label">Nombre Completo:</span>
-                        <span class="detail-value">
-                            <a href="{% url 'trabajador_detalle' asistencia.trabajador.id %}">
-                                {{ asistencia.trabajador.nombre }} {{ asistencia.trabajador.apellido }}
-                            </a>
+                <!-- Info Grid -->
+                <div class="info-grid">
+                    <div class="info-row">
+                        <span class="info-label">Proyecto</span>
+                        <span class="info-value">{{ asistencia.proyecto.nombre }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Puesto laboral</span>
+                        <span class="info-value">{{ asistencia.puesto_laboral }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Fecha</span>
+                        <span class="info-value">{{ asistencia.fecha|date:"Y-m-d" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Estado</span>
+                        <span class="info-value">
+                            {% if asistencia.estado == 'cerrado' %}
+                            <span class="badge-green-sm">Presente</span>
+                            {% else %}
+                            <span class="badge-yellow-sm">Abierto</span>
+                            {% endif %}
                         </span>
                     </div>
+                </div>
 
-                    <div class="detail-item">
-                        <span class="detail-label">Cédula:</span>
-                        <span class="detail-value">{{ asistencia.trabajador.numero_cedula }}</span>
+                <!-- Time Section -->
+                <div class="time-section">
+                    <div class="time-label">Entrada</div>
+                    <div class="time-display">
+                        <span class="time-value-large">{{ asistencia.hora_entrada|time:"H:i" }}</span>
+                        {% if asistencia.latitud_entrada and asistencia.longitud_entrada %}
+                        <span class="gps-badge">• GPS validado</span>
+                        {% endif %}
                     </div>
 
-                    <div class="detail-item">
-                        <span class="detail-label">Puesto Laboral:</span>
-                        <span class="detail-value">{{ asistencia.puesto_laboral }}</span>
+                    <div class="time-label" style="margin-top: 24px;">Salida</div>
+                    <div class="time-display">
+                        {% if asistencia.hora_salida %}
+                        <span class="time-value-large">{{ asistencia.hora_salida|time:"H:i" }}</span>
+                        {% else %}
+                        <span class="time-empty-large">—</span>
+                        {% endif %}
                     </div>
+                </div>
 
-                    <div class="detail-item">
-                        <span class="detail-label">Proyecto:</span>
-                        <span class="detail-value">
-                            <a href="{% url 'proyecto_detalle' asistencia.proyecto.id %}">
-                                {{ asistencia.proyecto.nombre }}
-                            </a>
-                        </span>
+                <!-- Hours Summary -->
+                <div class="hours-summary">
+                    <div class="hours-label">Horas</div>
+                    <div class="hours-grid">
+                        <div class="hours-box">
+                            <span class="hours-box-label">Normales:</span>
+                            <span class="hours-box-value">{{ asistencia.horas_normales|floatformat:0 }}h</span>
+                        </div>
+                        <div class="hours-box">
+                            <span class="hours-box-label">Extras:</span>
+                            <span class="hours-box-value">{{ asistencia.horas_extras|floatformat:0 }}h</span>
+                        </div>
                     </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <a href="{% url 'asistencia_marcar_entrada' %}?trabajador={{ asistencia.trabajador.id }}" class="btn-action">
+                        Marcar entrada
+                    </a>
+                    {% if asistencia.estado == 'abierto' %}
+                    <button onclick="abrirModalCerrar()" class="btn-action">
+                        Cerrar turno
+                    </button>
+                    {% endif %}
+                    <a href="{% url 'asistencias_reportes' %}?trabajador={{ asistencia.trabajador.id }}" class="btn-action">
+                        Reportes
+                    </a>
                 </div>
             </div>
         </div>
 
-        <div class="content-card">
-            <div class="card-header">
-                <h3>Horarios y Horas Trabajadas</h3>
-            </div>
-            <div class="card-body">
-                <div class="horarios-grid">
-                    <div class="horario-card entrada">
-                        <div class="horario-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                                <polyline points="10 17 15 12 10 7"></polyline>
-                                <line x1="15" y1="12" x2="3" y2="12"></line>
-                            </svg>
-                        </div>
-                        <div>
-                            <span class="horario-label">Hora de Entrada</span>
-                            <span class="horario-value {% if asistencia.llego_tarde %}tarde{% endif %}">
-                                {{ asistencia.hora_entrada|time:"H:i" }}
-                                {% if asistencia.llego_tarde %}
-                                <span class="badge badge-warning">Tarde</span>
-                                {% endif %}
-                            </span>
-                        </div>
+        <!-- Right Column -->
+        <div class="right-column">
+            <!-- Location Card -->
+            <div class="info-card">
+                <h3 class="card-title">Ubicación y validaciones</h3>
+
+                <!-- Map -->
+                <div class="map-container" id="map">
+                    <div class="map-placeholder">
+                        <span class="material-symbols-outlined">map</span>
+                        <p>Mapa de ubicación</p>
+                    </div>
+                </div>
+
+                <!-- Location Details -->
+                <div class="location-details">
+                    <div class="location-row">
+                        <span class="location-label">Modo captura</span>
+                        <span class="location-value">
+                            {% if asistencia.metodo_identificacion == 'qr' %}QR{% endif %}
+                            {% if asistencia.metodo_identificacion == 'nfc' %}NFC{% endif %}
+                            {% if asistencia.metodo_identificacion == 'facial' %}Facial{% endif %}
+                            {% if asistencia.metodo_identificacion == 'huella' %}Huella{% endif %}
+                            {% if asistencia.metodo_identificacion == 'manual' %}Manual{% endif %}
+                            • Offline habilitado
+                        </span>
                     </div>
 
-                    <div class="horario-card salida">
-                        <div class="horario-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                <polyline points="16 17 21 12 16 7"></polyline>
-                                <line x1="21" y1="12" x2="9" y2="12"></line>
-                            </svg>
+                    <div class="location-row">
+                        <span class="location-label">Coordenadas</span>
+                        <span class="location-value">
+                            {% if asistencia.latitud_entrada and asistencia.longitud_entrada %}
+                            {{ asistencia.latitud_entrada|floatformat:3 }}, {{ asistencia.longitud_entrada|floatformat:3 }} (±15m)
+                            {% else %}
+                            No disponibles
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <div class="location-row">
+                        <span class="location-label">Dispositivo</span>
+                        <span class="location-value">
+                            {% if asistencia.dispositivo_id %}
+                            {{ asistencia.dispositivo_id }} • App móvil
+                            {% else %}
+                            Supervisor • Web
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Validation Box -->
+                {% if asistencia.latitud_entrada and asistencia.longitud_entrada %}
+                <div class="validation-box">
+                    <div class="validation-header">
+                        <span class="material-symbols-outlined">location_on</span>
+                        <span>Validación de coordenadas</span>
+                    </div>
+                    <div class="validation-grid">
+                        <div class="validation-row">
+                            <span class="validation-label">Coordenadas capturadas</span>
+                            <span class="validation-value">{{ asistencia.latitud_entrada|floatformat:3 }}, {{ asistencia.longitud_entrada|floatformat:3 }}</span>
                         </div>
-                        <div>
-                            <span class="horario-label">Hora de Salida</span>
-                            <span class="horario-value">
-                                {% if asistencia.hora_salida %}
-                                    {{ asistencia.hora_salida|time:"H:i" }}
-                                    {% if asistencia.salio_temprano %}
-                                    <span class="badge badge-warning">Salida Temprana</span>
-                                    {% endif %}
+                        <div class="validation-row">
+                            <span class="validation-label">Coordenadas del proyecto</span>
+                            <span class="validation-value">
+                                {% if asistencia.proyecto.latitud and asistencia.proyecto.longitud %}
+                                {{ asistencia.proyecto.latitud|floatformat:3 }}, {{ asistencia.proyecto.longitud|floatformat:3 }}
                                 {% else %}
-                                <span class="badge badge-warning">Pendiente</span>
+                                No configuradas
                                 {% endif %}
+                            </span>
+                        </div>
+                        <div class="validation-row">
+                            <span class="validation-label">Radio permitido</span>
+                            <span class="validation-value">
+                                {% if asistencia.proyecto.radio_geovalla %}
+                                {{ asistencia.proyecto.radio_geovalla }} m
+                                {% else %}
+                                150 m (predeterminado)
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="validation-row">
+                            <span class="validation-label">Distancia calculada</span>
+                            <span class="validation-value" id="distanciaCalculada">Calculando...</span>
+                        </div>
+                        <div class="validation-row">
+                            <span class="validation-label">Resultado</span>
+                            <span class="validation-value" id="resultadoValidacion">
+                                <span class="badge-validating">Validando...</span>
                             </span>
                         </div>
                     </div>
                 </div>
+                {% endif %}
+            </div>
 
-                <div class="horas-grid">
-                    <div class="horas-box">
-                        <span class="horas-label">Horas Normales</span>
-                        <span class="horas-value normal">{{ asistencia.horas_normales|floatformat:2 }}h</span>
-                    </div>
-                
-                    <div class="horas-box">
-                        <span class="horas-label">Horas Extras</span>
-                        <span class="horas-value extra">{{ asistencia.horas_extras|floatformat:2 }}h</span>
-                    </div>
-                
-                    {% if asistencia.horas_nocturnas > 0 %}
-                    <div class="horas-box">
-                        <span class="horas-label">Horas Nocturnas</span>
-                        <span class="horas-value nocturna">{{ asistencia.horas_nocturnas|floatformat:2 }}h</span>
-                    </div>
+            <!-- Notes Card -->
+            <div class="info-card">
+                <h3 class="card-title">Notas</h3>
+                <div class="notes-section">
+                    <div class="notes-label">Observaciones</div>
+                    {% if asistencia.observaciones %}
+                    <div class="notes-content">{{ asistencia.observaciones }}</div>
+                    {% else %}
+                    <div class="notes-empty">Sin observaciones</div>
                     {% endif %}
-                
-                    {% if asistencia.es_dia_festivo %}
-                    <div class="horas-box">
-                        <span class="horas-label">Horas Festivas</span>
-                        <span class="horas-value festiva">{{ asistencia.horas_festivas|floatformat:2 }}h</span>
-                    </div>
-                    {% endif %}
-                
-                    <div class="horas-box total">
-                        <span class="horas-label">Total Horas</span>
-                        <span class="horas-value">{{ asistencia.horas_totales|floatformat:2 }}h</span>
-                    </div>
+                    
+                    <button class="btn-add-note" onclick="agregarNota()">Agregar nota</button>
                 </div>
             </div>
         </div>
-
-        {% if asistencia.observaciones %}
-        <div class="content-card">
-            <div class="card-header">
-                <h3>Observaciones</h3>
-            </div>
-            <div class="card-body">
-                <p style="white-space: pre-wrap;">{{ asistencia.observaciones }}</p>
-            </div>
-        </div>
-        {% endif %}
     </div>
 
-    <div class="sidebar-content" style="padding-top: 24px;"> {% if asistencia.trabajador.foto %}
-        <div class="content-card">
-            <div class="card-body text-center">
-                <img src="{{ asistencia.trabajador.foto.url }}" alt="{{ asistencia.trabajador.nombre_completo }}" class="foto-trabajador">
+    <!-- History Section -->
+    <div class="history-section">
+        <h3 class="section-title">Historial del día</h3>
+        <div class="history-table">
+            <div class="history-header">
+                <div>Evento</div>
+                <div>Hora</div>
+                <div>Método</div>
+                <div>Detalle</div>
+            </div>
+            <div class="history-row">
+                <div>Entrada</div>
+                <div>{{ asistencia.hora_entrada|time:"H:i" }}</div>
+                <div>
+                    {% if asistencia.metodo_identificacion == 'qr' %}QR{% endif %}
+                    {% if asistencia.metodo_identificacion == 'nfc' %}NFC{% endif %}
+                    {% if asistencia.metodo_identificacion == 'facial' %}Facial{% endif %}
+                    {% if asistencia.metodo_identificacion == 'huella' %}Huella{% endif %}
+                    {% if asistencia.metodo_identificacion == 'manual' %}Manual{% endif %}
+                </div>
+                <div>
+                    {% if asistencia.latitud_entrada and asistencia.longitud_entrada %}
+                    GPS validado
+                    {% else %}
+                    Sin GPS
+                    {% endif %}
+                </div>
+            </div>
+            {% if asistencia.editado_por %}
+            <div class="history-row">
+                <div>Ajuste horas normales</div>
+                <div>—</div>
+                <div>Admin</div>
+                <div>{{ asistencia.horas_normales|floatformat:0 }}h</div>
+            </div>
+            <div class="history-row">
+                <div>Ajuste horas extra</div>
+                <div>—</div>
+                <div>Admin</div>
+                <div>{{ asistencia.horas_extras|floatformat:0 }}h</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Summary Section -->
+    <div class="summary-section">
+        <h3 class="section-title">Resumen</h3>
+        <div class="summary-grid">
+            <div class="summary-item">
+                <span class="summary-label">Total horas</span>
+                <span class="summary-value">{{ asistencia.horas_totales|floatformat:0 }}h</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Extras</span>
+                <span class="summary-value">{{ asistencia.horas_extras|floatformat:0 }}h</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Tardanza</span>
+                <span class="summary-value">
+                    {% if asistencia.llego_tarde %}
+                    {{ asistencia.minutos_tarde }}m
+                    {% else %}
+                    0m
+                    {% endif %}
+                </span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Pago estimado</span>
+                <span class="summary-value">$ —</span>
             </div>
         </div>
-        {% endif %}
-
-        <div class="content-card">
-            <div class="card-header">
-                <h3>Datos de Registro</h3>
-            </div>
-            <div class="card-body">
-                <div class="detail-item-small">
-                    <span class="detail-label">Método:</span>
-                    <span class="detail-value">
-                        {% if asistencia.metodo_identificacion == 'qr' %}
-                        <span class="badge badge-primary">Código QR</span>
-                        {% elif asistencia.metodo_identificacion == 'cedula' %}
-                        <span class="badge badge-info">Cédula Física</span>
-                        {% else %}
-                        <span class="badge badge-secondary">Manual</span>
-                        {% endif %}
-                    </span>
-                </div>
-
-                {% if asistencia.dispositivo_id %}
-                <div class="detail-item-small">
-                    <span class="detail-label">Dispositivo:</span>
-                    <span class="detail-value">{{ asistencia.dispositivo_id }}</span>
-                </div>
-                {% endif %}
-
-                {% if asistencia.registrado_por %}
-                <div class="detail-item-small">
-                    <span class="detail-label">Registrado por:</span>
-                    <span class="detail-value">{{ asistencia.registrado_por.nombre_completo }}</span>
-                </div>
-                {% endif %}
-
-                <div class="detail-item-small">
-                    <span class="detail-label">Fecha de registro:</span>
-                    <span class="detail-value">{{ asistencia.creado_en|date:"d/m/Y H:i" }}</span>
-                </div>
-
-                {% if asistencia.editado_por %}
-                <div class="detail-item-small">
-                    <span class="detail-label">Editado por:</span>
-                    <span class="detail-value">{{ asistencia.editado_por.nombre_completo }}</span>
-                </div>
-                
-                <div class="detail-item-small">
-                    <span class="detail-label">Última modificación:</span>
-                    <span class="detail-value">{{ asistencia.modificado_en|date:"d/m/Y H:i" }}</span>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        {% if asistencia.latitud_entrada and asistencia.longitud_entrada %}
-        <div class="content-card">
-            <div class="card-header">
-                <h3>Geolocalización</h3>
-            </div>
-            <div class="card-body">
-                <div class="detail-item-small">
-                    <span class="detail-label">Entrada:</span>
-                    <span class="detail-value {% if not asistencia.ubicacion_entrada_valida %}text-error{% endif %}">
-                        {% if asistencia.ubicacion_entrada_valida %}
-                        <span class="badge badge-success">Válida</span>
-                        {% else %}
-                        <span class="badge badge-error">Fuera de rango</span>
-                        {% endif %}
-                        {% if asistencia.distancia_entrada %}
-                        ({{ asistencia.distancia_entrada|floatformat:0 }}m)
-                        {% endif %}
-                    </span>
-                </div>
-
-                {% if asistencia.latitud_salida and asistencia.longitud_salida %}
-                <div class="detail-item-small">
-                    <span class="detail-label">Salida:</span>
-                    <span class="detail-value {% if not asistencia.ubicacion_salida_valida %}text-error{% endif %}">
-                        {% if asistencia.ubicacion_salida_valida %}
-                        <span class="badge badge-success">Válida</span>
-                        {% else %}
-                        <span class="badge badge-error">Fuera de rango</span>
-                        {% endif %}
-                        {% if asistencia.distancia_salida %}
-                        ({{ asistencia.distancia_salida|floatformat:0 }}m)
-                        {% endif %}
-                    </span>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
     </div>
 </div>
 
-<div id="modalCerrarTurno" class="modal-overlay" style="display: none;" onclick="closeModal()">
-    <div class="modal-box" onclick="event.stopPropagation()">
-        <div class="modal-header-simple">
+<!-- Modal Cerrar Turno -->
+<div id="modalCerrarTurno" class="modal-backdrop" style="display: none;" onclick="cerrarModal()">
+    <div class="modal-content-modern" onclick="event.stopPropagation()">
+        <div class="modal-header-modern">
             <h3>Cerrar Turno</h3>
-            <button type="button" class="modal-close-btn" onclick="closeModal()">×</button>
+            <button type="button" class="modal-close-modern" onclick="cerrarModal()">×</button>
         </div>
         <form method="POST" action="{% url 'asistencia_cerrar_turno' asistencia.id %}">
             {% csrf_token %}
-            <div class="modal-body-simple">
-                <p style="margin-bottom: 20px;">
-                    ¿Confirma que desea cerrar el turno de <strong>{{ asistencia.trabajador.nombre }} {{ asistencia.trabajador.apellido }}</strong>?
-                </p>
+            <div class="modal-body-modern">
+                <p class="modal-confirm-text">¿Confirmar cierre de turno de {{ asistencia.trabajador.nombre_completo }}?</p>
                 
-                <div class="form-group">
-                    <label for="horaSalidaInput">Hora de Salida</label>
-                    <input type="time" name="hora_salida" class="form-control" id="horaSalidaInput" required>
+                <div class="form-field">
+                    <label>Hora de Salida</label>
+                    <input type="time" name="hora_salida" class="input-modern" id="horaSalidaModal" required>
                 </div>
                 
-                <div class="form-group">
-                    <label for="observaciones_modal">Observaciones (opcional)</label>
-                    <textarea name="observaciones" id="observaciones_modal" class="form-control" rows="3"></textarea>
+                <div class="form-field">
+                    <label>Observaciones (opcional)</label>
+                    <textarea name="observaciones" class="textarea-modern" rows="3"></textarea>
                 </div>
             </div>
-            <div class="modal-footer-simple">
-                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-                <button type="submit" class="btn btn-primary">Cerrar Turno</button>
+            <div class="modal-footer-modern">
+                <button type="button" class="btn-outline" onclick="cerrarModal()">Cancelar</button>
+                <button type="submit" class="btn-blue">Confirmar Cierre</button>
             </div>
         </form>
     </div>
 </div>
 
-{% block extra_css %}
+<!-- Modal Agregar Nota -->
+<div id="modalAgregarNota" class="modal-backdrop" style="display: none;" onclick="cerrarModalNota()">
+    <div class="modal-content-modern" onclick="event.stopPropagation()">
+        <div class="modal-header-modern">
+            <h3>Agregar Nota</h3>
+            <button type="button" class="modal-close-modern" onclick="cerrarModalNota()">×</button>
+        </div>
+        <form method="POST" action="{% url 'asistencia_agregar_nota' asistencia.id %}">
+            {% csrf_token %}
+            <div class="modal-body-modern">
+                <div class="form-field">
+                    <label>Nota u observación</label>
+                    <textarea name="nota" class="textarea-modern" rows="4" placeholder="Escribe tu observación aquí..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer-modern">
+                <button type="button" class="btn-outline" onclick="cerrarModalNota()">Cancelar</button>
+                <button type="submit" class="btn-blue">Guardar Nota</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <style>
-/* Estilos específicos de esta página que no están en dashboard.css */
-.horarios-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+.detalle-page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+    background: #f8f9fa;
+}
+
+/* Header */
+.detalle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 24px;
 }
-.horario-card {
-    padding: 20px;
-    border-radius: 12px;
+
+.header-left {
     display: flex;
-    gap: 16px;
     align-items: center;
+    gap: 12px;
+    color: #64748b;
+    font-size: 14px;
 }
-.horario-card.entrada { background: #dbeafe; }
-.horario-card.salida { background: #fef3c7; }
-.horario-icon {
-    width: 48px;
-    height: 48px;
+
+.header-left .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.breadcrumb {
+    color: #94a3b8;
+}
+
+.worker-name {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.header-right {
+    display: flex;
+    gap: 12px;
+}
+
+/* Grid Layout */
+.detalle-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+/* Cards */
+.info-card {
+    background: white;
+    border: 1px solid #e2e8f0;
     border-radius: 12px;
+    padding: 24px;
+}
+
+.card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 20px;
+}
+
+/* Worker Profile */
+.worker-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.worker-photo-large {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.worker-photo-placeholder-large {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #3b82f6;
+    color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: white;
+    font-weight: 600;
+    font-size: 24px;
 }
-.horario-card.entrada .horario-icon { color: #3b82f6; }
-.horario-card.salida .horario-icon { color: #f59e0b; }
-.horario-label {
-    display: block;
-    font-size: 14px;
-    color: #6b7280;
+
+.worker-profile-header h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1e293b;
     margin-bottom: 4px;
 }
-.horario-value {
+
+.worker-meta {
+    font-size: 13px;
+    color: #64748b;
+}
+
+/* Info Grid */
+.info-grid {
+    margin-bottom: 24px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #f8fafc;
+}
+
+.info-label {
+    font-size: 14px;
+    color: #64748b;
+}
+
+.info-value {
+    font-size: 14px;
+    color: #1e293b;
+    font-weight: 500;
+}
+
+/* Badges */
+.badge-green-sm {
+    background: #d1fae5;
+    color: #065f46;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.badge-yellow-sm {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Time Section */
+.time-section {
+    margin: 24px 0;
+    padding: 20px 0;
+    border-top: 1px solid #f1f5f9;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.time-label {
+    font-size: 12px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.time-display {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.time-value-large {
+    font-size: 36px;
+    font-weight: 700;
+    color: #1e293b;
+    font-family: 'Courier New', monospace;
+}
+
+.time-empty-large {
+    font-size: 36px;
+    color: #cbd5e1;
+}
+
+.gps-badge {
+    background: #d1fae5;
+    color: #065f46;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Hours Summary */
+.hours-summary {
+    margin: 24px 0;
+}
+
+.hours-label {
+    font-size: 12px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.hours-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.hours-box {
+    background: #f8fafc;
+    padding: 16px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.hours-box-label {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.hours-box-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.btn-action {
+    flex: 1;
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #475569;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn-action:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+/* Map */
+.map-container {
+    width: 100%;
+    height: 250px;
+    background: #f1f5f9;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.map-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+}
+
+.map-placeholder .material-symbols-outlined {
+    font-size: 48px;
+    margin-bottom: 8px;
+}
+
+/* Location Details */
+.location-details {
+    margin-bottom: 20px;
+}
+
+.location-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #f8fafc;
+}
+
+.location-label {
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.location-value {
+    font-size: 13px;
+    color: #1e293b;
+    text-align: right;
+}
+
+/* Validation Box */
+.validation-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 20px;
+}
+
+.validation-header {
     display: flex;
     align-items: center;
     gap: 8px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 14px;
+}
+
+.validation-header .material-symbols-outlined {
+    color: #3b82f6;
+}
+
+.validation-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.validation-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+}
+
+.validation-label {
+    color: #64748b;
+}
+
+.validation-value {
+    color: #1e293b;
+    font-weight: 500;
+    text-align: right;
+}
+
+.badge-validating {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.badge-success-validation {
+    background: #d1fae5;
+    color: #065f46;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.badge-error-validation {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Notes */
+.notes-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.notes-label {
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.notes-content {
+    background: #f8fafc;
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #334155;
+    line-height: 1.6;
+}
+
+.notes-empty {
+    background: #f8fafc;
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #94a3b8;
+    text-align: center;
+}
+
+.btn-add-note {
+    background: transparent;
+    border: 1px dashed #cbd5e1;
+    padding: 12px;
+    border-radius: 8px;
+    color: #64748b;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-add-note:hover {
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+/* History Section */
+.history-section,
+.summary-section {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 20px;
+}
+
+.history-table {
+    font-size: 14px;
+}
+
+.history-header,
+.history-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 2fr;
+    gap: 16px;
+    padding: 12px 0;
+}
+
+.history-header {
+    font-weight: 600;
+    color: #64748b;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.history-row {
+    color: #334155;
+    border-bottom: 1px solid #f8fafc;
+}
+
+/* Summary */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.summary-item {
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.summary-label {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.summary-value {
     font-size: 24px;
     font-weight: 700;
-    color: #111827;
-}
-.horario-value.tarde { color: #dc2626; }
-.horas-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    padding: 20px;
-    background: #f9fafb;
-    border-radius: 12px;
-}
-.horas-box { text-align: center; }
-.horas-box.total {
-    grid-column: 1 / -1;
-    padding-top: 16px;
-    border-top: 2px solid #e5e7eb;
-}
-.horas-label {
-    display: block;
-    font-size: 14px;
-    color: #6b7280;
-    margin-bottom: 8px;
-}
-.horas-value {
-    display: block;
-    font-size: 32px;
-    font-weight: 700;
-    color: #111827;
-}
-.horas-value.normal { color: #10b981; }
-.horas-value.extra { color: #3b82f6; }
-.horas-value.nocturna {
-    color: #8b5cf6; /* Morado */
+    color: #1e293b;
 }
 
-.horas-value.festiva {
-    color: #f59e0b; /* Naranja */
-}
-.foto-trabajador {
-    width: 100%;
-    max-width: 300px;
-    border-radius: 12px;
-    margin: 0 auto;
-    display: block;
-}
-.detail-item-small {
-    padding: 12px 0;
-    border-bottom: 1px solid #f3f4f6;
-}
-.detail-item-small:last-child { border-bottom: none; }
-.detail-item-small .detail-label {
-    display: block;
-    font-size: 13px;
-    color: #6b7280;
-    margin-bottom: 4px;
-}
-.detail-item-small .detail-value {
-    display: block;
+/* Buttons */
+.btn-outline {
+    background: white;
+    color: #475569;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    font-weight: 500;
     font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.btn-outline:hover {
+    background: #f8fafc;
+}
+
+.btn-blue {
+    background: #3b82f6;
+    color: white;
+    padding: 10px 24px;
+    border-radius: 8px;
+    border: none;
     font-weight: 600;
-    color: #111827;
+    font-size: 14px;
+    cursor: pointer;
 }
-.text-error { color: #dc2626; }
 
-@media (max-width: 768px) {
-    .horarios-grid { grid-template-columns: 1fr; }
-    .horas-grid { grid-template-columns: 1fr; }
-    .horas-box.total { grid-column: 1; }
+.btn-blue:hover {
+    background: #2563eb;
+}
+
+/* Modal */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content-modern {
+    background: white;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header-modern {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-header-modern h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.modal-close-modern {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.modal-body-modern {
+    padding: 24px;
+}
+
+.modal-confirm-text {
+    font-size: 14px;
+    color: #475569;
+    margin-bottom: 20px;
+}
+
+.form-field {
+    margin-bottom: 16px;
+}
+
+.form-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #334155;
+}
+
+.input-modern,
+.textarea-modern {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #1e293b;
+}
+
+.textarea-modern {
+    resize: vertical;
+    font-family: inherit;
+}
+
+.modal-footer-modern {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .detalle-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 </style>
-{% endblock %}
 
 <script>
-function cerrarTurno() {
+// Calcular distancia entre dos coordenadas (fórmula de Haversine)
+function calcularDistancia(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // Radio de la Tierra en metros
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    const distancia = R * c; // Distancia en metros
+    return Math.round(distancia);
+}
+
+// Validar geolocalización
+document.addEventListener('DOMContentLoaded', function() {
+    {% if asistencia.latitud_entrada and asistencia.longitud_entrada and asistencia.proyecto.latitud and asistencia.proyecto.longitud %}
+    const latTrabajador = {{ asistencia.latitud_entrada }};
+    const lonTrabajador = {{ asistencia.longitud_entrada }};
+    const latProyecto = {{ asistencia.proyecto.latitud }};
+    const lonProyecto = {{ asistencia.proyecto.longitud }};
+    const radioPermitido = {% if asistencia.proyecto.radio_geovalla %}{{ asistencia.proyecto.radio_geovalla }}{% else %}150{% endif %};
+
+    const distancia = calcularDistancia(latTrabajador, lonTrabajador, latProyecto, lonProyecto);
+    
+    document.getElementById('distanciaCalculada').textContent = distancia + ' m';
+    
+    const resultadoElement = document.getElementById('resultadoValidacion');
+    if (distancia <= radioPermitido) {
+        resultadoElement.innerHTML = '<span class="badge-success-validation">Dentro del radio</span>';
+    } else {
+        resultadoElement.innerHTML = '<span class="badge-error-validation">Fuera del radio</span>';
+    }
+    {% endif %}
+});
+
+// Modal cerrar turno
+function abrirModalCerrar() {
     const now = new Date();
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
-    document.getElementById('horaSalidaInput').value = `${hours}:${minutes}`;
+    document.getElementById('horaSalidaModal').value = `${hours}:${minutes}`;
     document.getElementById('modalCerrarTurno').style.display = 'flex';
 }
 
-function closeModal() {
+function cerrarModal() {
     document.getElementById('modalCerrarTurno').style.display = 'none';
 }
+
+// Modal agregar nota
+function agregarNota() {
+    document.getElementById('modalAgregarNota').style.display = 'flex';
+}
+
+function cerrarModalNota() {
+    document.getElementById('modalAgregarNota').style.display = 'none';
+}
+
+// Cerrar con ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        cerrarModal();
+        cerrarModalNota();
+    }
+});
 </script>
 {% endblock %}

@@ -209,19 +209,29 @@ class AsistenciaMarcarEntradaView(LoginRequiredMixin, View):
             proyecto = Proyecto.objects.get(id=proyecto_id)
             
             # Verificar si ya existe asistencia hoy
-            fecha_hoy = timezone.now().date()
+            hoy = timezone.now().date()
             asistencia_existente = Asistencia.objects.filter(
                 trabajador=trabajador,
-                fecha=fecha_hoy
+                fecha=hoy
             ).first()
             
             if asistencia_existente:
-                messages.warning(request, f'{trabajador.nombre_completo} ya tiene una asistencia registrada hoy.')
-                return redirect('asistencia_detalle', pk=asistencia_existente.id)
+                if asistencia_existente.estado == 'abierto':
+                    messages.warning(
+                        request,
+                        f'⚠️ {trabajador.nombre_completo} ya tiene un turno abierto hoy. '
+                        f'Debe cerrar el turno actual antes de marcar una nueva entrada.'
+                    )
+                    return redirect('asistencia_marcar_entrada')
+                else:
+                    messages.warning(
+                        request,
+                        f'⚠️ {trabajador.nombre_completo} ya tiene un turno cerrado registrado hoy.'
+                    )
+                    return redirect('asistencia_marcar_entrada')
             
-            # Procesar hora de entrada
+            # Determinar hora de entrada
             if hora_entrada_str:
-                # Convertir string a objeto time
                 hora_entrada = datetime.strptime(hora_entrada_str, '%H:%M').time()
             else:
                 hora_entrada = timezone.now().time()
@@ -230,31 +240,38 @@ class AsistenciaMarcarEntradaView(LoginRequiredMixin, View):
             asistencia = Asistencia.objects.create(
                 trabajador=trabajador,
                 proyecto=proyecto,
-                fecha=fecha_hoy,
+                fecha=hoy,
                 puesto_laboral=trabajador.puesto_laboral,
                 hora_entrada=hora_entrada,
                 observaciones=observaciones,
-                metodo_identificacion='manual',
                 registrado_por=request.user,
                 estado='abierto'
             )
             
-            messages.success(request, f'Entrada registrada correctamente para {trabajador.nombre_completo}')
-            return redirect('asistencia_detalle', pk=asistencia.id)
+            messages.success(
+                request,
+                f'✅ Entrada registrada exitosamente para {trabajador.nombre_completo}'
+            )
             
+            # Redirigir de vuelta si hay return_url
+            return_url = request.GET.get('return_url')
+            if return_url:
+                return redirect(return_url)
+            
+            return redirect('asistencia_detalle', pk=asistencia.id)
+        
         except Trabajador.DoesNotExist:
-            messages.error(request, 'Trabajador no encontrado')
+            messages.error(request, '❌ Trabajador no encontrado')
             return redirect('asistencia_marcar_entrada')
+        
         except Proyecto.DoesNotExist:
-            messages.error(request, 'Proyecto no encontrado')
+            messages.error(request, '❌ Proyecto no encontrado')
             return redirect('asistencia_marcar_entrada')
-        except ValueError as e:
-            messages.error(request, f'Error en el formato de hora: {str(e)}')
-            return redirect('asistencia_marcar_entrada')
+        
         except Exception as e:
-            messages.error(request, f'Error al registrar entrada: {str(e)}')
+            messages.error(request, f'❌ Error al registrar entrada: {str(e)}')
             return redirect('asistencia_marcar_entrada')
-
+        
 class AsistenciaCerrarTurnoView(LoginRequiredMixin, View):
     """Vista para cerrar el turno de un trabajador"""
     
@@ -313,17 +330,36 @@ class AsistenciaEditarView(LoginRequiredMixin, View):
     def get(self, request, pk):
         asistencia = get_object_or_404(Asistencia, pk=pk)
         
-        if not asistencia.puede_editar:
-            messages.warning(request, '⚠️ Solo se pueden editar asistencias del día actual o día anterior.')
-            return redirect('asistencia_detalle', pk=pk)
+        # --- NUEVA LÓGICA ---
+        # Comprobamos si se puede editar y preparamos el contexto
+        puede_editar = asistencia.puede_editar
+        motivo_no_editable = None
+
+        if not puede_editar:
+            # Intentamos obtener el motivo desde el modelo
+            if hasattr(asistencia, 'motivo_no_editable'):
+                motivo_no_editable = asistencia.motivo_no_editable
+            else:
+                # Si no existe, usamos la lógica de días
+                # (Asumiendo 2 días según tu modelo, si no, cambia el número)
+                dias = (timezone.now().date() - asistencia.fecha).days
+                if dias > 2: 
+                     motivo_no_editable = f"Han pasado {dias} días. Solo se pueden editar asistencias de los últimos 2 días."
+                elif hasattr(asistencia, 'eliminado') and asistencia.eliminado:
+                     motivo_no_editable = "Esta asistencia ha sido eliminada."
+                else:
+                     motivo_no_editable = "La asistencia ya no se puede modificar por reglas del sistema."
         
         return render(request, 'asistencias/editar.html', {
             'asistencia': asistencia,
+            'puede_editar': puede_editar, # <-- Pasamos la variable
+            'motivo_no_editable': motivo_no_editable # <-- Pasamos el motivo
         })
     
     def post(self, request, pk):
         asistencia = get_object_or_404(Asistencia, pk=pk)
         
+        # La validación en POST es crucial por seguridad
         if not asistencia.puede_editar:
             messages.warning(request, '⚠️ No se puede editar esta asistencia.')
             return redirect('asistencia_detalle', pk=pk)
@@ -338,6 +374,7 @@ class AsistenciaEditarView(LoginRequiredMixin, View):
             
             if hora_salida:
                 asistencia.hora_salida = datetime.strptime(hora_salida, '%H:%M').time()
+                asistencia.estado = 'cerrado' # Asegurarse de cerrar el turno
             else:
                 asistencia.hora_salida = None # Permitir re-abrir el turno
                 asistencia.estado = 'abierto'
@@ -360,7 +397,6 @@ class AsistenciaEditarView(LoginRequiredMixin, View):
         except Exception as e:
             messages.error(request, f'❌ Error al editar asistencia: {str(e)}')
             return redirect('asistencia_editar', pk=pk)
-
 
 class AsistenciaReportesView(LoginRequiredMixin, TemplateView):
     """Vista para generar reportes de asistencias"""
@@ -519,7 +555,121 @@ def asistencias_exportar_csv(request):
     
     return response
 
+class AsistenciaAgregarNotaView(LoginRequiredMixin, View):
+    """Vista para agregar nota a una asistencia"""
+    
+    def post(self, request, pk):
+        asistencia = get_object_or_404(Asistencia, id=pk)
+        nota = request.POST.get('nota', '').strip()
+        
+        if nota:
+            fecha_hora = timezone.now().strftime('%Y-%m-%d %H:%M')
+            usuario = request.user.get_full_name() or request.user.username
+            
+            nueva_observacion = f"[{fecha_hora}] {usuario}: {nota}"
+            
+            if asistencia.observaciones:
+                asistencia.observaciones += f"\n{nueva_observacion}"
+            else:
+                asistencia.observaciones = nueva_observacion
+            
+            asistencia.editado_por = request.user
+            asistencia.save()
+            
+            messages.success(request, '✅ Nota agregada exitosamente')
+        else:
+            messages.error(request, '❌ La nota no puede estar vacía')
+        
+        return redirect('asistencia_detalle', pk=pk)
 
+class AsistenciaHistorialView(LoginRequiredMixin, ListView):
+    """Vista de historial de asistencias de un trabajador"""
+    model = Asistencia
+    template_name = 'asistencias/historial.html'
+    context_object_name = 'asistencias'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        trabajador_id = self.kwargs.get('trabajador_id')
+        queryset = Asistencia.objects.filter(
+            trabajador_id=trabajador_id
+        ).select_related(
+            'trabajador', 'proyecto'
+        ).order_by('-fecha', '-hora_entrada')
+        
+        # Filtros
+        fecha_inicio = self.request.GET.get('fecha_inicio')
+        fecha_fin = self.request.GET.get('fecha_fin')
+        proyecto = self.request.GET.get('proyecto')
+        estado = self.request.GET.get('estado')
+        
+        # Rango de fechas por defecto: último mes
+        if not fecha_inicio and not fecha_fin:
+            hoy = timezone.now().date()
+            fecha_inicio = hoy - timedelta(days=30)
+            fecha_fin = hoy
+        
+        if fecha_inicio:
+            queryset = queryset.filter(fecha__gte=fecha_inicio)
+        if fecha_fin:
+            queryset = queryset.filter(fecha__lte=fecha_fin)
+        if proyecto:
+            queryset = queryset.filter(proyecto_id=proyecto)
+        if estado:
+            queryset = queryset.filter(estado=estado)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        trabajador_id = self.kwargs.get('trabajador_id')
+        trabajador = get_object_or_404(Trabajador, id=trabajador_id)
+        
+        context['trabajador'] = trabajador
+        
+        # Obtener filtros
+        fecha_inicio = self.request.GET.get('fecha_inicio')
+        fecha_fin = self.request.GET.get('fecha_fin')
+        
+        # Valores por defecto
+        if not fecha_inicio and not fecha_fin:
+            hoy = timezone.now().date()
+            fecha_inicio = (hoy - timedelta(days=30)).strftime('%Y-%m-%d')
+            fecha_fin = hoy.strftime('%Y-%m-%d')
+        
+        context['filtros'] = {
+            'fecha_inicio': fecha_inicio,
+            'fecha_fin': fecha_fin,
+            'proyecto': self.request.GET.get('proyecto', ''),
+            'estado': self.request.GET.get('estado', ''),
+        }
+        
+        # Proyectos para filtro
+        context['proyectos'] = Proyecto.objects.filter(activo=True, eliminado=False)
+        
+        # Resumen del período
+        asistencias_periodo = self.get_queryset()
+        
+        # Contar llegadas tarde
+        total_llegadas_tarde = asistencias_periodo.filter(llego_tarde=True).count()
+        
+        context['resumen'] = {
+            'dias_trabajados': asistencias_periodo.filter(estado='cerrado').count(),
+            'dias_ausentes': asistencias_periodo.filter(estado='abierto').count(),
+            'horas_normales': asistencias_periodo.aggregate(
+                total=Sum('horas_normales')
+            )['total'] or 0,
+            'horas_extras': asistencias_periodo.aggregate(
+                total=Sum('horas_extras')
+            )['total'] or 0,
+            'minutos_tarde': total_llegadas_tarde,
+        }
+        
+        # Última asistencia para validación de coordenadas
+        context['ultima_asistencia'] = asistencias_periodo.first()
+        
+        return context
 # ============================================
 # API REST VIEWSET
 # ============================================

@@ -4,6 +4,8 @@ URLs para el módulo de asistencias
 
 from django.urls import path
 from .views import (
+    AsistenciaAgregarNotaView,
+    AsistenciaHistorialView,
     AsistenciaListView,
     AsistenciaDetalleView,
     AsistenciaMarcarEntradaView,
@@ -26,4 +28,6 @@ urlpatterns = [
     # Reportes
     path('asistencias/reportes/', AsistenciaReportesView.as_view(), name='asistencias_reportes'),
     path('asistencias/exportar/', asistencias_exportar_csv, name='asistencias_exportar'),
+    path('<int:pk>/agregar-nota/', AsistenciaAgregarNotaView.as_view(), name='asistencia_agregar_nota'),
+    path('trabajador/<int:trabajador_id>/historial/', AsistenciaHistorialView.as_view(), name='asistencia_historial')
 ]

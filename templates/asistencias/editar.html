@@ -24,8 +24,8 @@
     </div>
 </div>
 
-{% if not asistencia.puede_editar %}
-<div class="alert alert-error">
+{% if not puede_editar %}
+<div class="alert alert-error" style="border: 2px solid var(--color-danger, #ef4444); background: var(--color-danger-bg, #fee2e2); color: var(--color-danger-text, #991b1b); margin-bottom: 24px;">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="10"></circle>
         <line x1="15" y1="9" x2="9" y2="15"></line>
@@ -33,11 +33,12 @@
     </svg>
     <div>
         <strong>No se puede editar esta asistencia</strong>
-        <p>Solo se pueden editar asistencias del día actual o día anterior.</p>
+        <p style="margin-top: 4px;">
+            {{ motivo_no_editable|default:"El registro está bloqueado y no puede modificarse." }}
+        </p>
     </div>
 </div>
 {% endif %}
-
 <div class="grid-layout">
     <div class="main-content" style="padding: 0;">
         <div class="content-card">
@@ -48,6 +49,7 @@
                 <form method="POST" id="formEditarAsistencia">
                     {% csrf_token %}
                     
+                    {% if puede_editar %}
                     <div class="alert alert-warning">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"></circle>
@@ -58,6 +60,7 @@
                             <strong>Importante:</strong> Las horas trabajadas se recalcularán automáticamente al guardar los cambios.
                         </div>
                     </div>
+                    {% endif %}
 
                     <div class="form-grid">
                         <div class="form-group">
@@ -67,7 +70,9 @@
                                    class="form-control" 
                                    value="{{ asistencia.hora_entrada|time:'H:i' }}" 
                                    required
-                                   id="horaEntrada">
+                                   id="horaEntrada"
+                                   {% if not puede_editar %}disabled{% endif %}
+                            >
                         </div>
 
                         <div class="form-group">
@@ -76,7 +81,9 @@
                                    name="hora_salida" 
                                    class="form-control" 
                                    value="{% if asistencia.hora_salida %}{{ asistencia.hora_salida|time:'H:i' }}{% endif %}"
-                                   id="horaSalida">
+                                   id="horaSalida"
+                                   {% if not puede_editar %}disabled{% endif %}
+                            >
                             <small class="form-text">Dejar vacío si el turno sigue abierto</small>
                         </div>
                     </div>
@@ -87,7 +94,9 @@
                                   id="observaciones" 
                                   class="form-control" 
                                   rows="4" 
-                                  placeholder="Motivo de la edición, notas adicionales...">{{ asistencia.observaciones }}</textarea>
+                                  placeholder="Motivo de la edición, notas adicionales..."
+                                  {% if not puede_editar %}disabled{% endif %}
+                        >{{ asistencia.observaciones }}</textarea>
                     </div>
 
                     <div id="previewHoras" class="preview-horas" style="display: none;">
@@ -113,7 +122,7 @@
                     </div>
 
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary" {% if not asistencia.puede_editar %}disabled{% endif %}>
+                        <button type="submit" class="btn btn-primary" {% if not puede_editar %}disabled{% endif %}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
@@ -186,8 +195,7 @@
         </div>
     </div>
 </div>
-
-{% block extra_css %}
+{% endblock %} {% block extra_css %}
 <style>
 /* Estilos específicos de esta página */
 .preview-horas {
@@ -295,6 +303,7 @@ function calcularHorasNocturnas(entrada, salida) {
 }
 
 // Calcular horas en tiempo real
+// Calcular horas en tiempo real
 function calcularHoras() {
     const entrada = document.getElementById('horaEntrada').value;
     const salida = document.getElementById('horaSalida').value;
@@ -304,17 +313,17 @@ function calcularHoras() {
         return;
     }
     
-    // Simular la fecha de la asistencia para obtener el día de la semana
+    // Obtener jornada normal del día
     const fechaAsistencia = new Date("{{ asistencia.fecha|date:'Y-m-d' }}T00:00:00");
-    const diaSemana = fechaAsistencia.getDay(); // Domingo=0, Lunes=1, ..., Sábado=6
+    const diaSemana = fechaAsistencia.getDay();
     
     let jornadaNormal = 0;
-    if (diaSemana >= 1 && diaSemana <= 4) { // Lunes a Jueves
-        jornadaNormal = 8.5;
-    } else if (diaSemana === 5) { // Viernes
-        jornadaNormal = 9.0;
-    } else if (diaSemana === 6) { // Sábado
-        jornadaNormal = 5.0;
+    if (diaSemana >= 1 && diaSemana <= 4) {
+        jornadaNormal = 8.5; // Lunes a Jueves
+    } else if (diaSemana === 5) {
+        jornadaNormal = 9.0; // Viernes
+    } else if (diaSemana === 6) {
+        jornadaNormal = 5.0; // Sábado
     }
     
     // Convertir a minutos
@@ -325,7 +334,7 @@ function calcularHoras() {
     let salidaMin = salidaH * 60 + salidaM;
     
     if (salidaMin < entradaMin) {
-        salidaMin += 24 * 60; // Asumir día siguiente
+        salidaMin += 24 * 60;
     }
     
     const totalMin = salidaMin - entradaMin;
@@ -335,7 +344,7 @@ function calcularHoras() {
     const horasNormales = Math.min(totalHoras, jornadaNormal);
     const horasExtras = Math.max(totalHoras - jornadaNormal, 0);
     
-    // Calcular horas nocturnas (6pm - 6am)
+    // Calcular horas nocturnas
     const horasNocturnas = calcularHorasNocturnas(entrada, salida);
 
     // Mostrar preview

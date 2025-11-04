@@ -1,0 +1,780 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Historial de Asistencias - {{ trabajador.nombre_completo }}{% endblock %}
+
+{% block content %}
+<div class="historial-page">
+    <!-- Header -->
+    <div class="historial-header">
+        <div class="header-left">
+            <span class="material-symbols-outlined">today</span>
+            <span class="breadcrumb">Asistencias / Historial</span>
+            <span class="material-symbols-outlined">person</span>
+            <span class="worker-name">{{ trabajador.nombre_completo }}</span>
+        </div>
+        <div class="header-right">
+            <a href="{% url 'asistencias_lista' %}" class="btn-outline">Volver</a>
+        </div>
+    </div>
+
+    <!-- Worker Info Card -->
+    <div class="worker-info-card">
+        <div class="worker-profile-compact">
+            {% if trabajador.foto %}
+            <img src="{{ trabajador.foto.url }}" alt="" class="worker-photo-medium">
+            {% else %}
+            <div class="worker-photo-placeholder-medium">
+                {{ trabajador.nombre|first }}{{ trabajador.apellido|first }}
+            </div>
+            {% endif %}
+            <div class="worker-details">
+                <h2>{{ trabajador.nombre_completo }}</h2>
+                <p class="worker-meta">
+                    Cédula: {{ trabajador.numero_cedula }} • 
+                    Cargo: {{ trabajador.puesto_laboral }} • 
+                    Asegurado: {% if trabajador.asegurado %}Sí{% else %}No{% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-compact">
+            <form method="GET" class="filters-inline">
+                <div class="filter-group">
+                    <span class="material-symbols-outlined">event</span>
+                    <span class="filter-label">Rango:</span>
+                    <input type="date" name="fecha_inicio" value="{{ filtros.fecha_inicio }}" class="date-input-sm">
+                    <span>—</span>
+                    <input type="date" name="fecha_fin" value="{{ filtros.fecha_fin }}" class="date-input-sm">
+                </div>
+
+                <div class="filter-group">
+                    <span class="material-symbols-outlined">location_on</span>
+                    <span class="filter-label">Proyecto:</span>
+                    <select name="proyecto" class="select-sm">
+                        <option value="">Todos</option>
+                        {% for proyecto in proyectos %}
+                        <option value="{{ proyecto.id }}" {% if filtros.proyecto == proyecto.id|stringformat:"s" %}selected{% endif %}>
+                            {{ proyecto.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <span class="material-symbols-outlined">info</span>
+                    <span class="filter-label">Estado:</span>
+                    <select name="estado" class="select-sm">
+                        <option value="">Todos</option>
+                        <option value="cerrado" {% if filtros.estado == 'cerrado' %}selected{% endif %}>Presente</option>
+                        <option value="abierto" {% if filtros.estado == 'abierto' %}selected{% endif %}>Ausente</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn-filter-sm">
+                    <span class="material-symbols-outlined">filter_alt</span>
+                </button>
+            </form>
+
+            <div class="filter-tags">
+                <span class="material-symbols-outlined">filter_list</span>
+                <span class="filter-tag">Asistencias: Normales, Extras, Tardanzas</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Table -->
+    <div class="history-section">
+        <h3 class="section-title">Historial de asistencias</h3>
+        
+        {% if asistencias %}
+        <div class="history-table-modern">
+            <div class="table-header-history">
+                <div>Fecha</div>
+                <div>Proyecto</div>
+                <div>Entrada</div>
+                <div>Salida</div>
+                <div>Horas</div>
+                <div>Extras</div>
+                <div>Estado</div>
+                <div></div>
+            </div>
+
+            {% for asistencia in asistencias %}
+            <div class="table-row-history">
+                <div class="cell-fecha">{{ asistencia.fecha|date:"Y-m-d" }}</div>
+                <div class="cell-proyecto">{{ asistencia.proyecto.nombre }}</div>
+                <div class="cell-entrada">
+                    {% if asistencia.hora_entrada %}
+                    <span class="time-mono">{{ asistencia.hora_entrada|time:"H:i" }}</span>
+                    {% else %}
+                    <span class="time-empty">—</span>
+                    {% endif %}
+                </div>
+                <div class="cell-salida">
+                    {% if asistencia.hora_salida %}
+                    <span class="time-mono">{{ asistencia.hora_salida|time:"H:i" }}</span>
+                    {% else %}
+                    <span class="time-empty">—</span>
+                    {% endif %}
+                </div>
+                <div class="cell-horas">{{ asistencia.horas_normales|floatformat:0 }}h</div>
+                <div class="cell-extras">{{ asistencia.horas_extras|floatformat:0 }}h</div>
+                <div class="cell-estado">
+                    {% if asistencia.estado == 'cerrado' %}
+                    <span class="badge-green-sm">Presente</span>
+                    {% elif asistencia.estado == 'abierto' %}
+                    <span class="badge-red-sm">Ausente</span>
+                    {% else %}
+                    <span class="badge-yellow-sm">{{ asistencia.get_estado_display }}</span>
+                    {% endif %}
+                    
+                    {% if asistencia.llego_tarde %}
+                    <span class="badge-yellow-xs">Tarde</span>
+                    {% endif %}
+                </div>
+                <div class="cell-actions">
+                    <a href="{% url 'asistencia_detalle' asistencia.id %}" class="btn-icon-sm" title="Ver detalle">
+                        <span class="material-symbols-outlined">description</span>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <p class="table-hint">
+            <span class="material-symbols-outlined">info</span>
+            Haz clic en el registro o en el icono de asistencias para ir a la pantalla de detalle.
+        </p>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="pagination-compact">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-link-sm">
+                Anterior
+            </a>
+            {% endif %}
+
+            <span class="page-info">
+                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-link-sm">
+                Siguiente
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="empty-state-compact">
+            <span class="material-symbols-outlined">inbox</span>
+            <p>No hay asistencias registradas en el período seleccionado</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Summary Grid -->
+    <div class="summary-grid-container">
+        <div class="summary-card">
+            <h3 class="summary-title">Resumen del período</h3>
+            <div class="summary-items">
+                <div class="summary-row">
+                    <span class="summary-label">Días trabajados</span>
+                    <span class="summary-value">{{ resumen.dias_trabajados }}</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Días ausentes</span>
+                    <span class="summary-value">{{ resumen.dias_ausentes }}</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Horas normales</span>
+                    <span class="summary-value">{{ resumen.horas_normales|floatformat:0 }}h</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Horas extra</span>
+                    <span class="summary-value">{{ resumen.horas_extras|floatformat:0 }}h</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Tardanzas</span>
+                    <span class="summary-value">{{ resumen.minutos_tarde }}min</span>
+                </div>
+            </div>
+        </div>
+
+        {% if ultima_asistencia %}
+        <div class="summary-card">
+            <h3 class="summary-title">Validación de coordenadas (última marca)</h3>
+            <div class="summary-items">
+                <div class="summary-row">
+                    <span class="summary-label">Coordenadas capturadas</span>
+                    <span class="summary-value-small">
+                        {% if ultima_asistencia.latitud_entrada and ultima_asistencia.longitud_entrada %}
+                        {{ ultima_asistencia.latitud_entrada|floatformat:3 }}, {{ ultima_asistencia.longitud_entrada|floatformat:3 }}
+                        {% else %}
+                        No disponibles
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Coordenadas del proyecto</span>
+                    <span class="summary-value-small">
+                        {% if ultima_asistencia.proyecto.latitud and ultima_asistencia.proyecto.longitud %}
+                        {{ ultima_asistencia.proyecto.latitud|floatformat:3 }}, {{ ultima_asistencia.proyecto.longitud|floatformat:3 }}
+                        {% else %}
+                        No configuradas
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Radio permitido</span>
+                    <span class="summary-value-small">
+                        {% if ultima_asistencia.proyecto.radio_geovalla %}
+                        {{ ultima_asistencia.proyecto.radio_geovalla }} m
+                        {% else %}
+                        150 m
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Distancia calculada</span>
+                    <span class="summary-value-small" id="distanciaCalculada">
+                        {% if ultima_asistencia.latitud_entrada and ultima_asistencia.longitud_entrada and ultima_asistencia.proyecto.latitud and ultima_asistencia.proyecto.longitud %}
+                        Calculando...
+                        {% else %}
+                        No disponible
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Resultado</span>
+                    <span class="summary-value-small" id="resultadoValidacion">
+                        {% if ultima_asistencia.latitud_entrada and ultima_asistencia.longitud_entrada and ultima_asistencia.proyecto.latitud and ultima_asistencia.proyecto.longitud %}
+                        <span class="badge-validating-sm">Validando...</span>
+                        {% else %}
+                        <span class="badge-gray-sm">Sin datos</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+.historial-page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+    background: #f8f9fa;
+}
+
+/* Header */
+.historial-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.header-left .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.breadcrumb {
+    color: #94a3b8;
+}
+
+.worker-name {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.header-right {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-outline {
+    background: white;
+    color: #475569;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.btn-outline:hover {
+    background: #f8fafc;
+}
+
+/* Worker Info Card */
+.worker-info-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.worker-profile-compact {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.worker-photo-medium {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.worker-photo-placeholder-medium {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #3b82f6;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 20px;
+}
+
+.worker-details h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 4px;
+}
+
+.worker-meta {
+    font-size: 13px;
+    color: #64748b;
+}
+
+/* Filters */
+.filters-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.filters-inline {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #64748b;
+}
+
+.filter-group .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.filter-label {
+    font-weight: 500;
+}
+
+.date-input-sm,
+.select-sm {
+    padding: 6px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #1e293b;
+}
+
+.btn-filter-sm {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-filter-sm .material-symbols-outlined {
+    font-size: 18px;
+    color: #64748b;
+}
+
+.filter-tags {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.filter-tags .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.filter-tag {
+    background: #f1f5f9;
+    padding: 4px 12px;
+    border-radius: 6px;
+}
+
+/* History Section */
+.history-section {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 20px;
+}
+
+/* Table */
+.history-table-modern {
+    font-size: 14px;
+}
+
+.table-header-history,
+.table-row-history {
+    display: grid;
+    grid-template-columns: 120px 1.5fr 100px 100px 80px 80px 120px 50px;
+    gap: 16px;
+    padding: 12px 16px;
+    align-items: center;
+}
+
+.table-header-history {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #64748b;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-radius: 8px 8px 0 0;
+}
+
+.table-row-history {
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.2s;
+}
+
+.table-row-history:hover {
+    background: #f8fafc;
+}
+
+.time-mono {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+}
+
+.time-empty {
+    color: #cbd5e1;
+}
+
+/* Badges */
+.badge-green-sm {
+    background: #d1fae5;
+    color: #065f46;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.badge-red-sm {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.badge-yellow-sm {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.badge-yellow-xs {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    display: inline-block;
+    margin-left: 4px;
+}
+
+.badge-gray-sm {
+    background: #f1f5f9;
+    color: #64748b;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.badge-validating-sm {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.badge-success-validation-sm {
+    background: #d1fae5;
+    color: #065f46;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.badge-error-validation-sm {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.btn-icon-sm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.btn-icon-sm:hover {
+    background: #f8fafc;
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+.btn-icon-sm .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.table-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.table-hint .material-symbols-outlined {
+    font-size: 16px;
+}
+
+/* Pagination */
+.pagination-compact {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.page-link-sm {
+    padding: 6px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.page-info {
+    font-size: 13px;
+    color: #64748b;
+}
+
+/* Empty State */
+.empty-state-compact {
+    text-align: center;
+    padding: 40px 20px;
+    color: #94a3b8;
+}
+
+.empty-state-compact .material-symbols-outlined {
+    font-size: 48px;
+    color: #cbd5e1;
+    margin-bottom: 12px;
+}
+
+/* Summary Grid */
+.summary-grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.summary-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.summary-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 20px;
+}
+
+.summary-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.summary-label {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.summary-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.summary-value-small {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1e293b;
+    text-align: right;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .summary-grid-container {
+        grid-template-columns: 1fr;
+    }
+
+    .table-header-history,
+    .table-row-history {
+        font-size: 12px;
+        gap: 12px;
+    }
+}
+</style>
+
+<script>
+// Calcular distancia entre dos coordenadas (fórmula de Haversine)
+function calcularDistancia(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // Radio de la Tierra en metros
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    const distancia = R * c;
+    return Math.round(distancia);
+}
+
+// Validar geolocalización de última asistencia
+document.addEventListener('DOMContentLoaded', function() {
+    {% if ultima_asistencia and ultima_asistencia.latitud_entrada and ultima_asistencia.longitud_entrada and ultima_asistencia.proyecto.latitud and ultima_asistencia.proyecto.longitud %}
+    const latTrabajador = {{ ultima_asistencia.latitud_entrada }};
+    const lonTrabajador = {{ ultima_asistencia.longitud_entrada }};
+    const latProyecto = {{ ultima_asistencia.proyecto.latitud }};
+    const lonProyecto = {{ ultima_asistencia.proyecto.longitud }};
+    const radioPermitido = {% if ultima_asistencia.proyecto.radio_geovalla %}{{ ultima_asistencia.proyecto.radio_geovalla }}{% else %}150{% endif %};
+
+    const distancia = calcularDistancia(latTrabajador, lonTrabajador, latProyecto, lonProyecto);
+    
+    document.getElementById('distanciaCalculada').textContent = distancia + ' m';
+    
+    const resultadoElement = document.getElementById('resultadoValidacion');
+    if (distancia <= radioPermitido) {
+        resultadoElement.innerHTML = '<span class="badge-success-validation-sm">Dentro del radio</span>';
+    } else {
+        resultadoElement.innerHTML = '<span class="badge-error-validation-sm">Fuera del radio</span>';
+    }
+    {% endif %}
+});
+</script>
+{% endblock %}

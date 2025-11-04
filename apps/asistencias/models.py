@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.core.validators import MinValueValidator
-from datetime import datetime, timedelta, time  # <--- IMPORTADO time
+from datetime import datetime, timedelta, time
 from decimal import Decimal
 
 
@@ -132,6 +132,7 @@ class Asistencia(models.Model):
         verbose_name='Estado'
     )
     llego_tarde = models.BooleanField(default=False, verbose_name='Llegó Tarde')
+    minutos_tarde = models.IntegerField(default=0, help_text='Minutos de tardanza')
     salio_temprano = models.BooleanField(default=False, verbose_name='Salió Temprano')
     
     # Geolocalización
@@ -222,6 +223,9 @@ class Asistencia(models.Model):
         verbose_name='Editado Por'
     )
     
+    # Soft delete
+    eliminado = models.BooleanField(default=False, verbose_name='Eliminado')
+    
     # Observaciones
     observaciones = models.TextField(blank=True, verbose_name='Observaciones')
     
@@ -252,149 +256,174 @@ class Asistencia(models.Model):
     def get_jornada_normal_horas(self):
         """
         Retorna la cantidad de horas normales según el día de la semana.
-        Basado en el requisito: L-J 7am-4:30pm (8.5h), V 7am-5pm (9h), S 7am-12pm (5h)
-        Asumiendo 1 hora de almuerzo para L-J y V.
+        L-J: 8.5h, V: 9h, S: 5h
         """
-        dia_semana = self.fecha.weekday()  # Lunes=0, Martes=1, ..., Domingo=6
+        dia_semana = self.fecha.weekday()
         
         if 0 <= dia_semana <= 3:  # Lunes a Jueves
-            # 7:00 a 16:30 = 9.5 horas. Asumiendo 1h almuerzo = 8.5h
             return Decimal('8.50')
         elif dia_semana == 4:  # Viernes
-            # 7:00 a 17:00 = 10 horas. Asumiendo 1h almuerzo = 9h
             return Decimal('9.00')
         elif dia_semana == 5:  # Sábado
-            # 7:00 a 12:00 = 5 horas.
             return Decimal('5.00')
         else:  # Domingo
             return Decimal('0.00')
 
     def calcular_horas(self):
-        """
-        Calcula las horas normales, extras, nocturnas y totales trabajadas
-        basado en la jornada variable y horarios especiales.
-        """
-        if not self.hora_salida:
+        """Calcula las horas trabajadas usando los horarios del proyecto"""
+        if not self.hora_entrada:
             self.horas_normales = Decimal('0.00')
             self.horas_extras = Decimal('0.00')
-            self.horas_totales = Decimal('0.00')
             self.horas_nocturnas = Decimal('0.00')
             self.horas_festivas = Decimal('0.00')
+            self.horas_totales = Decimal('0.00')
             return
+        
+        # Obtener horario del proyecto según día de la semana
+        hora_inicio_esperada, hora_fin_esperada, jornada_normal = self.proyecto.obtener_horario_dia(self.fecha)
+        
+        # Si es domingo, no se trabaja
+        if hora_inicio_esperada is None:
+            self.horas_normales = Decimal('0.00')
+            self.horas_extras = Decimal('0.00')
+            self.horas_festivas = Decimal('0.00')
+            self.horas_nocturnas = Decimal('0.00')
+            self.horas_totales = Decimal('0.00')
+            return
+        
+        # Si el turno está abierto, usar hora actual como salida temporal
+        if self.estado == 'abierto' or not self.hora_salida:
+            hora_salida_calculo = timezone.now().time()
+        else:
+            hora_salida_calculo = self.hora_salida
         
         # Convertir a datetime para cálculos
-        entrada = datetime.combine(self.fecha, self.hora_entrada)
-        salida = datetime.combine(self.fecha, self.hora_salida)
+        entrada_dt = datetime.combine(self.fecha, self.hora_entrada)
+        salida_dt = datetime.combine(self.fecha, hora_salida_calculo)
         
-        # Si la salida es menor que la entrada, asumimos que es del día siguiente
-        if salida < entrada:
-            salida += timedelta(days=1)
+        # Si la salida es menor que la entrada, asumir día siguiente
+        if salida_dt <= entrada_dt:
+            salida_dt += timedelta(days=1)
         
-        # Calcular diferencia en horas
-        diferencia = salida - entrada
+        # Calcular total de horas trabajadas
+        diferencia = salida_dt - entrada_dt
         total_horas = Decimal(str(diferencia.total_seconds() / 3600))
         
-        # Calcular horas nocturnas
-        self.calcular_horas_nocturnas()
+        # Calcular horas normales y extras
+        jornada_normal_decimal = Decimal(str(jornada_normal))
         
-        # Si es día festivo, todas las horas son festivas
-        if self.es_dia_festivo:
-            self.horas_festivas = total_horas
-            self.horas_normales = Decimal('0.00')
+        if total_horas <= jornada_normal_decimal:
+            self.horas_normales = total_horas
             self.horas_extras = Decimal('0.00')
         else:
-            # Obtener la jornada normal para este día
-            HORAS_NORMALES_MAX = self.get_jornada_normal_horas()
-            
-            if total_horas <= HORAS_NORMALES_MAX:
-                self.horas_normales = total_horas
-                self.horas_extras = Decimal('0.00')
-            else:
-                self.horas_normales = HORAS_NORMALES_MAX
-                self.horas_extras = total_horas - HORAS_NORMALES_MAX
-            
+            self.horas_normales = jornada_normal_decimal
+            self.horas_extras = total_horas - jornada_normal_decimal
+        
+        # Calcular horas nocturnas (18:00 - 06:00)
+        self.horas_nocturnas = self._calcular_horas_nocturnas(entrada_dt, salida_dt)
+        
+        # Calcular horas festivas si aplica
+        if self.es_dia_festivo:
+            self.horas_festivas = total_horas
+        else:
             self.horas_festivas = Decimal('0.00')
         
+        # Total
         self.horas_totales = total_horas
+        
+        # Redondear a 2 decimales
+        self.horas_normales = self.horas_normales.quantize(Decimal('0.01'))
+        self.horas_extras = self.horas_extras.quantize(Decimal('0.01'))
+        self.horas_nocturnas = self.horas_nocturnas.quantize(Decimal('0.01'))
+        self.horas_festivas = self.horas_festivas.quantize(Decimal('0.01'))
+        self.horas_totales = self.horas_totales.quantize(Decimal('0.01'))
+
+    def _calcular_horas_nocturnas(self, entrada_dt, salida_dt):
+        """Calcula horas trabajadas entre 18:00 (6 PM) y 06:00 (6 AM)"""
+        horas_nocturnas = 0
+        hora_actual = entrada_dt
+        
+        while hora_actual < salida_dt:
+            hora_del_dia = hora_actual.hour
             
-    def calcular_horas_nocturnas(self):
-    
-        """
-        Calcula las horas trabajadas en horario nocturno (6pm - 6am)
-        Según legislación laboral panameña
-        """
-        if not self.hora_salida:
-            self.horas_nocturnas = Decimal('0.00')
-            return
-        
-        # Horario nocturno: 6:00 PM (18:00) hasta 6:00 AM (06:00)
-        INICIO_NOCTURNO = time(18, 0)  # 6:00 PM
-        FIN_NOCTURNO = time(6, 0)      # 6:00 AM
-        
-        entrada = datetime.combine(self.fecha, self.hora_entrada)
-        salida = datetime.combine(self.fecha, self.hora_salida)
-        
-        # Si salida es menor que entrada, es del día siguiente
-        if salida < entrada:
-            salida += timedelta(days=1)
-        
-        horas_nocturnas = Decimal('0.00')
-        
-        # Recorrer cada hora trabajada
-        tiempo_actual = entrada
-        while tiempo_actual < salida:
-            hora_actual = tiempo_actual.time()
+            if hora_del_dia >= 18 or hora_del_dia < 6:
+                siguiente_hora = hora_actual + timedelta(hours=1)
+                siguiente_hora = siguiente_hora.replace(minute=0, second=0, microsecond=0)
+                
+                if siguiente_hora > salida_dt:
+                    siguiente_hora = salida_dt
+                
+                tiempo_nocturno = (siguiente_hora - hora_actual).total_seconds() / 3600
+                horas_nocturnas += tiempo_nocturno
             
-            # Verificar si está en horario nocturno
-            # De 6pm a medianoche O de medianoche a 6am
-            if hora_actual >= INICIO_NOCTURNO or hora_actual < FIN_NOCTURNO:
-                # Agregar fracción de hora (en incrementos de 1 minuto para precisión)
-                siguiente = min(tiempo_actual + timedelta(minutes=1), salida)
-                minutos = (siguiente - tiempo_actual).total_seconds() / 60
-                horas_nocturnas += Decimal(str(minutos / 60))
-            
-            tiempo_actual += timedelta(minutes=1)
+            hora_actual += timedelta(hours=1)
+            hora_actual = hora_actual.replace(minute=0, second=0, microsecond=0)
         
-        self.horas_nocturnas = horas_nocturnas.quantize(Decimal('0.01'))
+        return Decimal(str(horas_nocturnas))
 
     def verificar_llegada_tarde(self):
-        """Verifica si el trabajador llegó tarde (después de las 7:00 AM)"""
-        HORA_LIMITE = time(7, 0)  # 7:00 AM
+        """Verificar si el trabajador llegó tarde según horario del proyecto"""
+        if not self.hora_entrada:
+            self.llego_tarde = False
+            self.minutos_tarde = 0
+            return
         
-        # Asegurar que hora_entrada sea un objeto time
-        hora_entrada_time = self.hora_entrada
-        if isinstance(hora_entrada_time, str):
-            try:
-                hora_entrada_time = datetime.strptime(hora_entrada_time, '%H:%M:%S').time()
-            except ValueError:
-                hora_entrada_time = datetime.strptime(hora_entrada_time, '%H:%M').time()
+        # Obtener horario del proyecto
+        hora_inicio_esperada, _, _ = self.proyecto.obtener_horario_dia(self.fecha)
         
-        self.llego_tarde = hora_entrada_time > HORA_LIMITE
-    
-    def verificar_salida_temprano(self):
-        """
-        Verifica si el trabajador salió antes de cumplir la jornada normal.
-        El CSV menciona "si hay miinutos de menos, siempre se contabiliza el dia, 
-        solo que se pone como la bandera de aviso". Esta es la bandera.
-        """
-        if self.hora_salida:
-            jornada_normal = self.get_jornada_normal_horas()
-            # Se marca si salió temprano Y no cumplió la jornada
-            self.salio_temprano = self.horas_totales < jornada_normal
+        if not hora_inicio_esperada:
+            self.llego_tarde = False
+            self.minutos_tarde = 0
+            return
+        
+        # Aplicar tolerancia
+        tolerancia = self.proyecto.minutos_tolerancia_entrada or 0
+        
+        # Convertir a datetime para comparación
+        entrada = datetime.combine(self.fecha, self.hora_entrada)
+        inicio_esperado = datetime.combine(self.fecha, hora_inicio_esperada)
+        inicio_con_tolerancia = inicio_esperado + timedelta(minutes=tolerancia)
+        
+        if entrada > inicio_con_tolerancia:
+            self.llego_tarde = True
+            minutos_diferencia = (entrada - inicio_esperado).total_seconds() / 60
+            self.minutos_tarde = int(minutos_diferencia)
         else:
+            self.llego_tarde = False
+            self.minutos_tarde = 0
+
+    def verificar_salida_temprana(self):
+        """Verificar si el trabajador salió antes de hora"""
+        if not self.hora_salida:
             self.salio_temprano = False
-    
+            return
+        
+        # Obtener horario del proyecto
+        _, hora_fin_esperada, _ = self.proyecto.obtener_horario_dia(self.fecha)
+        
+        if not hora_fin_esperada:
+            self.salio_temprano = False
+            return
+        
+        # Aplicar tolerancia
+        tolerancia = self.proyecto.minutos_tolerancia_salida or 0
+        
+        # Convertir a datetime para comparación
+        salida = datetime.combine(self.fecha, self.hora_salida)
+        fin_esperado = datetime.combine(self.fecha, hora_fin_esperada)
+        fin_con_tolerancia = fin_esperado - timedelta(minutes=tolerancia)
+        
+        self.salio_temprano = salida < fin_con_tolerancia
+
     def cerrar_turno(self, hora_salida=None):
         """Cierra el turno y calcula las horas trabajadas"""
         if not hora_salida:
             hora_salida = timezone.now().time()
         
         self.hora_salida = hora_salida
-        self.calcular_horas()  # Ya usa la nueva lógica
-        self.verificar_salida_temprano()  # Ya usa la nueva lógica
         self.estado = 'cerrado'
         self.save()
-    
+
     @property
     def duracion_jornada(self):
         """Retorna la duración de la jornada en formato legible"""
@@ -404,18 +433,44 @@ class Asistencia(models.Model):
         horas = int(self.horas_totales)
         minutos = int((self.horas_totales - horas) * 60)
         return f"{horas}h {minutos}min"
-    
+
     @property
     def puede_editar(self):
-        """Determina si la asistencia puede ser editada"""
-        # Solo se puede editar si es del día actual o día anterior
-        fecha_actual = timezone.now().date()
-        diferencia = (fecha_actual - self.fecha).days
-        return diferencia <= 1
-    
+        """Solo se pueden editar asistencias de los últimos 2 días"""
+        if self.eliminado:
+            return False
+        
+        hoy = timezone.now().date()
+        return self.fecha >= (hoy - timedelta(days=2))
+
+    @property
+    def motivo_no_editable(self):
+        """Retorna el motivo por el cual no se puede editar"""
+        if self.eliminado:
+            return "La asistencia ha sido eliminada"
+        
+        hoy = timezone.now().date()
+        dias_diferencia = (hoy - self.fecha).days
+        
+        if dias_diferencia > 2:
+            return f"Han pasado {dias_diferencia} días desde el registro. Solo se pueden editar asistencias de los últimos 2 días."
+        
+        return "Puede ser editada"
+
+    @property
+    def dias_desde_registro(self):
+        """Calcula cuántos días han pasado desde el registro"""
+        hoy = timezone.now().date()
+        return (hoy - self.fecha).days
+
+    @property
+    def puede_eliminar(self):
+        """Verifica si la asistencia puede ser eliminada"""
+        return not self.eliminado
+
     def save(self, *args, **kwargs):
         """Override del save para cálculos automáticos"""
-        # Copiar salarios del trabajador si no existen (primera vez)
+        # Copiar salarios del trabajador si no existen
         if not self.pk and self.trabajador:
             if not self.salario_dia:
                 self.salario_dia = self.trabajador.salario_normal or Decimal('0.00')
@@ -426,16 +481,18 @@ class Asistencia(models.Model):
             if not self.salario_hora_nocturna:
                 self.salario_hora_nocturna = self.trabajador.salario_nocturno or Decimal('0.00')
         
-        # Verificar llegada tarde al crear/actualizar entrada
+        # Verificar llegada tarde
         if self.hora_entrada:
             self.verificar_llegada_tarde()
         
-        # Calcular horas si hay hora de salida
+        # Calcular horas y verificar salida temprana
         if self.hora_salida:
-            self.calcular_horas()
-            self.verificar_salida_temprano()
+            self.verificar_salida_temprana()
+        
+        self.calcular_horas()
         
         super().save(*args, **kwargs)
+
 
 class ResumenDiario(models.Model):
     """Modelo para almacenar resúmenes diarios de asistencias"""
@@ -466,4 +523,4 @@ class ResumenDiario(models.Model):
     
     def __str__(self):
         return f"{self.trabajador.nombre_completo} - {self.fecha}"
-    
+        

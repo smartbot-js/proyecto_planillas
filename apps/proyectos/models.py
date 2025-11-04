@@ -234,7 +234,93 @@ class Proyecto(models.Model):
         related_name='proyectos_eliminados',
         verbose_name='Eliminado por'
     )
+
+    # Geolocalización
+    latitud = models.DecimalField(
+        max_digits=10, 
+        decimal_places=7, 
+        null=True, 
+        blank=True,
+        help_text='Latitud de la ubicación del proyecto'
+    )
+    longitud = models.DecimalField(
+        max_digits=10, 
+        decimal_places=7, 
+        null=True, 
+        blank=True,
+        help_text='Longitud de la ubicación del proyecto'
+    )
+    radio_geovalla = models.IntegerField(
+        default=150,
+        help_text='Radio permitido en metros para validación de asistencias'
+    )
     
+    # Horarios laborales por día
+    hora_inicio_lunes_jueves = models.TimeField(
+        default='07:00',
+        help_text='Hora de inicio Lunes a Jueves'
+    )
+    hora_fin_lunes_jueves = models.TimeField(
+        default='16:30',
+        help_text='Hora de fin Lunes a Jueves (4:30 PM)'
+    )
+
+    hora_inicio_viernes = models.TimeField(
+        default='07:00',
+        help_text='Hora de inicio Viernes'
+    )
+    hora_fin_viernes = models.TimeField(
+        default='17:00',
+        help_text='Hora de fin Viernes (5:00 PM)'
+    )
+
+    hora_inicio_sabado = models.TimeField(
+        default='07:00',
+        help_text='Hora de inicio Sábado'
+    )
+    hora_fin_sabado = models.TimeField(
+        default='12:00',
+        help_text='Hora de fin Sábado (12:00 PM)'
+    )
+
+    minutos_tolerancia_entrada = models.IntegerField(
+        default=15,
+        help_text='Minutos de tolerancia para entrada'
+    )
+
+    minutos_tolerancia_salida = models.IntegerField(
+        default=10,
+        help_text='Minutos de tolerancia para salida temprana'
+    )
+
+    def obtener_horario_dia(self, fecha):
+        """
+        Obtiene el horario laboral según el día de la semana
+        Retorna: (hora_inicio, hora_fin, jornada_normal_horas)
+        """
+        dia_semana = fecha.weekday()  # 0=Lunes, 6=Domingo
+        
+        if dia_semana <= 3:  # Lunes a Jueves (0-3)
+            return (
+                self.hora_inicio_lunes_jueves,
+                self.hora_fin_lunes_jueves,
+                8.5  # 8 horas 30 minutos
+            )
+        elif dia_semana == 4:  # Viernes
+            return (
+                self.hora_inicio_viernes,
+                self.hora_fin_viernes,
+                9.0  # 9 horas
+            )
+        elif dia_semana == 5:  # Sábado
+            return (
+                self.hora_inicio_sabado,
+                self.hora_fin_sabado,
+                5.0  # 5 horas
+            )
+        else:  # Domingo
+            return (None, None, 0)  # No se trabaja
+
     class Meta:
         verbose_name = 'Proyecto'
         verbose_name_plural = 'Proyectos'
