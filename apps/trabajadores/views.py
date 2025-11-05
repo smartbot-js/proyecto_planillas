@@ -102,6 +102,12 @@ class TrabajadorListView(LoginRequiredMixin, ListView):
         context['cargo_actual'] = self.request.GET.get('cargo', 'todos')
         context['estado_actual'] = self.request.GET.get('estado', 'todos')
         context['asegurado_actual'] = self.request.GET.get('asegurado', 'todos')
+
+        context['trabajadores_inactivos'] = Trabajador.objects.filter(
+            eliminado=False,
+            estado=Trabajador.Estado.INACTIVO # quitar si se quiere  que salgan todos los estados diferentes a activos
+        ).exclude(estado=Trabajador.Estado.ACTIVO).count() 
+        
         
         return context
 
@@ -461,40 +467,43 @@ class TrabajadorTrasladarView(LoginRequiredMixin, View):
     """Vista para trasladar un trabajador a otro proyecto"""
     
     def post(self, request, pk):
-        trabajador = get_object_or_404(Trabajador, pk=pk, eliminado=False)
-        proyecto_id = request.POST.get('proyecto_id')
-        
-        if not proyecto_id:
-            messages.error(request, '❌ Debe seleccionar un proyecto.')
-            return redirect('trabajadores_lista')
-        
         try:
-            nuevo_proyecto = Proyecto.objects.get(id=proyecto_id)
+            trabajador = get_object_or_404(Trabajador, pk=pk)
+            proyecto_destino_id = request.POST.get('proyecto_destino')
+            motivo = request.POST.get('motivo', '')
             
-            # Cerrar historial anterior si existe
+            if not proyecto_destino_id:
+                messages.error(request, 'Debe seleccionar un proyecto destino')
+                return redirect('trabajadores_lista')
+            
+            proyecto_destino = get_object_or_404(Proyecto, pk=proyecto_destino_id)
+            
+            # Registrar en historial
             if trabajador.proyecto_asignado:
-                HistorialProyecto.objects.filter(
+                HistorialProyecto.objects.create(
                     trabajador=trabajador,
-                    fecha_salida__isnull=True
-                ).update(fecha_salida=timezone.now().date())
+                    proyecto=trabajador.proyecto_asignado,
+                    fecha_salida=timezone.now().date(),
+                    motivo=f"Traslado a {proyecto_destino.nombre}. {motivo}",
+                    creado_por=request.user
+                )
             
-            # Crear nuevo historial
+            # Asignar nuevo proyecto
+            trabajador.proyecto_asignado = proyecto_destino
+            trabajador.save()
+            
+            # Crear nuevo registro en historial
             HistorialProyecto.objects.create(
                 trabajador=trabajador,
-                proyecto=nuevo_proyecto,
+                proyecto=proyecto_destino,
                 fecha_asignacion=timezone.now().date(),
-                motivo=f'Traslado desde {trabajador.proyecto_asignado.nombre if trabajador.proyecto_asignado else "Sin proyecto"}',
+                motivo=motivo,
                 creado_por=request.user
             )
             
-            # Asignar nuevo proyecto
-            trabajador.proyecto_asignado = nuevo_proyecto
-            trabajador.modificado_por = request.user
-            trabajador.save()
-            
             messages.success(
                 request,
-                f'✅ Trabajador trasladado exitosamente a {nuevo_proyecto.nombre}.'
+                f'{trabajador.nombre_completo} trasladado exitosamente a {proyecto_destino.nombre}'
             )
         except Exception as e:
             messages.error(
@@ -901,6 +910,23 @@ def trabajadores_plantilla_csv(request):
     
     return response
 
+class TrabajadorCambiarEstadoView(LoginRequiredMixin, View):
+    """Vista para cambiar el estado de un trabajador"""
+    
+    def post(self, request, pk):
+        trabajador = get_object_or_404(Trabajador, pk=pk)
+        nuevo_estado = request.POST.get('estado')
+        
+        if nuevo_estado in ['activo', 'inactivo', 'suspendido', 'retirado']:
+            trabajador.cambiar_estado(nuevo_estado)
+            messages.success(
+                request,
+                f'Estado del trabajador {trabajador.nombre_completo} cambiado a {trabajador.get_estado_display()}'
+            )
+        else:
+            messages.error(request, 'Estado inválido')
+        
+        return redirect('trabajadores_lista')
 # ============================================
 # API REST (PARA APP MÓVIL)
 # ============================================

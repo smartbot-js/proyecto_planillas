@@ -4,6 +4,7 @@ URLs para el módulo de trabajadores
 
 from django.urls import path
 from .views import (
+    TrabajadorCambiarEstadoView,
     TrabajadorListView,
     TrabajadorCreateView,
     TrabajadorDetalleView,
@@ -39,5 +40,6 @@ urlpatterns = [
     # Código QR
     path('trabajadores/<int:pk>/generar-qr/', TrabajadorGenerarQRView.as_view(), name='trabajador_generar_qr'),
     path('trabajadores/regenerar-todos-qr/', TrabajadorRegenerarTodosQRView.as_view(), name='trabajadores_regenerar_todos_qr'),
+    path('trabajadores/<int:pk>/cambiar-estado/', TrabajadorCambiarEstadoView.as_view(), name='trabajador_cambiar_estado'),
 
 ]

@@ -1071,3 +1071,196 @@ body.sidebar-collapsed-desktop .nav-item:hover span:not(.material-symbols-outlin
         justify-content: center;
     }
 }
+/* ===================================================================
+   7. ESTILOS DEL MÓDULO: TRABAJADORES
+   =================================================================== */
+
+/* --- 7.1. Mejoras para lista.html --- */
+
+/* Mejorar jerarquía visual y hover de la tabla */
+.table-clean .worker-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.table-clean .worker-avatar {
+    /* Efecto de anillo para separar la foto del fondo */
+    box-shadow: 0 0 0 3px var(--bg-card);
+}
+
+/* Hacer que toda la fila sea más interactiva */
+.table-row-clean {
+    transition: all 0.2s ease-out;
+}
+
+.table-row-clean:hover {
+    background: var(--sidebar-hover-bg, #f8fafc);
+    transform: scale(1.015); /* Efecto sutil de "lift" */
+    box-shadow: var(--shadow-md);
+    z-index: 10;
+    position: relative; /* Para que el shadow se vea bien */
+}
+
+/* --- 7.2. Mejoras para detalle.html --- */
+
+/* Unificar las tarjetas de la columna principal */
+.detail-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0; /* Unir las tarjetas */
+    background: var(--bg-card);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden; /* Para que el radius funcione */
+    border: 1px solid var(--border-color);
+}
+
+/* Convertir cada "detail-card" en una "sección" */
+.detail-main .detail-card {
+    box-shadow: none; /* Quitar sombras internas */
+    border-radius: 0;
+    border-bottom: 1px solid var(--border-color); /* Separador */
+}
+
+.detail-main .detail-card:last-child {
+    border-bottom: none;
+}
+
+/* Dar un fondo sutil a las cabeceras de sección */
+.detail-card-header {
+    background: var(--bg-page, #f9fafb);
+    padding: 16px 24px;
+}
+
+.detail-card-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+
+/* --- 7.3. Unificación de crear.html y editar.html --- */
+
+/* * Usaremos la estructura de tabs de editar.html como base,
+ * ya que es más limpia. 
+*/
+.form-trabajador .tabs-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 24px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.form-trabajador .tabs {
+    display: flex;
+    border-bottom: 2px solid var(--border-color);
+    background: var(--bg-page);
+}
+
+.form-trabajador .tab {
+    flex: 1;
+    padding: 16px 24px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.form-trabajador .tab:hover {
+    background: #ffffff;
+    color: var(--text-primary);
+}
+
+.form-trabajador .tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background: #ffffff;
+}
+
+/* Estilo unificado para los cards de formulario */
+.form-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    margin-bottom: 24px;
+    border: 1px solid var(--border-color);
+}
+
+.form-card-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-page, #f9fafb);
+}
+
+.form-card-header h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+}
+
+.form-card-header p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.form-card-body {
+    padding: 24px 32px;
+}
+
+/* Botones de acción unificados (para editar.html y crear.html) */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 24px 32px;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-page, #f9fafb);
+    border-radius: 0 0 12px 12px;
+    margin-top: 24px;
+}
+/* ===================================================================
+   7. ESTILOS DEL MÓDULO: TRABAJADORES (Añadir al final de dashboard.css)
+   =================================================================== */
+
+/* --- 7.1. Mejoras para lista.html --- */
+.table-clean .worker-name { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.table-clean .worker-avatar { box-shadow: 0 0 0 3px var(--bg-card); }
+.table-row-clean { transition: all 0.2s ease-out; }
+.table-row-clean:hover { background: var(--sidebar-hover-bg, #f8fafc); transform: scale(1.015); box-shadow: var(--shadow-md); z-index: 10; position: relative; }
+
+/* --- 7.2. Mejoras para detalle.html --- */
+.detail-main { display: flex; flex-direction: column; gap: 0; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden; border: 1px solid var(--border-color); }
+.detail-main .detail-card { box-shadow: none; border-radius: 0; border-bottom: 1px solid var(--border-color); }
+.detail-main .detail-card:last-child { border-bottom: none; }
+.detail-card-header { background: var(--bg-page, #f9fafb); padding: 16px 24px; }
+.detail-card-header h3 { font-size: 16px; font-weight: 600; }
+
+/* --- 7.3. Unificación de crear.html y editar.html --- */
+.form-trabajador .tabs-container { background: white; border-radius: 12px; box-shadow: var(--shadow-sm); margin-bottom: 24px; overflow: hidden; border: 1px solid var(--border-color); }
+.form-trabajador .tabs { display: flex; border-bottom: 2px solid var(--border-color); background: var(--bg-page); }
+.form-trabajador .tab { flex: 1; padding: 16px 24px; background: transparent; border: none; border-bottom: 3px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--text-secondary); transition: all 0.2s; }
+.form-trabajador .tab:hover { background: #ffffff; color: var(--text-primary); }
+.form-trabajador .tab.active { color: var(--primary-color); border-bottom-color: var(--primary-color); background: #ffffff; }
+
+/* Estilo unificado para los cards de formulario */
+.form-card { background: white; border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden; margin-bottom: 24px; border: 1px solid var(--border-color); }
+.form-card-header { padding: 20px 24px; border-bottom: 1px solid var(--border-color); background: var(--bg-page, #f9fafb); }
+.form-card-header h3 { font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px 0; }
+.form-card-header p { font-size: 14px; color: var(--text-secondary); margin: 0; }
+.form-card-body { padding: 24px 32px; }
+
+/* Botones de acción unificados (para editar.html y crear.html) */
+.form-actions { display: flex; justify-content: flex-end; gap: 12px; padding: 24px 32px; border-top: 1px solid var(--border-color); background: var(--bg-page, #f9fafb); border-radius: 0 0 12px 12px; margin-top: 24px; }
