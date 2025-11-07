@@ -13,10 +13,10 @@
         <p class="page-description">Gestión de trabajadores en proyectos</p>
     </div>
     <div class="page-actions">
-        <a href="{% url 'trabajadores_importar_csv' %}" class="btn btn-secondary">
+        <button type="button" class="btn btn-secondary" onclick="abrirModalImportar()">
             <span class="material-symbols-outlined">upload_file</span>
             Importar CSV
-        </a>
+        </button>
         <a href="{% url 'trabajador_crear' %}" class="btn btn-primary">
             <span class="material-symbols-outlined">add</span>
             Nuevo Trabajador
@@ -355,6 +355,67 @@
     </div>
 </div>
 
+<!-- Modal Importar CSV -->
+<div id="modalImportarCSV" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>
+                <span class="material-symbols-outlined">upload_file</span>
+                Importar trabajadores desde CSV
+            </h3>
+            <button type="button" class="modal-close" onclick="cerrarModalImportar()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form method="POST" action="{% url 'trabajadores_importar_csv' %}" enctype="multipart/form-data" id="formImportarCSV">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="import-instructions">
+                    <h4>
+                        <span class="material-symbols-outlined">info</span>
+                        Instrucciones
+                    </h4>
+                    <ol>
+                        <li>Descarga la plantilla CSV de ejemplo</li>
+                        <li>Completa los datos de los trabajadores en el archivo</li>
+                        <li>Guarda el archivo CSV y súbelo aquí</li>
+                        <li>El sistema validará automáticamente duplicados</li>
+                    </ol>
+                    
+                    <a href="{% url 'trabajadores_descargar_plantilla' %}" class="btn btn-outline">
+                        <span class="material-symbols-outlined">download</span>
+                        Descargar Plantilla CSV
+                    </a>
+                </div>
+
+                <div class="form-group" style="margin-top: 24px;">
+                    <label for="archivo_csv">
+                        <span class="material-symbols-outlined">attach_file</span>
+                        Seleccionar archivo CSV
+                    </label>
+                    <input type="file" name="archivo_csv" id="archivo_csv" accept=".csv" required class="form-control">
+                    <small style="display: block; margin-top: 8px; color: #6b7280;">Solo archivos .csv</small>
+                </div>
+
+                <div class="csv-format-info">
+                    <strong>Campos requeridos en el CSV:</strong>
+                    <code>nombre, apellido, numero_cedula, puesto_laboral, salario_normal, fecha_ingreso</code>
+                    <small style="display: block; margin-top: 8px;">Los trabajadores con cédulas duplicadas serán omitidos automáticamente</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="cerrarModalImportar()">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary" id="btnImportar">
+                    <span class="material-symbols-outlined">upload</span>
+                    Importar Trabajadores
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_css %}
@@ -446,6 +507,77 @@
 .form-group { margin-bottom: 20px; }
 .form-group label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151; }
 .text-muted { color: #9ca3af; }
+
+/* Import Modal Styles */
+.import-instructions {
+    background: #f0f9ff;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #3b82f6;
+}
+
+.import-instructions h4 {
+    margin-bottom: 12px;
+    color: #0c4a6e;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+}
+
+.import-instructions ol {
+    margin: 12px 0 16px 0;
+    padding-left: 20px;
+    color: #0c4a6e;
+}
+
+.import-instructions ol li {
+    margin-bottom: 8px;
+}
+
+.btn-outline {
+    background: white;
+    color: #3b82f6;
+    border: 2px solid #3b82f6;
+}
+
+.btn-outline:hover {
+    background: #3b82f6;
+    color: white;
+}
+
+.csv-format-info {
+    margin-top: 16px;
+    padding: 16px;
+    background: #fef3c7;
+    border-radius: 6px;
+    font-size: 13px;
+    border-left: 4px solid #f59e0b;
+}
+
+.csv-format-info strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #92400e;
+}
+
+.csv-format-info code {
+    display: block;
+    margin-top: 8px;
+    padding: 8px;
+    background: white;
+    border-radius: 4px;
+    font-size: 12px;
+    overflow-x: auto;
+    color: #1f2937;
+    font-family: 'Courier New', monospace;
+}
+
+.csv-format-info small {
+    color: #92400e;
+}
+
 @media (max-width: 768px) {
     .filters-row { flex-direction: column; }
     .search-box, .filter-group { min-width: 100%; }
@@ -519,5 +651,42 @@ function confirmarEliminar(trabajadorId, nombreCompleto) {
         form.submit();
     }
 }
+
+function abrirModalImportar() {
+    document.getElementById('modalImportarCSV').classList.add('active');
+}
+
+function cerrarModalImportar() {
+    document.getElementById('modalImportarCSV').classList.remove('active');
+    document.getElementById('formImportarCSV').reset();
+}
+
+// Preview del archivo seleccionado
+document.getElementById('archivo_csv')?.addEventListener('change', function(e) {
+    const fileName = e.target.files[0]?.name;
+    if (fileName) {
+        console.log('Archivo seleccionado:', fileName);
+    }
+});
+
+// Validar antes de enviar
+document.getElementById('formImportarCSV')?.addEventListener('submit', function(e) {
+    const archivo = document.getElementById('archivo_csv').files[0];
+    if (!archivo) {
+        e.preventDefault();
+        alert('Por favor selecciona un archivo CSV');
+        return;
+    }
+    
+    if (!archivo.name.endsWith('.csv')) {
+        e.preventDefault();
+        alert('Por favor selecciona un archivo con extensión .csv');
+        return;
+    }
+    
+    const btnImportar = document.getElementById('btnImportar');
+    btnImportar.disabled = true;
+    btnImportar.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span> Procesando...';
+});
 </script>
 {% endblock %}

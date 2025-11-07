@@ -1,165 +1,528 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Proyectos - Sistema de Planillas{% endblock %}
+{% block title %}Proyectos - Sistema de Gestión{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
         <h1>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-            </svg>
+            <span class="material-symbols-outlined">domain</span>
             Proyectos
         </h1>
-        <p class="page-subtitle">Gestión de proyectos y obras</p>
+        <p class="page-description">Gestión de proyectos de construcción</p>
     </div>
     <div class="page-actions">
-        {% if user.es_administrador %}
-        <a href="{% url 'proyectos_eliminados' %}" class="btn btn-outline" style="color: var(--color-danger); border-color: var(--color-danger-bg);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-            </svg>
-            Ver Eliminados
-        </a>
         <a href="{% url 'proyecto_crear' %}" class="btn btn-primary">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
+            <span class="material-symbols-outlined">add</span>
             Nuevo Proyecto
         </a>
-        {% endif %}
     </div>
 </div>
 
-<div class="content-wrapper">
-    <div class="filters-bar" style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 24px; border: 1px solid var(--border-color);">
-        <form method="GET" class="filters-form" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-            <div class="search-box" style="flex: 1; position: relative; min-width: 300px;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-secondary);">
-                    <circle cx="11" cy="11" r="8"></circle>
-                </svg>
-                <input 
-                    type="text" 
-                    name="search" 
-                    placeholder="Buscar por nombre o ubicación..." 
-                    value="{{ search_query }}"
-                    class="form-control"
-                    style="padding-left: 48px;"
-                >
+<div class="content-card">
+    <form method="GET" class="filters-form">
+        <div class="filters-row">
+            <div class="search-box">
+                <span class="material-symbols-outlined">search</span>
+                <input type="text" 
+                       name="search" 
+                       placeholder="Buscar por nombre, código, dirección..." 
+                       value="{{ search_query }}"
+                       class="search-input">
             </div>
 
-            <select name="estado" class="form-control filter-select" style="min-width: 200px; -webkit-appearance: none; appearance: none; background-image: url('data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%236b7280\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M6 8l4 4 4-4\'/%3e%3c/svg%3e'); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem;">
-                <option value="">Todos los estados</option>
-                {% for value, label in estados %}
-                <option value="{{ value }}" {% if estado_actual == value %}selected{% endif %}>
-                    {{ label }}
-                </option>
-                {% endfor %}
-            </select>
+            <div class="filter-group">
+                <label>Estado</label>
+                <select name="estado" class="form-control">
+                    <option value="">Todos</option>
+                    <option value="planificacion" {% if request.GET.estado == "planificacion" %}selected{% endif %}>En Planificación</option>
+                    <option value="ejecucion" {% if request.GET.estado == "ejecucion" %}selected{% endif %}>En Ejecución (Activos)</option>
+                    <option value="pausado" {% if request.GET.estado == "pausado" %}selected{% endif %}>Pausados</option>
+                    <option value="finalizado" {% if request.GET.estado == "finalizado" %}selected{% endif %}>Finalizados</option>
+                    <option value="cancelado" {% if request.GET.estado == "cancelado" %}selected{% endif %}>Cancelados</option>
+                </select>
+            </div>
 
-            <button type="submit" class="btn btn-secondary">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                </svg>
-                Aplicar
+            <div class="filter-group">
+                <label>Supervisor</label>
+                <select name="supervisor" class="form-control">
+                    <option value="">Todos</option>
+                    {% for supervisor in supervisores %}
+                    <option value="{{ supervisor.id }}" {% if request.GET.supervisor == supervisor.id|stringformat:"s" %}selected{% endif %}>
+                        {{ supervisor.nombre }} {{ supervisor.apellido }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                <span class="material-symbols-outlined">filter_alt</span>
+                Filtrar
             </button>
-            
-            {% if search or estado_actual %}
-            <a href="{% url 'proyectos_lista' %}" class="btn btn-outline">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                </svg>
+
+            {% if request.GET.search or request.GET.estado or request.GET.supervisor %}
+            <a href="{% url 'proyectos_lista' %}" class="btn btn-secondary">
+                <span class="material-symbols-outlined">clear</span>
                 Limpiar
             </a>
             {% endif %}
-        </form>
+        </div>
+    </form>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <span class="material-symbols-outlined">domain</span>
+        </div>
+        <div class="stat-content">
+            <span class="stat-value">{{ total_proyectos }}</span>
+            <span class="stat-label">Total Proyectos</span>
+        </div>
     </div>
 
+    <div class="stat-card">
+        <div class="stat-icon green">
+            <span class="material-symbols-outlined">check_circle</span>
+        </div>
+        <div class="stat-content">
+            <span class="stat-value">{{ proyectos_activos }}</span>
+            <span class="stat-label">Activos</span>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon orange">
+            <span class="material-symbols-outlined">pause_circle</span>
+        </div>
+        <div class="stat-content">
+            <span class="stat-value">{{ proyectos_pausados }}</span>
+            <span class="stat-label">Pausados</span>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon purple">
+            <span class="material-symbols-outlined">task_alt</span>
+        </div>
+        <div class="stat-content">
+            <span class="stat-value">{{ proyectos_finalizados }}</span>
+            <span class="stat-label">Finalizados</span>
+        </div>
+    </div>
+</div>
+
+<div class="content-card">
+
     {% if proyectos %}
-    <div class="proyectos-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px;">
+    <div class="projects-grid">
         {% for proyecto in proyectos %}
-        <div class="proyecto-card" style="background: white; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); transition: all 0.3s; display: flex; flex-direction: column;">
-            <div class="proyecto-imagen" style="position: relative; height: 180px; overflow: hidden;">
-                {% if proyecto.imagen_proyecto %}
-                <img src="{{ proyecto.imagen_proyecto.url }}" alt="{{ proyecto.nombre }}" style="width: 100%; height: 100%; object-fit: cover;">
-                {% else %}
-                <img src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=400&h=250&fit=crop" alt="{{ proyecto.nombre }}" style="width: 100%; height: 100%; object-fit: cover;">
+        <div class="project-card">
+            <div class="project-status-badge">
+                {% if proyecto.estado == 'planificacion' %}
+                    <span class="badge badge-info">En planificación</span>
+                {% elif proyecto.estado == 'ejecucion' %}
+                    <span class="badge badge-success">En ejecución</span>
+                {% elif proyecto.estado == 'pausado' %}
+                    <span class="badge badge-warning">Pausado</span>
+                {% elif proyecto.estado == 'finalizado' %}
+                    <span class="badge badge-secondary">Finalizado</span>
+                {% elif proyecto.estado == 'cancelado' %}
+                    <span class="badge badge-error">Cancelado</span>
                 {% endif %}
-                <span class="proyecto-estado {{ proyecto.estado }}" style="position: absolute; top: 12px; right: 12px; padding: 6px 16px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-                    {% if proyecto.estado == 'planificacion' %} background: #dbeafe; color: #1e40af;
-                    {% elif proyecto.estado == 'ejecucion' %} background: #10b981; color: white;
-                    {% elif proyecto.estado == 'pausado' %} background: #f59e0b; color: white;
-                    {% elif proyecto.estado == 'finalizado' %} background: #6b7280; color: white;
-                    {% else %} background: #ef4444; color: white; {% endif %}
-                ">{{ proyecto.get_estado_display }}</span>
             </div>
 
-            <div class="proyecto-content" style="padding: 20px; display: flex; flex-direction: column; flex-grow: 1;">
-                <h3 class="proyecto-titulo" style="font-size: 17px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; min-height: 48px;">{{ proyecto.nombre }}</h3>
-
-                <div class="proyecto-info" style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
-                    <div class="info-item" style="display: flex; flex-direction: column; gap: 4px;">
-                        <span class="info-label" style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">Gerente</span>
-                        <span class="info-value" style="font-size: 14px; color: var(--text-primary); font-weight: 600;">{{ proyecto.supervisor.nombre_completo|truncatewords:2 }}</span>
+            <div class="project-image">
+                {% if proyecto.imagen_proyecto and proyecto.imagen_proyecto.url %}
+                    <img src="{{ proyecto.imagen_proyecto.url }}" 
+                         alt="{{ proyecto.nombre }}"
+                         onerror="this.style.display='none'; this.parentElement.insertAdjacentHTML('beforeend', `
+                             <div class=&quot;project-image-placeholder&quot;>
+                                 <span class=&quot;material-symbols-outlined&quot;>apartment</span>
+                             </div>
+                         `);">
+                {% else %}
+                    <div class="project-image-placeholder">
+                        <span class="material-symbols-outlined">apartment</span>
                     </div>
-                    <div class="info-item" style="display: flex; flex-direction: column; gap: 4px; text-align: right;">
-                        <span class="info-label" style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">Personal</span>
-                        <span class="info-value" style="font-size: 14px; color: var(--text-primary); font-weight: 600;">{{ proyecto.personal_asignado }}</span>
+                {% endif %}
+            </div>
+            
+
+            <div class="project-info">
+                <div class="project-header-info">
+                    <h3 class="project-name">{{ proyecto.nombre }}</h3>
+                    <div class="dropdown-container">
+                        <button type="button" class="btn-icon-dots" onclick="toggleDropdown(this)">
+                            <span class="material-symbols-outlined">more_vert</span>
+                        </button>
+                        <div class="dropdown-menu">
+                            <!-- <a href="{% url 'proyecto_detalle' proyecto.id %}" class="dropdown-item">
+                                <span class="material-symbols-outlined">visibility</span>
+                                <span>Ver detalles</span>
+                            </a> -->
+                            <a href="{% url 'proyecto_editar' proyecto.id %}" class="dropdown-item">
+                                <span class="material-symbols-outlined">edit</span>
+                                <span>Editar</span>
+                            </a>
+                            <button onclick="verAsistencias({{ proyecto.id }})" class="dropdown-item">
+                                <span class="material-symbols-outlined">assignment</span>
+                                <span>Ver asistencias</span>
+                            </button>
+                            
+                            {% if proyecto.estado == 'ejecucion' %}
+                            <button onclick="confirmarCambioEstado({{ proyecto.id }}, 'pausado')" class="dropdown-item">
+                                <span class="material-symbols-outlined">pause</span>
+                                <span>Pausar</span>
+                            </button>
+                            {% elif proyecto.estado == 'pausado' %}
+                            <button onclick="confirmarCambioEstado({{ proyecto.id }}, 'ejecucion')" class="dropdown-item">
+                                <span class="material-symbols-outlined">play_arrow</span>
+                                <span>Reactivar</span>
+                            </button>
+                            {% endif %}
+                            
+                            <div class="dropdown-divider"></div>
+                            <button onclick="confirmarEliminar({{ proyecto.id }}, '{{ proyecto.nombre|escapejs }}')" class="dropdown-item dropdown-item-danger">
+                                <span class="material-symbols-outlined">delete</span>
+                                <span>Eliminar</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="proyecto-info" style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
-                    <div class="info-item">
-                        <span class="info-label" style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">Presupuesto</span>
-                        <span class="info-value" style="font-size: 14px; color: var(--text-primary); font-weight: 600;">${{ proyecto.presupuesto_total|floatformat:0 }}</span>
+                <div class="project-details-grid">
+                    <div class="detail-item">
+                        <span class="detail-label">ID</span>
+                        <span class="detail-value">{{ proyecto.id }}</span>
                     </div>
-                    <div class="info-item" style="text-align: right;">
-                        <span class="info-label" style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">Avance</span>
-                        <span class="info-value" style="font-size: 14px; color: var(--text-primary); font-weight: 600;">{{ proyecto.porcentaje_gastado|floatformat:0 }}%</span>
+                    <div class="detail-item">
+                        <span class="detail-label">Municipio</span>
+                        <span class="detail-value">{{ proyecto.municipio|default:"N/A" }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Encargado</span>
+                        <span class="detail-value">{{ proyecto.supervisor.nombre }} {{ proyecto.supervisor.apellido|first }}.</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Trabajadores</span>
+                        <span class="detail-value">{{ proyecto.trabajadores.count }}</span>
                     </div>
                 </div>
 
-                <div class="proyecto-actions" style="display: flex; gap: 8px; margin-top: auto;">
-                    {% if user.es_administrador or proyecto.supervisor == user %}
-                    <a href="{% url 'proyecto_editar' proyecto.id %}" class="btn btn-secondary" style="flex: 1;">
+                <div class="progress-section">
+                    <div class="progress-header">
+                        <span>Avance</span>
+                        <strong>{{ proyecto.porcentaje_avance_general|default:0 }}%</strong>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ proyecto.porcentaje_avance_general|default:0|floatformat:"-2" }}%"></div>                    </div>
+                </div>
+
+                <div class="budget-section">
+                    <div class="budget-item">
+                        <span class="budget-label">Presupuesto Mano Obra</span>
+                        <span class="budget-value">${{ proyecto.presupuesto_mano_obra|floatformat:0|default:"0" }}</span>
+                    </div>
+                    <div class="budget-item">
+                        <span class="budget-label">Gasto Actual</span>
+                        <span class="budget-value {% if proyecto.gasto_mano_obra_real > proyecto.presupuesto_mano_obra %}text-danger{% endif %}">
+                            ${{ proyecto.gasto_mano_obra_real|floatformat:0|default:"0" }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="project-actions">
+                    <button onclick="editarProyecto({{ proyecto.id }})" class="btn-action">
+                        <span class="material-symbols-outlined">edit</span>
                         Editar
+                    </button>
+                    <!-- <button onclick="asignarTrabajadores({{ proyecto.id }})" class="btn-action">
+                        <span class="material-symbols-outlined">group_add</span>
+                        Asignar
+                    </button> -->
+                    <a href="{% url 'proyecto_detalle' proyecto.id %}" class="dropdown-item">
+                        <span class="material-symbols-outlined">visibility</span>
+                        <span>Ver detalles</span>
                     </a>
-                    {% endif %}
-                    <a href="{% url 'proyecto_detalle' proyecto.id %}" class="btn btn-primary" style="flex: 1;">
-                        Ver detalle
-                    </a>
+                    <button onclick="verAsistencias({{ proyecto.id }})" class="btn-action">
+                        <span class="material-symbols-outlined">assignment</span>
+                        Ver asistencias
+                    </button>
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
 
-    {% include 'base/paginacion.html' %}
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}" class="page-link">
+            Anterior
+        </a>
+        {% endif %}
 
-    {% else %}
-    <div class="empty-state" style="text-align: center; padding: 64px 32px; background: white; border-radius: 12px; border: 1px solid var(--border-color);">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-        </svg>
-        <h3>No hay proyectos</h3>
-        <p>
-            {% if search or estado_actual %}
-                No se encontraron proyectos con los filtros aplicados.
-            {% else %}
-                Aún no se han creado proyectos en el sistema.
-            {% endif %}
-        </p>
-        {% if user.es_administrador %}
-        <a href="{% url 'proyecto_crear' %}" class="btn btn-primary" style="margin-top: 16px; width: auto;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-            </svg>
-            Crear Primer Proyecto
+        <span class="page-info">{{ page_obj.number }}</span>
+
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}" class="page-link">
+            Siguiente
         </a>
         {% endif %}
     </div>
     {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <span class="material-symbols-outlined">domain_disabled</span>
+        <h3>No hay proyectos registrados</h3>
+        <p>Comienza creando tu primer proyecto</p>
+        <a href="{% url 'proyecto_crear' %}" class="btn btn-primary">
+            <span class="material-symbols-outlined">add</span>
+            Crear Proyecto
+        </a>
+    </div>
+    {% endif %}
 </div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; }
+
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.page-header h1 { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 700; color: #111827; }
+.page-description { color: #6b7280; font-size: 14px; margin-top: 4px; }
+.page-actions { display: flex; gap: 12px; }
+
+.content-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.card-header h3 { font-size: 18px; font-weight: 600; color: #111827; }
+.card-actions { display: flex; gap: 8px; }
+
+/* Filtros */
+.filters-form { display: flex; flex-direction: column; gap: 16px; }
+.filters-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.search-box { flex: 1; min-width: 300px; position: relative; }
+.search-box .material-symbols-outlined { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 20px; }
+.search-input { width: 100%; padding: 10px 12px 10px 40px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
+.filter-group { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+.filter-group label { font-size: 13px; font-weight: 500; color: #374151; }
+.form-control { width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
+
+/* Estadísticas */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 24px; }
+.stat-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; gap: 16px; align-items: center; }
+.stat-icon { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.stat-icon.blue { background: #dbeafe; color: #3b82f6; }
+.stat-icon.green { background: #d1fae5; color: #10b981; }
+.stat-icon.orange { background: #fed7aa; color: #f97316; }
+.stat-icon.purple { background: #e9d5ff; color: #a855f7; }
+.stat-icon .material-symbols-outlined { font-size: 28px; }
+.stat-content { display: flex; flex-direction: column; }
+.stat-value { font-size: 28px; font-weight: 700; color: #111827; }
+.stat-label { font-size: 13px; color: #6b7280; }
+
+/* Grid de proyectos */
+.projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 24px; }
+
+.project-card { 
+    background: white; 
+    border: 1px solid #e2e8f0; 
+    border-radius: 16px; 
+    /* overflow: hidden; */ /* <-- [CORRECCIÓN] Eliminamos esto */
+    transition: all 0.3s; 
+    position: relative; 
+    z-index: 1; /* [CORRECCIÓN] Añadimos z-index base */
+}
+.project-card:hover { 
+    transform: translateY(-4px); 
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1); 
+    z-index: 10; /* Elevar en hover */
+}
+
+/* [CORRECCIÓN] Nueva regla para la tarjeta activa */
+.project-card.dropdown-active {
+    overflow: visible; /* Permitir que el contenido se desborde */
+    z-index: 101;      /* Poner esta tarjeta encima de las demás */
+}
+
+
+.project-status-badge { position: absolute; top: 16px; left: 16px; z-index: 10; }
+
+.project-image { width: 100%; height: 200px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.project-image img { width: 100%; height: 100%; object-fit: cover; }
+.project-image-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.project-image-placeholder .material-symbols-outlined { font-size: 80px; color: rgba(255, 255, 255, 0.3); }
+
+.project-info { padding: 24px; }
+
+.project-header-info { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.project-name { font-size: 20px; font-weight: 600; color: #111827; margin: 0; }
+
+.project-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.detail-item { display: flex; flex-direction: column; gap: 4px; }
+.detail-label { font-size: 12px; color: #6b7280; }
+.detail-value { font-size: 14px; font-weight: 500; color: #111827; }
+
+.progress-section { margin-bottom: 20px; }
+.progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; }
+.progress-header span { color: #6b7280; }
+.progress-header strong { color: #111827; }
+.progress-bar { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #10b981 0%, #059669 100%); border-radius: 4px; transition: width 0.3s; }
+
+.budget-section { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; background: #f9fafb; border-radius: 8px; margin-bottom: 20px; }
+.budget-item { display: flex; flex-direction: column; gap: 4px; }
+.budget-label { font-size: 11px; color: #6b7280; }
+.budget-value { font-size: 16px; font-weight: 600; color: #111827; }
+
+.project-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.btn-action { padding: 10px 12px; background: white; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; font-weight: 500; color: #374151; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.btn-action:hover { background: #f9fafb; border-color: #3b82f6; color: #3b82f6; }
+.btn-action .material-symbols-outlined { font-size: 20px; }
+
+/* Botones */
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; text-decoration: none; transition: all 0.2s; }
+.btn-primary { background: #3b82f6; color: white; }
+.btn-primary:hover { background: #2563eb; }
+.btn-secondary { background: white; color: #374151; border: 1px solid #e2e8f0; }
+.btn-secondary:hover { background: #f9fafb; }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+.btn .material-symbols-outlined { font-size: 18px; }
+
+/* Dropdown */
+.dropdown-container { position: relative; }
+.btn-icon-dots { background: transparent; border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #6b7280; transition: all 0.2s; }
+.btn-icon-dots:hover { background: #f3f4f6; }
+.dropdown-menu { display: none; position: absolute; right: 0; top: 100%; margin-top: 4px; min-width: 180px; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); z-index: 100; padding: 4px; }
+.dropdown-menu.active { display: block; }
+.dropdown-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; color: #374151; text-decoration: none; border-radius: 6px; font-size: 14px; cursor: pointer; border: none; background: none; width: 100%; text-align: left; }
+.dropdown-item:hover { background: #f3f4f6; }
+.dropdown-item .material-symbols-outlined { font-size: 18px; color: #6b7280; }
+.dropdown-item-danger { color: #dc2626; }
+.dropdown-item-danger:hover { background: #fee2e2; }
+.dropdown-divider { height: 1px; background: #e5e7eb; margin: 4px 0; }
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.badge-info { background: #dbeafe; color: #1e40af; }
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-warning { background: #fef3c7; color: #92400e; }
+.badge-error { background: #fee2e2; color: #991b1b; }
+.badge-secondary { background: #f3f4f6; color: #374151; }
+
+/* Paginación */
+.pagination { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 24px; }
+.page-link { padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 6px; color: #374151; text-decoration: none; font-size: 14px; }
+.page-link:hover { background: #f3f4f6; }
+.page-info { padding: 8px 16px; font-size: 14px; font-weight: 600; color: #111827; background: #f3f4f6; border-radius: 6px; }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 60px 20px; }
+.empty-state .material-symbols-outlined { font-size: 64px; color: #d1d5db; margin-bottom: 16px; }
+.empty-state h3 { font-size: 18px; color: #374151; margin-bottom: 8px; }
+.empty-state p { color: #6b7280; margin-bottom: 24px; }
+
+.text-danger { color: #dc2626; }
+
+@media (max-width: 768px) {
+    .filters-row { flex-direction: column; }
+    .search-box, .filter-group { min-width: 100%; }
+    .stats-grid { grid-template-columns: 1fr; }
+    .projects-grid { grid-template-columns: 1fr; }
+    .page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .page-actions { width: 100%; }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// [CORRECCIÓN] Función de Dropdown mejorada
+function toggleDropdown(btn) {
+    const dropdown = btn.nextElementSibling;
+    const card = btn.closest('.project-card'); // Obtener la tarjeta padre
+
+    // Cerrar todos los *otros* menús y tarjetas
+    document.querySelectorAll('.dropdown-menu.active').forEach(d => {
+        if (d !== dropdown) {
+            d.classList.remove('active');
+        }
+    });
+    document.querySelectorAll('.project-card.dropdown-active').forEach(c => {
+        if (c !== card) {
+            c.classList.remove('dropdown-active');
+        }
+    });
+
+    // Alternar (toggle) el menú y la tarjeta actuales
+    dropdown.classList.toggle('active');
+    card.classList.toggle('dropdown-active');
+}
+
+// [CORRECCIÓN] Evento de clic exterior mejorado
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.dropdown-container')) {
+        // Si se hace clic fuera de un contenedor de dropdown...
+        // Ocultar todos los menús
+        document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.remove('active'));
+        // Quitar la clase activa de todas las tarjetas
+        document.querySelectorAll('.project-card').forEach(c => c.classList.remove('dropdown-active'));
+    }
+});
+
+function confirmarCambioEstado(proyectoId, nuevoEstado) {
+    const accion = (nuevoEstado === 'ejecucion') ? 'reactivar' : 'pausar';
+    if (confirm(`¿Está seguro de ${accion} este proyecto?`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        // ADVERTENCIA: Esta URL '/cambiar-estado/' sigue sin existir en tu urls.py
+        form.action = `/proyectos/${proyectoId}/toggle-activo/`;
+        const csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = 'csrfmiddlewaretoken';
+        csrf.value = '{{ csrf_token }}';
+        const estado = document.createElement('input');
+        estado.type = 'hidden';
+        estado.name = 'estado';
+        estado.value = nuevoEstado;
+        form.appendChild(csrf);
+        form.appendChild(estado);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function confirmarEliminar(proyectoId, nombreProyecto) {
+    if (confirm(`¿Está seguro de eliminar el proyecto "${nombreProyecto}"?`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/proyectos/${proyectoId}/eliminar/`;
+        const csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = 'csrfmiddlewaretoken';
+        csrf.value = '{{ csrf_token }}';
+        form.appendChild(csrf);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function editarProyecto(proyectoId) {
+    window.location.href = `/proyectos/${proyectoId}/editar/`;
+}
+
+function asignarTrabajadores(proyectoId) {
+    window.location.href = `/proyectos/${proyectoId}/asignar-trabajadores/`;
+}
+
+function verAsistencias(proyectoId) {
+    window.location.href = `/asistencias/?proyecto=${proyectoId}`;
+}
+</script>
 {% endblock %}

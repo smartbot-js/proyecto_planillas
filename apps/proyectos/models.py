@@ -72,6 +72,13 @@ class Proyecto(models.Model):
     departamento = models.CharField(max_length=100, blank=True, verbose_name='Departamento')
     municipio = models.CharField(max_length=100, blank=True, verbose_name='Municipio')
     
+    radio_ubicacion = models.IntegerField(
+        default=100,
+        validators=[MinValueValidator(50), MaxValueValidator(500)],
+        verbose_name='Radio de Ubicación (metros)',
+        help_text='Radio en metros para validar asistencias'
+    )
+    
     # Características del proyecto
     tamano_proyecto = models.DecimalField(
         max_digits=12,

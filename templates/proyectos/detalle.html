@@ -6,534 +6,999 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <div class="breadcrumb">
-            <a href="{% url 'proyectos_lista' %}">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                </svg>
-                Proyectos
-            </a>
-            <span style="color: var(--text-muted); margin: 0 8px;">/</span>
-            <span style="color: var(--text-primary); font-weight: 600;">{{ proyecto.nombre }}</span>
+        <a href="{% url 'proyectos_lista' %}" class="back-link">
+            <span class="material-symbols-outlined">arrow_back</span>
+            Volver a Proyectos
+        </a>
+        <div class="header-title">
+            <h1>{{ proyecto.nombre }}</h1>
+            
+            {% if proyecto.estado == 'ejecucion' %}
+            <span class="badge badge-success">En Ejecución</span>
+            {% elif proyecto.estado == 'planificacion' %}
+            <span class="badge badge-info">En Planificación</span>
+            {% elif proyecto.estado == 'pausado' %}
+            <span class="badge badge-warning">En Pausa</span>
+            {% elif proyecto.estado == 'finalizado' %}
+            <span class="badge badge-secondary">Finalizado</span>
+            {% elif proyecto.estado == 'cancelado' %}
+            <span class="badge badge-error">Cancelado</span>
+            {% endif %}
         </div>
-        <h1>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-            </svg>
-            {{ proyecto.nombre }}
-        </h1>
-        <p class="page-subtitle">Información detallada del proyecto</p>
+        <p class="page-description">ID del Proyecto: {{ proyecto.id }}</p>
     </div>
-    
-    <div class="page-actions" style="display: flex; gap: 12px;">
+    <div class="page-actions">
+        <button onclick="abrirModalAsignar()" class="btn btn-primary">
+            <span class="material-symbols-outlined">group_add</span>
+            Asignar Trabajadores
+        </button>
         {% if user.es_administrador or proyecto.supervisor == user %}
         <a href="{% url 'proyecto_editar' proyecto.id %}" class="btn btn-secondary">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
-            Editar Proyecto
+            <span class="material-symbols-outlined">edit</span>
+            Editar
         </a>
         {% endif %}
-        
         {% if user.es_administrador %}
-        <button type="button" class="btn btn-danger" onclick="confirmarEliminacion()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-            Eliminar Proyecto
+        <button type="button" class="btn btn-danger" onclick="confirmarEliminar()">
+            <span class="material-symbols-outlined">delete</span>
+            Eliminar
         </button>
         {% endif %}
-        
-        <a href="{% url 'proyectos_lista' %}" class="btn btn-outline">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="19" y1="12" x2="5" y2="12"></line>
-                <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-            Volver
-        </a>
     </div>
 </div>
 
-<div class="content-wrapper">
+<div class="proyecto-header-card">
+    <div class="proyecto-header-image">
+        {% if proyecto.imagen_proyecto and proyecto.imagen_proyecto.url %}
+            <img src="{{ proyecto.imagen_proyecto.url }}" 
+                 alt="{{ proyecto.nombre }}"
+                 onerror="this.style.display='none'; this.parentElement.insertAdjacentHTML('beforeend', `
+                     <div class=&quot;placeholder-image&quot;>
+                         <span class=&quot;material-symbols-outlined&quot;>apartment</span>
+                     </div>
+                 `);">
+        {% else %}
+            <div class="placeholder-image">
+                <span class="material-symbols-outlined">apartment</span>
+            </div>
+        {% endif %}
     
-    <div class="proyecto-header-card">
-        <div class="proyecto-header-image">
-            {% if proyecto.imagen_proyecto %}
-            <img src="{{ proyecto.imagen_proyecto.url }}" alt="{{ proyecto.nombre }}">
-            {% else %}
-            <img src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1200&h=400&fit=crop" alt="{{ proyecto.nombre }}">
-            {% endif %}
-            <div class="proyecto-header-overlay">
-                <span class="estado-badge estado-{{ proyecto.estado }}">
-                    {{ proyecto.get_estado_display }}
-                </span>
-                <span class="tipo-badge">
-                    {{ proyecto.get_tipo_proyecto_display }}
-                </span>
+        <div class="proyecto-header-overlay">
+            <span class="badge badge-estado estado-{{ proyecto.estado }}">
+                {{ proyecto.get_estado_display }}
+            </span>
+            <span class="badge badge-tipo">
+                {{ proyecto.get_tipo_proyecto_display }}
+            </span>
+        </div>
+    </div>
+    
+    
+    <div class="proyecto-meta-grid">
+        <div class="meta-item">
+            <span class="material-symbols-outlined">person</span>
+            <div>
+                <span class="meta-label">Supervisor</span>
+                <span class="meta-value">{{ proyecto.supervisor.nombre }} {{ proyecto.supervisor.apellido }}</span>
             </div>
         </div>
         
-        <div class="proyecto-header-content">
-            <div class="proyecto-meta">
-                <div class="meta-item">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                    <div>
-                        <span class="meta-label">Gerente del Proyecto</span>
-                        <span class="meta-value">{{ proyecto.supervisor.nombre_completo }}</span>
-                    </div>
-                </div>
-                
-                <div class="meta-item">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    <div>
-                        <span class="meta-label">Inicio</span>
-                        <span class="meta-value">{{ proyecto.fecha_inicio|date:"d/m/Y" }}</span>
-                    </div>
-                </div>
-                
-                {% if proyecto.fecha_fin_estimada %}
-                <div class="meta-item">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    <div>
-                        <span class="meta-label">Fin Estimado</span>
-                        <span class="meta-value">{{ proyecto.fecha_fin_estimada|date:"d/m/Y" }}</span>
-                    </div>
-                </div>
-                {% endif %}
-                
-                <div class="meta-item">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                        <circle cx="12" cy="10" r="3"></circle>
-                    </svg>
-                    <div>
-                        <span class="meta-label">Ubicación</span>
-                        <span class="meta-value">{{ proyecto.ubicacion }}</span>
-                    </div>
-                </div>
+        <div class="meta-item">
+            <span class="material-symbols-outlined">calendar_today</span>
+            <div>
+                <span class="meta-label">Fecha Inicio</span>
+                <span class="meta-value">{{ proyecto.fecha_inicio|date:"d/m/Y"|default:"No especificada" }}</span>
+            </div>
+        </div>
+        
+        {% if proyecto.fecha_fin_estimada %}
+        <div class="meta-item">
+            <span class="material-symbols-outlined">event</span>
+            <div>
+                <span class="meta-label">Fecha Fin Estimada</span>
+                <span class="meta-value">{{ proyecto.fecha_fin_estimada|date:"d/m/Y" }}</span>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="meta-item">
+            <span class="material-symbols-outlined">location_on</span>
+            <div>
+                <span class="meta-label">Ubicación</span>
+                <span class="meta-value">{{ proyecto.municipio|default:proyecto.ubicacion }}</span>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="detail-grid">
+<div class="tabs-container">
+    <div class="tabs">
+        <button class="tab active" data-tab="resumen" onclick="cambiarTab('resumen')">
+            <span class="material-symbols-outlined">dashboard</span>
+            Resumen
+        </button>
+        <button class="tab" data-tab="trabajadores" onclick="cambiarTab('trabajadores')">
+            <span class="material-symbols-outlined">group</span>
+            Trabajadores ({{ trabajadores.count|default:0 }})
+        </button>
+        <button class="tab" data-tab="asistencias" onclick="cambiarTab('asistencias')">
+            <span class="material-symbols-outlined">assignment</span>
+            Asistencias
+        </button>
+        <button class="tab" data-tab="planillas" onclick="cambiarTab('planillas')">
+            <span class="material-symbols-outlined">description</span>
+            Planillas
+        </button>
+    </div>
+</div>
+
+<div class="tab-content active" data-content="resumen">
+    
+    <div class="detalle-layout-grid">
         
-        <div class="detail-main">
+        <div class="detalle-main-content">
             
             {% if proyecto.descripcion %}
-            <div class="info-card">
+            <div class="content-card">
                 <div class="card-header">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    </svg>
-                    <h3>Descripción del Proyecto</h3>
+                    <h3><span class="material-symbols-outlined">info</span> Descripción del Proyecto</h3>
                 </div>
-                <div class="card-content">
-                    <p class="proyecto-descripcion">{{ proyecto.descripcion }}</p>
+                <div class="description-section">
+                    <p class="description-text">{{ proyecto.descripcion }}</p>
                 </div>
             </div>
             {% endif %}
-            
-            <div class="info-card">
+
+            <div class="content-card">
                 <div class="card-header">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    </svg>
-                    <h3>Características del Proyecto</h3>
+                    <h3><span class="material-symbols-outlined">layers</span> Características del Proyecto</h3>
                 </div>
-                <div class="card-content">
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <span class="stat-label">Tamaño Total</span>
-                            <span class="stat-value">{{ proyecto.tamano_proyecto|floatformat:2 }} m²</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Cantidad de Unidades</span>
-                            <span class="stat-value">{{ proyecto.cantidad_unidades }}</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Tamaño Promedio</span>
-                            <span class="stat-value">{{ proyecto.tamano_promedio|floatformat:2 }} m²</span>
-                        </div>
+                <div class="info-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+                    <div class="info-item">
+                        <span class="info-label">Tamaño Total</span>
+                        <span class="info-value">{{ proyecto.tamano_proyecto|floatformat:2 }} m²</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Cantidad de Unidades</span>
+                        <span class="info-value">{{ proyecto.cantidad_unidades }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Tamaño Promedio</span>
+                        <span class="info-value">{{ proyecto.tamano_promedio|floatformat:2 }} m²</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="card-header">
+                    <h3><span class="material-symbols-outlined">engineering</span> Personal y Equipo</h3>
+                </div>
+                <div class="info-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="info-item">
+                        <span class="info-label">Personal Asignado</span>
+                        <span class="info-value">{{ trabajadores.count|default:0 }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Contratistas</span>
+                        <span class="info-value">{{ proyecto.contratistas_asignados }}</span>
                     </div>
                 </div>
             </div>
             
-            <div class="info-card">
+            <div class="content-card">
                 <div class="card-header">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    </svg>
-                    <h3>Personal y Equipo</h3>
+                    <h3><span class="material-symbols-outlined">account_balance</span> Presupuesto y Gastos</h3>
                 </div>
-                <div class="card-content">
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <span class="stat-label">Personal Asignado</span>
-                            <span class="stat-value">{{ proyecto.personal_asignado }}</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Contratistas</span>
-                            <span class="stat-value">{{ proyecto.contratistas_asignados }}</span>
-                        </div>
+                <div class="financial-grid">
+                    <div class="financial-item">
+                        <span class="financial-label">Presupuesto Total</span>
+                        <span class="financial-value primary">${{ proyecto.presupuesto_total|floatformat:2|default:"0.00" }}</span>
+                    </div>
+                    <div class="financial-item">
+                        <span class="financial-label">Anticipo</span>
+                        <span class="financial-value">${{ proyecto.anticipo|floatformat:2|default:"0.00" }}</span>
+                    </div>
+                    <div class="financial-item">
+                        <span class="financial-label">Gasto Mano de Obra</span>
+                        <span class="financial-value {% if proyecto.gasto_mano_obra_real > proyecto.presupuesto_mano_obra %}danger{% else %}success{% endif %}">
+                            ${{ proyecto.gasto_mano_obra_real|floatformat:2|default:"0.00" }}
+                        </span>
+                    </div>
+                    <div class="financial-item">
+                        <span class="financial-label">Gasto Administrativo</span>
+                        <span class="financial-value {% if proyecto.gasto_administrativo_real > proyecto.presupuesto_administrativo %}danger{% else %}{% endif %}">
+                            ${{ proyecto.gasto_administrativo_real|floatformat:2|default:"0.00" }}
+                        </span>
                     </div>
                 </div>
             </div>
             
-            <div class="info-card">
+            <div class="content-card">
                 <div class="card-header">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="1" x2="12" y2="23"></line>
-                    </svg>
-                    <h3>Presupuesto y Gastos</h3>
+                    <h3><span class="material-symbols-outlined">folder</span> Documentos del Proyecto</h3>
                 </div>
-                <div class="card-content">
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <span class="stat-label">Presupuesto Total</span>
-                            <span class="stat-value stat-primary">${{ proyecto.presupuesto_total|floatformat:2 }}</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Presupuesto Mano de Obra</span>
-                            <span class="stat-value">${{ proyecto.presupuesto_mano_obra|floatformat:2 }}</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Presupuesto Administrativo</span>
-                            <span class="stat-value">${{ proyecto.presupuesto_administrativo|floatformat:2 }}</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Gasto Mano de Obra</span>
-                            <span class="stat-value stat-warning">${{ proyecto.gasto_mano_obra_real|floatformat:2 }}</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Gasto Administrativo</span>
-                            <span class="stat-value stat-warning">${{ proyecto.gasto_administrativo_real|floatformat:2 }}</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Anticipo</span>
-                            <span class="stat-value">${{ proyecto.anticipo|floatformat:2 }}</span>
-                        </div>
+                <div class="documents-grid">
+                    {% if proyecto.archivo_contrato %}
+                    <a href="{{ proyecto.archivo_contrato.url }}" target="_blank" class="document-card">
+                        <span class="material-symbols-outlined">description</span>
+                        <div><strong>Contrato</strong><small>PDF</small></div>
+                        <span class="material-symbols-outlined">arrow_forward</span>
+                    </a>
+                    {% endif %}
+                    {% if proyecto.archivo_avaluo %}
+                    <a href="{{ proyecto.archivo_avaluo.url }}" target="_blank" class="document-card">
+                        <span class="material-symbols-outlined">receipt_long</span>
+                        <div><strong>Avalúo</strong><small>PDF</small></div>
+                        <span class="material-symbols-outlined">arrow_forward</span>
+                    </a>
+                    {% endif %}
+                    {% if proyecto.archivo_presupuesto %}
+                    <a href="{{ proyecto.archivo_presupuesto.url }}" target="_blank" class="document-card">
+                        <span class="material-symbols-outlined">request_quote</span>
+                        <div><strong>Presupuesto</strong><small>Archivo</small></div>
+                        <span class="material-symbols-outlined">arrow_forward</span>
+                    </a>
+                    {% endif %}
+                    {% if not proyecto.archivo_contrato and not proyecto.archivo_avaluo and not proyecto.archivo_presupuesto %}
+                    <div class="empty-state-small" style="padding: 20px 0;">
+                        <span class="material-symbols-outlined">folder_off</span>
+                        <p>No hay documentos adjuntos</p>
                     </div>
-                </div>
-            </div>
-            
-            <div class="info-card">
-                <div class="card-header">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
-                    </svg>
-                    <h3>Documentos Adjuntos</h3>
-                </div>
-                <div class="card-content">
-                    <div class="documentos-grid">
-                        {% if proyecto.archivo_contrato %}
-                        <a href="{{ proyecto.archivo_contrato.url }}" target="_blank" class="documento-item">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            </svg>
-                            <div>
-                                <span class="doc-title">Contrato</span>
-                                <span class="doc-subtitle">PDF</span>
-                            </div>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                            </svg>
-                        </a>
-                        {% endif %}
-                        
-                        {% if proyecto.archivo_avaluo %}
-                        <a href="{{ proyecto.archivo_avaluo.url }}" target="_blank" class="documento-item">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            </svg>
-                            <div>
-                                <span class="doc-title">Avalúo</span>
-                                <span class="doc-subtitle">PDF</span>
-                            </div>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                            </svg>
-                        </a>
-                        {% endif %}
-                        
-                        {% if proyecto.archivo_presupuesto %}
-                        <a href="{{ proyecto.archivo_presupuesto.url }}" target="_blank" class="documento-item">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            </svg>
-                            <div>
-                                <span class="doc-title">Presupuesto</span>
-                                <span class="doc-subtitle">Archivo</span>
-                            </div>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                            </svg>
-                        </a>
-                        {% endif %}
-                        
-                        {% if not proyecto.archivo_contrato and not proyecto.archivo_avaluo and not proyecto.archivo_presupuesto %}
-                        <div class="no-documentos">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
-                            </svg>
-                            <p>No hay documentos adjuntos</p>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            
-        </div>
-        
-        <div class="detalle-sidebar">
-            
-            <div class="info-card">
-                <div class="card-header">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                    </svg>
-                    <h3>Progreso</h3>
-                </div>
-                <div class="card-content">
-                    <div class="progress-circle">
-                        <div class="progress-value">{{ proyecto.porcentaje_avance_general|floatformat:0 }}%</div>
-                        <p class="progress-label">Avance General</p>
-                    </div>
-                    
-                    <div class="progress-bar-container">
-                        <div class="progress-bar-label">
-                            <span>Planilla</span>
-                            <span>{{ proyecto.porcentaje_asignacion_planilla|floatformat:0 }}%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-bar-fill" style="width: {{ proyecto.porcentaje_asignacion_planilla }}%"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="progress-bar-container">
-                        <div class="progress-bar-label">
-                            <span>Presupuesto</span>
-                            <span>{{ proyecto.porcentaje_gastado|floatformat:0 }}%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-bar-fill {% if proyecto.porcentaje_gastado > 90 %}warning{% endif %}" style="width: {{ proyecto.porcentaje_gastado }}%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="info-card">
-                <div class="card-header">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                    </svg>
-                    <h3>Ubicación</h3>
-                </div>
-                <div class="card-content">
-                    <div class="ubicacion-info">
-                        <p><strong>Dirección:</strong><br>{{ proyecto.ubicacion }}</p>
-                        {% if proyecto.departamento %}
-                        <p><strong>Departamento:</strong> {{ proyecto.departamento }}</p>
-                        {% endif %}
-                        {% if proyecto.municipio %}
-                        <p><strong>Municipio:</strong> {{ proyecto.municipio }}</p>
-                        {% endif %}
-                        {% if proyecto.ubicacion_coordenadas %}
-                        <p><strong>Coordenadas:</strong><br>
-                            <code>{{ proyecto.ubicacion_coordenadas }}</code>
-                        </p>
-                        
-                        <p style="margin-top: 8px; margin-bottom: 0;">
-                            <a href="https://www.google.com/maps?q={{ proyecto.ubicacion_coordenadas }}" target="_blank" class="google-maps-link">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                </svg>
-                                Ver en Google Maps
-                            </a>
-                        </p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            
-            {% if proyecto.valor_avaluo_acumulado > 0 %}
-            <div class="info-card">
-                <div class="card-header">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                    </svg>
-                    <h3>Avalúo</h3>
-                </div>
-                <div class="card-content">
-                    <div class="stat-item">
-                        <span class="stat-label">Valor Acumulado</span>
-                        <span class="stat-value stat-success">${{ proyecto.valor_avaluo_acumulado|floatformat:2 }}</span>
-                    </div>
-                    {% if proyecto.fecha_avaluo %}
-                    <p style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
-                        Fecha: {{ proyecto.fecha_avaluo|date:"d/m/Y" }}
-                    </p>
                     {% endif %}
                 </div>
             </div>
-            {% endif %}
-
-            <div class="info-card">
+        </div>
+        
+        <div class="detalle-sidebar-content">
+            
+            <div class="content-card">
                 <div class="card-header">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                    </svg>
-                    <h3>Información de Auditoría</h3>
+                    <h3><span class="material-symbols-outlined">insights</span> Progreso</h3>
                 </div>
-                <div class="card-content">
-                    <div style="font-size: 13px; color: var(--text-secondary); line-height: 2;">
-                        {% if proyecto.creado_por %}
-                        <p style="margin-bottom: 12px;">
-                            <strong style="color: var(--text-primary);">Creado por:</strong><br>
-                            {{ proyecto.creado_por.nombre_completo }}
-                        </p>
-                        {% endif %}
-                        
-                        <p style="margin-bottom: 12px;">
-                            <strong style="color: var(--text-primary);">Fecha de creación:</strong><br>
-                            {{ proyecto.fecha_creacion|date:"d/m/Y H:i" }}
-                        </p>
-                        
-                        {% if proyecto.modificado_por %}
-                        <p style="margin-bottom: 12px;">
-                            <strong style="color: var(--text-primary);">Última modificación por:</strong><br>
-                            {{ proyecto.modificado_por.nombre_completo }}
-                        </p>
-                        {% endif %}
-                        
-                        <p style="margin-bottom: 0;">
-                            <strong style="color: var(--text-primary);">Fecha de actualización:</strong><br>
-                            {{ proyecto.fecha_actualizacion|date:"d/m/Y H:i" }}
-                        </p>
+                <div class="progress-list">
+                    <div class="progress-list-item">
+                        <div class="progress-header">
+                            <span class="progress-label">Avance General</span>
+                            <strong class="progress-percent">{{ proyecto.porcentaje_avance_general|default:0|floatformat:0 }}%</strong>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ proyecto.porcentaje_avance_general|default:0|floatformat:"-2" }}%;"></div>                        </div>
+                    </div>
+                    <div class="progress-list-item">
+                        <div class="progress-header">
+                            <span class="progress-label">Gasto Presup. (M. Obra)</span>
+                            <strong class="progress-percent">
+                                {% if proyecto.presupuesto_mano_obra > 0 %}{% widthratio proyecto.gasto_mano_obra_real proyecto.presupuesto_mano_obra 100 %}{% else %}0{% endif %}%
+                            </strong>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill {% if proyecto.gasto_mano_obra_real > proyecto.presupuesto_mano_obra %}bg-danger{% endif %}" 
+                                 style="width: {% if proyecto.presupuesto_mano_obra > 0 %}{% widthratio proyecto.gasto_mano_obra_real proyecto.presupuesto_mano_obra 100 %}{% else %}0{% endif %}%">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="progress-list-item">
+                        <div class="progress-header">
+                            <span class="progress-label">Asignación Planilla</span>
+                            <strong class="progress-percent">{{ proyecto.porcentaje_asignacion_planilla|default:0|floatformat:0 }}%</strong>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ proyecto.porcentaje_asignacion_planilla|default:0|floatformat:"-2" }}%;"></div>                        </div>
                     </div>
                 </div>
             </div>
+            
+            <div class="content-card">
+                <div class="card-header">
+                    <h3><span class="material-symbols-outlined">location_on</span> Ubicación</h3>
+                </div>
+                <div class="location-content-reorganized">
+                    
+                    {% if proyecto.ubicacion_coordenadas %}
+                    <div class="map-container">
+                        <iframe
+                            width="100%"
+                            height="250"
+                            style="border:0;"
+                            loading="lazy"
+                            allowfullscreen
+                            referrerpolicy="no-referrer-when-downgrade"
+                            src="https://maps.google.com/maps?q={{ proyecto.ubicacion_coordenadas }}&t=&z=15&ie=UTF8&iwloc=&output=embed">
+                        </iframe>
+                    </div>
+                    
+                    <div class="location-padding">
+                        <a href="https://www.google.com/maps/search/?api=1&query={{ proyecto.ubicacion_coordenadas }}" 
+                           target="_blank" class="btn btn-outline btn-sm" style="width: 100%;">
+                            <span class="material-symbols-outlined">map</span>
+                            Abrir en Google Maps
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <div class="location-info-items">
+                        <div class="info-item full-width">
+                            <span class="info-label">Dirección</span>
+                            <span class="info-value">{{ proyecto.ubicacion|default:"No especificada" }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Municipio</span>
+                            <span class="info-value">{{ proyecto.municipio|default:"N/A" }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Departamento</span>
+                            <span class="info-value">{{ proyecto.departamento|default:"N/A" }}</span>
+                        </div>
+                        {% if proyecto.ubicacion_coordenadas %}
+                        <div class="info-item full-width">
+                            <span class="info-label">Coordenadas (Texto)</span>
+                            <span class="info-value">{{ proyecto.ubicacion_coordenadas }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-card">
+                <div class="card-header">
+                    <h3><span class="material-symbols-outlined">request_quote</span> Avalúo</h3>
+                </div>
+                <div class="info-grid" style="grid-template-columns: 1fr;">
+                    <div class="info-item">
+                        <span class="info-label">Valor Avalúo Acumulado</span>
+                        <span class="info-value stat-success">${{ proyecto.valor_avaluo_acumulado|floatformat:2|default:"0.00" }}</span>
+                    </div>
+                    {% if proyecto.fecha_avaluo %}
+                    <div class="info-item">
+                        <span class="info-label">Fecha del Avalúo</span>
+                        <span class="info-value">{{ proyecto.fecha_avaluo|date:"d/m/Y" }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="content-card">
+                <div class="card-header">
+                    <h3><span class="material-symbols-outlined">history</span> Información de Auditoría</h3>
+                </div>
+                <div class="info-grid" style="grid-template-columns: 1fr;">
+                    <div class="info-item">
+                        <span class="info-label">Creado por</span>
+                        <span class="info-value">{{ proyecto.creado_por.nombre }} {{ proyecto.creado_por.apellido|default:'N/A' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Fecha de Creación</span>
+                        <span class="info-value">{{ proyecto.fecha_creacion|date:"d/m/Y H:i" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Modificado por</span>
+                        <span class="info-value">{{ proyecto.modificado_por.nombre }} {{ proyecto.modificado_por.apellido|default:'N/A' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Última Actualización</span>
+                        <span class="info-value">{{ proyecto.fecha_actualizacion|date:"d/m/Y H:i" }}</span>
+                    </div>
+                </div>
+            </div>
+
+        </div> </div> </div> <div class="tab-content" data-content="trabajadores">
+    <div class="content-card">
+        <div class="card-header">
+            <h3>Trabajadores Asignados ({{ trabajadores.count|default:0 }})</h3>
+            <button onclick="abrirModalAsignar()" class="btn btn-primary btn-sm">
+                <span class="material-symbols-outlined">person_add</span>
+                Asignar Trabajador
+            </button>
         </div>
-        
+
+        {% if trabajadores %}
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Trabajador</th>
+                        <th>Cédula</th>
+                        <th>Puesto</th>
+                        <th>Salario/Hora</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trabajador in trabajadores %}
+                    <tr>
+                        <td>
+                            <div class="worker-cell">
+                                {% if trabajador.foto %}
+                                <img src="{{ trabajador.foto.url }}" alt="{{ trabajador.nombre_completo }}" class="worker-avatar">
+                                {% else %}
+                                <div class="worker-avatar-placeholder">
+                                    {{ trabajador.nombre|first }}{{ trabajador.apellido|first }}
+                                </div>
+                                {% endif %}
+                                <div class="worker-info">
+                                    <strong>{{ trabajador.nombre_completo }}</strong>
+                                    <small>{{ trabajador.telefono|default:"Sin teléfono" }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="badge badge-secondary">{{ trabajador.numero_cedula }}</span></td>
+                        <td>{{ trabajador.puesto_laboral }}</td>
+                        <td><strong>${{ trabajador.salario_normal|floatformat:2 }}</strong></td>
+                        <td>
+                            {% if trabajador.estado == 'activo' %}
+                            <span class="badge badge-success">Activo</span>
+                            {% else %}
+                            <span class="badge badge-error">{{ trabajador.get_estado_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'trabajador_detalle' trabajador.id %}" class="btn-icon" title="Ver detalle">
+                                <span class="material-symbols-outlined">visibility</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state-small">
+            <span class="material-symbols-outlined">person_off</span>
+            <p>No hay trabajadores asignados</p>
+            <button onclick="abrirModalAsignar()" class="btn btn-primary btn-sm">
+                <span class="material-symbols-outlined">person_add</span>
+                Asignar Primer Trabajador
+            </button>
+        </div>
+        {% endif %}
     </div>
 </div>
 
+<div class="tab-content" data-content="asistencias">
+    <div class="content-card">
+        <div class="card-header">
+            <h3><span class="material-symbols-outlined">assignment</span> Asistencias Recientes</h3>
+            
+            <a href="{% url 'asistencias_lista' %}?proyecto={{ proyecto.id }}" class="btn btn-sm btn-secondary">
+                <span class="material-symbols-outlined">list_alt</span>
+                Ver Todas
+            </a>
+        </div>
+
+        {% if asistencias_recientes %}
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Trabajador</th>
+                        <th>Entrada</th>
+                        <th>Salida</th>
+                        <th>Horas</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asistencia in asistencias_recientes %}
+                    <tr>
+                        <td><strong>{{ asistencia.fecha|date:"d/m/Y" }}</strong></td>
+                        <td>
+                            <div class="worker-cell">
+                                {% if asistencia.trabajador.foto %}
+                                <img src="{{ asistencia.trabajador.foto.url }}" alt="{{ asistencia.trabajador.nombre_completo }}" class="worker-avatar">
+                                {% else %}
+                                <div class="worker-avatar-placeholder">
+                                    {{ asistencia.trabajador.nombre|first }}{{ asistencia.trabajador.apellido|first }}
+                                </div>
+                                {% endif %}
+                                <div class="worker-info">
+                                    <strong>{{ asistencia.trabajador.nombre_completo }}</strong>
+                                    <small>{{ asistencia.trabajador.numero_cedula }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="time-text {% if asistencia.llego_tarde %}time-late{% endif %}">
+                                {{ asistencia.hora_entrada|time:"H:i" }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if asistencia.hora_salida %}
+                            <span class="time-text">{{ asistencia.hora_salida|time:"H:i" }}</span>
+                            {% else %}
+                            <span class="text-muted" style="font-style: italic;">— En curso —</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ asistencia.horas_totales|floatformat:1 }}h</strong></td>
+                        <td>
+                            {% if asistencia.estado == 'cerrado' %}
+                            <span class="badge badge-success">Cerrado</span>
+                            {% elif asistencia.estado == 'abierto' %}
+                            <span class="badge badge-warning">Abierto</span>
+                            {% else %}
+                            <span class="badge badge-secondary">{{ asistencia.get_estado_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'asistencia_detalle' asistencia.id %}" class="btn-icon" title="Ver detalle">
+                                <span class="material-symbols-outlined">visibility</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state-small">
+            <span class="material-symbols-outlined">assignment_late</span>
+            <p>No hay registros de asistencia para este proyecto.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+<div class="tab-content" data-content="planillas">
+    <div class="content-card">
+        <div class="card-header">
+            <h3><span class="material-symbols-outlined">description</span> Planillas</h3>
+            <a href="#" class="btn btn-primary btn-sm">
+                Nueva Planilla
+            </a>
+        </div>
+        <div class="empty-state-small">
+            <span class="material-symbols-outlined">pending_actions</span>
+            <p>Módulo de Planillas en construcción.</p>
+        </div>
+    </div>
+</div>
+
+
+<div id="modalAsignar" class="modal">
+    <div class="modal-content modal-lg">
+        <div class="modal-header">
+            <h3>
+                <span class="material-symbols-outlined">group_add</span>
+                Asignar Trabajadores
+            </h3>
+            <button type="button" class="modal-close" onclick="cerrarModalAsignar()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form method="POST" action="{% url 'proyecto_asignar_trabajadores' proyecto.id %}">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Seleccionar Trabajadores</label>
+                    <div class="workers-selection">
+                        {% for trabajador in trabajadores_disponibles %}
+                        <label class="checkbox-card">
+                            <input type="checkbox" name="trabajadores" value="{{ trabajador.id }}" 
+                                   {% if trabajador.proyecto_asignado == proyecto %}checked{% endif %}>
+                            <div class="checkbox-card-content">
+                                <div class="worker-info-modal">
+                                    {% if trabajador.foto %}
+                                    <img src="{{ trabajador.foto.url }}" class="worker-avatar-small">
+                                    {% else %}
+                                    <div class="worker-avatar-placeholder-small">
+                                        {{ trabajador.nombre|first }}{{ trabajador.apellido|first }}
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <strong>{{ trabajador.nombre_completo }}</strong>
+                                        <small>{{ trabajador.puesto_laboral }}</small>
+                                    </div>
+                                </div>
+                                <span class="checkbox-icon material-symbols-outlined">check_circle</span>
+                            </div>
+                        </label>
+                        {% empty %}
+                        <p class="text-muted">No hay trabajadores activos disponibles o sin asignar.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="cerrarModalAsignar()">Cancelar</button>
+                <button type="submit" class="btn btn-primary">
+                    <span class="material-symbols-outlined">check</span>
+                    Asignar Seleccionados
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if user.es_administrador %}
+<form id="formEliminar" method="POST" action="{% url 'proyecto_eliminar' proyecto.id %}" style="display: none;">
+    {% csrf_token %}
+</form>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 <style>
-/* --- Clases Específicas (Mantenidas) --- */
-.proyecto-header-card {
-    background: white;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-    margin-bottom: 24px;
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body { 
+    background-color: #f8fafc;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
-.proyecto-header-image {
+
+.page-header { 
+    margin-bottom: 24px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.page-header h1 { 
+    font-size: 28px; 
+    font-weight: 700; 
+    color: #111827; 
+    margin: 8px 0; 
+    letter-spacing: -0.02em;
+}
+.header-title { display: flex; align-items: center; gap: 12px; }
+.page-description { color: #6b7280; font-size: 14px; margin-top: 4px; }
+.back-link { display: inline-flex; align-items: center; gap: 8px; color: #3b82f6; text-decoration: none; font-size: 14px; margin-bottom: 8px; font-weight: 500; }
+.back-link:hover { color: #2563eb; }
+.page-actions { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+
+/* Header Card con imagen */
+.proyecto-header-card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; margin-bottom: 24px; }
+.proyecto-header-image { 
+    height: 280px; 
+    background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
     position: relative;
-    height: 300px;
-    overflow: hidden;
 }
-.proyecto-header-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
+.proyecto-header-image img { width: 100%; height: 100%; object-fit: cover; }
+.placeholder-image { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.placeholder-image .material-symbols-outlined { font-size: 120px; color: rgba(59, 130, 246, 0.3); }
+
+/* Badges en la Imagen */
 .proyecto-header-overlay {
     position: absolute;
     top: 20px;
     right: 20px;
     display: flex;
     gap: 10px;
+    z-index: 10;
 }
-.estado-badge, .tipo-badge {
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+.badge.badge-estado, .badge.badge-tipo {
+    backdrop-filter: blur(5px);
+    background-color: rgba(255, 255, 255, 0.85);
+    color: #111827;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    font-weight: 600;
+    padding: 6px 12px;
 }
-.estado-badge.estado-planificacion { background: #dbeafe; color: #1e40af; }
-.estado-badge.estado-ejecucion { background: #10b981; color: white; }
-.estado-badge.estado-pausado { background: #f59e0b; color: white; }
-.estado-badge.estado-finalizado { background: #6b7280; color: white; }
-.tipo-badge { background: rgba(255, 255, 255, 0.95); color: var(--text-primary); }
+.badge-estado.estado-ejecucion { background-color: rgba(209, 250, 229, 0.9); color: #065f46; }
+.badge-estado.estado-planificacion { background-color: rgba(219, 234, 254, 0.9); color: #1e40af; }
+.badge-estado.estado-pausado { background-color: rgba(254, 243, 199, 0.9); color: #92400e; }
+.badge-estado.estado-finalizado { background-color: rgba(243, 244, 246, 0.9); color: #374151; }
+.badge-estado.estado-cancelado { background-color: rgba(254, 226, 226, 0.9); color: #991b1b; }
 
-.proyecto-header-content { padding: 24px 32px; }
-.proyecto-meta {
+
+.proyecto-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; padding: 24px; }
+.meta-item { display: flex; align-items: flex-start; gap: 12px; }
+.meta-item .material-symbols-outlined { color: #3b82f6; font-size: 20px; margin-top: 2px; }
+.meta-label { display: block; font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; }
+.meta-value { display: block; font-size: 14px; color: #111827; font-weight: 600; }
+
+/* Tabs */
+.tabs-container { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px; margin-bottom: 24px; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab { flex: 1; background: transparent; border: none; padding: 12px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; color: #6b7280; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 150px; }
+.tab:hover { background: #f3f4f6; color: #111827; }
+.tab.active { background: #3b82f6; color: white; }
+.tab .material-symbols-outlined { font-size: 20px; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Layout de 2 columnas para Resumen */
+.detalle-layout-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: 2fr 1fr;
     gap: 24px;
 }
-.meta-item { display: flex; align-items: flex-start; gap: 12px; }
-.meta-item svg { color: var(--primary-color); flex-shrink: 0; margin-top: 2px; }
-.meta-label { display: block; font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 4px; }
-.meta-value { display: block; font-size: 14px; color: var(--text-primary); font-weight: 600; }
+.detalle-main-content { display: flex; flex-direction: column; gap: 24px; }
+.detalle-sidebar-content { display: flex; flex-direction: column; gap: 24px; }
 
-.proyecto-descripcion { line-height: 1.6; color: var(--text-primary); }
+/* Cards */
+.content-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; }
+.card-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #f3f4f6; }
+.card-header h3 { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 600; color: #111827; margin: 0; }
+.card-header h3 .material-symbols-outlined { font-size: 22px; color: #3b82f6; }
 
-.stat-item { display: flex; flex-direction: column; }
-.stat-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px; }
-.stat-value { font-size: 18px; color: var(--text-primary); font-weight: 700; }
-.stat-value.stat-primary { color: var(--primary-color); }
-.stat-value.stat-success { color: #10b981; }
-.stat-value.stat-warning { color: #f59e0b; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 24px; }
+.info-item { display: flex; flex-direction: column; gap: 4px; }
+.info-item.full-width { grid-column: 1 / -1; }
+.info-label { font-size: 12px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.02em; }
+.info-value { font-size: 14px; color: #111827; font-weight: 600; }
+.info-value.stat-success { color: #10b981; font-weight: 700; }
 
-.progress-circle { text-align: center; margin-bottom: 24px; }
-.progress-value { font-size: 48px; font-weight: 700; color: var(--primary-color); line-height: 1; }
-.progress-label { font-size: 13px; color: var(--text-secondary); margin-top: 8px; }
+.description-section { padding: 24px; }
+.description-text { font-size: 14px; color: #374151; line-height: 1.6; }
 
-.progress-bar-container { margin-bottom: 16px; }
-.progress-bar-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; font-weight: 600; }
-.progress-bar { height: 8px; background: var(--bg-page); border-radius: 4px; overflow: hidden; }
-.progress-bar-fill { height: 100%; background: var(--primary-color); border-radius: 4px; transition: width 0.3s; }
-.progress-bar-fill.warning { background: #f59e0b; }
+/* Progreso */
+.progress-list { display: flex; flex-direction: column; gap: 20px; padding: 24px; }
+.progress-list-item { display: flex; flex-direction: column; gap: 8px; }
+.progress-header { display: flex; justify-content: space-between; align-items: center; }
+.progress-label { font-size: 13px; font-weight: 500; color: #374151; }
+.progress-percent { font-size: 13px; font-weight: 600; color: #111827; }
+.progress-bar { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; background: #3b82f6; transition: width 0.3s; }
+.progress-fill.bg-danger { background: #ef4444; }
 
-.ubicacion-info p { margin-bottom: 12px; font-size: 14px; color: var(--text-primary); }
-.ubicacion-info p:last-child { margin-bottom: 0; }
-.ubicacion-info code { background: var(--bg-page); padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-.google-maps-link { display: inline-flex; align-items: center; font-size: 13px; font-weight: 600; color: var(--primary-color); text-decoration: none; transition: all 0.2s; }
-.google-maps-link:hover { text-decoration: underline; opacity: 0.8; }
-
-.documentos-grid { display: flex; flex-direction: column; gap: 12px; }
-.documento-item {
-    display: flex; align-items: center; gap: 12px; padding: 16px;
-    background: var(--bg-page); border-radius: 10px; text-decoration: none;
-    transition: all 0.2s;
+/* Ubicación (Reorganizado) */
+.location-content-reorganized { padding: 0; }
+.map-container {
+    margin-top: 0; 
+    border-radius: 0;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+    line-height: 0;
+    width: 100%;
 }
-.documento-item:hover { background: #e0f2fe; }
-.documento-item svg:first-child { color: var(--primary-color); }
-.documento-item svg:last-child { color: var(--text-secondary); margin-left: auto; }
-.doc-title { display: block; font-size: 14px; font-weight: 600; color: var(--text-primary); }
-.doc-subtitle { display: block; font-size: 12px; color: var(--text-secondary); }
-.no-documentos { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
-.no-documentos svg { margin-bottom: 12px; opacity: 0.3; }
+.location-padding {
+    padding: 24px 24px 0 24px;
+}
+.location-info-items {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+    padding: 24px;
+}
+.location-info-items .info-item.full-width {
+    grid-column: 1 / -1;
+}
+
+/* Financial */
+.financial-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+    gap: 16px; 
+    padding: 24px; 
+}
+.financial-item { display: flex; flex-direction: column; gap: 8px; padding: 16px; background: #f9fafb; border-radius: 8px; }
+.financial-label { font-size: 12px; color: #6b7280; font-weight: 500; }
+.financial-value { font-size: 20px; font-weight: 700; color: #111827; }
+.financial-value.primary { color: #3b82f6; }
+.financial-value.success { color: #10b981; }
+.financial-value.danger { color: #ef4444; }
+
+/* Documents */
+.documents-grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 24px; }
+.document-card { display: flex; align-items: center; gap: 12px; padding: 16px; background: #f9fafb; border: 1px solid #e2e8f0; border-radius: 8px; text-decoration: none; transition: all 0.2s; }
+.document-card:hover { background: #eff6ff; border-color: #dbeafe; }
+.document-card .material-symbols-outlined:first-child { color: #3b82f6; font-size: 24px; }
+.document-card strong { display: block; font-size: 14px; color: #111827; font-weight: 500; }
+.document-card small { font-size: 12px; color: #6b7280; }
+.document-card .material-symbols-outlined:last-child { margin-left: auto; color: #9ca3af; }
+
+/* Table */
+.table-container { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table thead { background: #f9fafb; border-bottom: 2px solid #e5e7eb; }
+.data-table th { padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; }
+.data-table td { padding: 16px; border-bottom: 1px solid #f3f4f6; }
+.data-table tbody tr:hover { background: #f9fafb; }
+.data-table tbody tr:last-child td { border-bottom: none; }
+.worker-cell { display: flex; align-items: center; gap: 12px; }
+.worker-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+.worker-avatar-placeholder { width: 40px; height: 40px; border-radius: 50%; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; }
+.worker-info { display: flex; flex-direction: column; }
+.worker-info strong { font-size: 14px; color: #111827; }
+.worker-info small { font-size: 12px; color: #6b7280; }
+
+/* [NUEVO] Estilos para tabla de Asistencias */
+.time-text { font-family: 'Courier New', Courier, monospace; font-weight: 600; font-size: 14px; color: #1e293b; }
+.time-text.time-late { color: #ef4444; }
+.text-muted { color: #9ca3af; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; text-decoration: none; transition: all 0.2s; }
+.btn-primary { background: #3b82f6; color: white; }
+.btn-primary:hover { background: #2563eb; }
+.btn-secondary { background: white; color: #374151; border: 1px solid #e2e8f0; }
+.btn-secondary:hover { background: #f9fafb; }
+.btn-danger { background: #ef4444; color: white; }
+.btn-danger:hover { background: #dc2626; }
+.btn-outline { background: transparent; color: #3b82f6; border: 1px solid #3b82f6; }
+.btn-outline:hover { background: #eff6ff; }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+.btn .material-symbols-outlined { font-size: 18px; }
+.btn-icon { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; color: #64748b; cursor: pointer; transition: all 0.2s; text-decoration: none; }
+.btn-icon:hover { background: #f8fafc; border-color: #3b82f6; color: #3b82f6; }
+
+/* Badge */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-warning { background: #fef3c7; color: #92400e; }
+.badge-error { background: #fee2e2; color: #991b1b; }
+.badge-secondary { background: #f3f4f6; color: #374151; }
+.badge-info { background: #dbeafe; color: #1e40af; }
+
+/* Modal */
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center; }
+.modal.active { display: flex; }
+.modal-content { background: white; border-radius: 12px; width: 90%; max-width: 600px; max-height: 90vh; display: flex; flex-direction: column; }
+.modal-lg { max-width: 800px; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #e5e7eb; }
+.modal-header h3 { display: flex; align-items: center; gap: 12px; font-size: 18px; color: #111827; }
+.modal-close { background: none; border: none; color: #6b7280; cursor: pointer; padding: 4px; }
+.modal-body { padding: 24px; overflow-y: auto; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid #e5e7eb; background: #f9fafb; }
+.workers-selection { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-height: 400px; overflow-y: auto; }
+.checkbox-card { position: relative; cursor: pointer; }
+.checkbox-card input[type="checkbox"] { position: absolute; opacity: 0; }
+.checkbox-card-content { padding: 16px; border: 2px solid #e2e8f0; border-radius: 8px; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
+.checkbox-card input:checked ~ .checkbox-card-content { border-color: #3b82f6; background: #eff6ff; }
+.worker-info-modal { display: flex; align-items: center; gap: 12px; }
+.worker-avatar-small { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+.worker-avatar-placeholder-small { width: 40px; height: 40px; border-radius: 50%; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; }
+.checkbox-icon { color: #3b82f6; opacity: 0; }
+.checkbox-card input:checked ~ .checkbox-card-content .checkbox-icon { opacity: 1; }
+.empty-state-small { text-align: center; padding: 40px 20px; }
+.empty-state-small .material-symbols-outlined { font-size: 48px; color: #d1d5db; margin-bottom: 12px; }
+.empty-state-small p { color: #6b7280; margin-bottom: 16px; }
+.text-muted { color: #9ca3af; }
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151; }
+
+/* Media Queries de adaptabilidad */
+@media (max-width: 1024px) {
+    .detalle-layout-grid {
+        grid-template-columns: 1fr;
+    }
+    .detalle-sidebar-content {
+        grid-row: 1;
+    }
+}
+@media (max-width: 768px) {
+    .financial-grid { grid-template-columns: 1fr; }
+    .proyecto-meta-grid { grid-template-columns: 1fr; }
+    .workers-selection { grid-template-columns: 1fr; }
+    .tabs { flex-direction: column; }
+    .page-header { flex-direction: column; align-items: stretch; }
+    .page-actions { flex-direction: column; width: 100%; }
+    .location-info-items { grid-template-columns: 1fr; }
+}
+/* ============================================================
+[NUEVO] ESTILOS PARA LA PESTAÑA DE ASISTENCIAS
+============================================================
+*/
+
+.table-container { 
+    overflow-x: auto; 
+}
+.data-table { 
+    width: 100%; 
+    border-collapse: collapse; 
+}
+.data-table thead { 
+    background: #f9fafb; 
+    border-bottom: 2px solid #e5e7eb; 
+}
+.data-table th { 
+    padding: 12px 16px; 
+    text-align: left; 
+    font-size: 12px; 
+    font-weight: 600; 
+    color: #6b7280; 
+    text-transform: uppercase; 
+}
+.data-table td { 
+    padding: 16px; 
+    border-bottom: 1px solid #f3f4f6; 
+}
+.data-table tbody tr:hover { 
+    background: #f9fafb; 
+}
+.data-table tbody tr:last-child td { 
+    border-bottom: none; 
+}
+.worker-cell { 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+}
+.worker-avatar { 
+    width: 40px; 
+    height: 40px; 
+    border-radius: 50%; 
+    object-fit: cover; 
+}
+.worker-avatar-placeholder { 
+    width: 40px; 
+    height: 40px; 
+    border-radius: 50%; 
+    background: #3b82f6; 
+    color: white; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-weight: 600; 
+    font-size: 14px; 
+}
+.worker-info { 
+    display: flex; 
+    flex-direction: column; 
+}
+.worker-info strong { 
+    font-size: 14px; 
+    color: #111827; 
+}
+.worker-info small { 
+    font-size: 12px; 
+    color: #6b7280; 
+}
+.time-text { 
+    font-family: 'Courier New', Courier, monospace; 
+    font-weight: 600; 
+    font-size: 14px; 
+    color: #1e293b; 
+}
+.time-text.time-late { 
+    color: #ef4444; 
+}
+.text-muted { 
+    color: #9ca3af; 
+}
 </style>
+{% endblock %}
 
-{% if user.es_administrador %}
-<form id="formEliminar" method="POST" action="{% url 'proyecto_eliminar' proyecto.id %}" style="display: none;">
-    {% csrf_token %}
-</form>
 
+{% block extra_js %}
 <script>
-function confirmarEliminacion() {
-    if (confirm('⚠️ ¿Estás seguro de que deseas eliminar el proyecto "{{ proyecto.nombre }}"?\n\nEsta acción marcará el proyecto como eliminado pero podrá ser restaurado por un administrador.')) {
+function cambiarTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+    document.querySelector(`[data-content="${tab}"]`).classList.add('active');
+}
+
+function abrirModalAsignar() {
+    document.getElementById('modalAsignar').classList.add('active');
+}
+
+function cerrarModalAsignar() {
+    document.getElementById('modalAsignar').classList.remove('active');
+}
+
+function confirmarEliminar() {
+    if (confirm('¿Está seguro de eliminar este proyecto? Esta acción no se puede deshacer.')) {
         document.getElementById('formEliminar').submit();
     }
 }
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') cerrarModalAsignar();
+});
+
+// Clic fuera del modal para cerrar
+document.getElementById('modalAsignar').addEventListener('click', function(e) {
+    if (e.target === this) {
+        cerrarModalAsignar();
+    }
+});
 </script>
-{% endif %}
 {% endblock %}

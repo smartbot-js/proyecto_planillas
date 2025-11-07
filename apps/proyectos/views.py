@@ -8,7 +8,9 @@ from django.utils import timezone
 
 from .models import Proyecto
 from apps.usuarios.models import Usuario
-
+from apps.trabajadores.models import Trabajador
+from apps.asistencias.models import Asistencia # <--- 1. IMPORTAR ASISTENCIA
+from apps.trabajadores.models import Trabajador, HistorialProyecto
 
 class ProyectoListView(LoginRequiredMixin, ListView):
     """Vista para listar todos los proyectos"""
@@ -44,16 +46,24 @@ class ProyectoListView(LoginRequiredMixin, ListView):
         context['estado_actual'] = self.request.GET.get('estado', 'todos')
         context['search_query'] = self.request.GET.get('search', '')
         
-        # Estadísticas
-        context['total_proyectos'] = Proyecto.objects.filter(eliminado=False).count()
-        context['proyectos_activos'] = Proyecto.objects.filter(
-            activo=True, 
-            eliminado=False
-        ).count()
-        context['proyectos_en_ejecucion'] = Proyecto.objects.filter(
-            estado='ejecucion',
-            eliminado=False
-        ).count()
+        # --- INICIO DE CORRECCIÓN ---
+        
+        # Queryset base para eficiencia
+        base_queryset = Proyecto.objects.filter(eliminado=False)
+        
+        # Estadísticas (Usando los estados de tu models.py)
+        context['total_proyectos'] = base_queryset.count()
+        context['proyectos_activos'] = base_queryset.filter(estado='ejecucion').count()
+        context['proyectos_pausados'] = base_queryset.filter(estado='pausado').count()
+        context['proyectos_finalizados'] = base_queryset.filter(estado='finalizado').count()
+
+        # [ARREGLO ADICIONAL] Esto llenará tu filtro de Supervisores
+        context['supervisores'] = Usuario.objects.filter(
+            activo=True,
+            rol__in=[Usuario.Rol.ADMINISTRADOR, Usuario.Rol.SUPERVISOR]
+        ).order_by('nombre_completo')
+        
+        # --- FIN DE CORRECCIÓN ---
         
         return context
 
@@ -70,13 +80,38 @@ class ProyectoDetalleView(LoginRequiredMixin, DetailView):
             'supervisor',
             'creado_por',
             'modificado_por'
-        )
-    
+        ).prefetch_related('trabajadores') # <-- Optimización
+
     def get_context_data(self, **kwargs):
         """Agrega datos adicionales al contexto"""
         context = super().get_context_data(**kwargs)
         proyecto = self.get_object()
         
+        # --- 2. CONTEXTO PARA TRABAJADORES ---
+        context['trabajadores'] = proyecto.trabajadores.filter(eliminado=False)
+        context['trabajadores_disponibles'] = Trabajador.objects.filter(
+            Q(proyecto_asignado__isnull=True) | Q(proyecto_asignado=proyecto),
+            eliminado=False,
+            estado='activo'
+        ).distinct()
+        
+        # --- 3. CONTEXTO PARA ASISTENCIAS ---
+        
+        # Asistencias recientes para la pestaña (ej: las últimas 15)
+        context['asistencias_recientes'] = Asistencia.objects.filter(
+            proyecto=proyecto,
+            eliminado=False
+        ).select_related('trabajador').order_by('-fecha', '-hora_entrada')[:15]
+        
+        # Conteo de asistencias de HOY para la tarjeta de Resumen
+        context['asistencias_hoy'] = Asistencia.objects.filter(
+            proyecto=proyecto, 
+            fecha=timezone.now().date(), 
+            estado='cerrado' # Contar solo los que marcaron salida
+        ).count()
+        
+        # -----------------------------------------------
+
         # Información adicional
         context['puede_editar'] = proyecto.puede_ser_editado_por(self.request.user)
         context['puede_eliminar'] = proyecto.puede_ser_eliminado_por(self.request.user)
@@ -93,7 +128,7 @@ class ProyectoCreateView(LoginRequiredMixin, View):
         supervisores = Usuario.objects.filter(
             activo=True,
             rol__in=['administrador', 'supervisor']
-        ).order_by('nombre_completo')  # ← CAMBIO AQUÍ
+        ).order_by('nombre_completo')
         
         context = {
             'supervisores': supervisores,
@@ -446,19 +481,28 @@ class ProyectoToggleActivoView(LoginRequiredMixin, View):
                     request,
                     '❌ No tienes permisos para cambiar el estado del proyecto.'
                 )
-                return redirect('proyecto_detalle', pk=pk)
+                # [CAMBIO] Redirigir a la lista
+                return redirect('proyectos_lista') 
             
-            # Cambiar estado
-            proyecto.activo = not proyecto.activo
-            proyecto.modificado_por = request.user
-            proyecto.save()
+            # [CAMBIO] Leer el estado enviado desde el formulario
+            nuevo_estado = request.POST.get('estado')
+
+            # Usamos los estados de tu models.py: 'ejecucion' y 'pausado'
+            if nuevo_estado in ['ejecucion', 'pausado']:
+                proyecto.estado = nuevo_estado
+                proyecto.modificado_por = request.user
+                proyecto.save()
+                
+                estado_str = "reactivado" if nuevo_estado == "ejecucion" else "pausado"
+                messages.success(
+                    request,
+                    f'✅ Proyecto "{proyecto.nombre}" {estado_str} exitosamente.'
+                )
+            else:
+                messages.error(request, '❌ Estado no válido proporcionado.')
             
-            estado = "activado" if proyecto.activo else "desactivado"
-            messages.success(
-                request,
-                f'✅ Proyecto "{proyecto.nombre}" {estado} exitosamente.'
-            )
-            return redirect('proyecto_detalle', pk=pk)
+            # [CAMBIO] Redirigir de vuelta a la lista de proyectos
+            return redirect('proyectos_lista')
             
         except Exception as e:
             messages.error(
@@ -466,8 +510,91 @@ class ProyectoToggleActivoView(LoginRequiredMixin, View):
                 f'❌ Error al cambiar el estado: {str(e)}'
             )
             return redirect('proyectos_lista')
+# ============================================
+# [NUEVA VISTA] PARA MANEJAR EL MODAL
+# ============================================
+class ProyectoAsignarTrabajadoresView(LoginRequiredMixin, View):
+    """Vista para manejar la asignación de trabajadores desde el modal de detalle"""
+    
+    def post(self, request, pk):
+        proyecto = get_object_or_404(Proyecto, pk=pk, eliminado=False)
+        
+        # Verificar permisos (solo admin o supervisor del proyecto)
+        if not proyecto.puede_ser_editado_por(request.user):
+            messages.error(request, '❌ No tienes permisos para asignar trabajadores a este proyecto.')
+            return redirect('proyecto_detalle', pk=pk)
 
+        try:
+            # 1. Obtener la lista de IDs que se enviaron desde el formulario
+            trabajadores_ids_enviados = set(request.POST.getlist('trabajadores'))
+            
+            # 2. Obtener la lista de IDs que ya están asignados a ESTE proyecto
+            trabajadores_actuales_ids = set(
+                proyecto.trabajadores.filter(eliminado=False).values_list('id', flat=True)
+            )
 
+            # 3. Convertir IDs de string a int
+            trabajadores_ids_enviados_int = {int(id_str) for id_str in trabajadores_ids_enviados}
+
+            # 4. Calcular diferencias
+            ids_para_agregar = list(trabajadores_ids_enviados_int - trabajadores_actuales_ids)
+            ids_para_quitar = list(trabajadores_actuales_ids - trabajadores_ids_enviados_int)
+            
+            # 5. Quitar asignación (poner proyecto_asignado = None)
+            trabajadores_a_quitar = Trabajador.objects.filter(id__in=ids_para_quitar)
+            
+            for t in trabajadores_a_quitar:
+                t.proyecto_asignado = None
+                t.save()
+                # Opcional: Registrar salida en historial
+                HistorialProyecto.objects.filter(
+                    trabajador=t,
+                    proyecto=proyecto,
+                    fecha_salida__isnull=True
+                ).update(
+                    fecha_salida=timezone.now().date(),
+                    motivo=f'Desasignado (modal) por {request.user.nombre_completo}'
+                )
+
+            # 6. Poner/actualizar asignación
+            trabajadores_a_agregar = Trabajador.objects.filter(id__in=ids_para_agregar)
+            
+            for t in trabajadores_a_agregar:
+                proyecto_anterior = t.proyecto_asignado
+                
+                # Si estaba en otro proyecto, registrar salida
+                if proyecto_anterior and proyecto_anterior != proyecto:
+                    HistorialProyecto.objects.filter(
+                        trabajador=t,
+                        proyecto=proyecto_anterior,
+                        fecha_salida__isnull=True
+                    ).update(
+                        fecha_salida=timezone.now().date(),
+                        motivo=f'Transferido a {proyecto.nombre} por {request.user.nombre_completo}'
+                    )
+                
+                # Asignar nuevo proyecto
+                t.proyecto_asignado = proyecto
+                t.save()
+                
+                # Crear nuevo historial de entrada
+                HistorialProyecto.objects.create(
+                    trabajador=t,
+                    proyecto=proyecto,
+                    fecha_asignacion=timezone.now().date(),
+                    motivo=f'Asignado (modal) por {request.user.nombre_completo}',
+                    creado_por=request.user
+                )
+            
+            messages.success(
+                request,
+                f'✅ Asignación actualizada: {len(ids_para_agregar)} agregados, {len(ids_para_quitar)} quitados.'
+            )
+            
+        except Exception as e:
+            messages.error(request, f'❌ Error al actualizar trabajadores: {str(e)}')
+
+        return redirect('proyecto_detalle', pk=pk)
 # ============================================
 # API VIEWS (Para tu app móvil)
 # ============================================

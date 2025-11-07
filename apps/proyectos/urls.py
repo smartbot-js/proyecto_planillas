@@ -6,6 +6,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     # API Views
+    ProyectoAsignarTrabajadoresView,
     ProyectoViewSet,
     # Template Views
     ProyectoListView,
@@ -37,6 +38,7 @@ template_urls = [
     path('proyectos/<int:pk>/restaurar/', ProyectoRestaurarView.as_view(), name='proyecto_restaurar'),
     path('proyectos/<int:pk>/toggle-activo/', ProyectoToggleActivoView.as_view(), name='proyecto_toggle_activo'),
     path('proyectos/eliminados/', ProyectosEliminadosView.as_view(), name='proyectos_eliminados'),
+    path('proyectos/<int:pk>/asignar-trabajadores/', ProyectoAsignarTrabajadoresView.as_view(), name='proyecto_asignar_trabajadores'),
 ]
 
 urlpatterns = [

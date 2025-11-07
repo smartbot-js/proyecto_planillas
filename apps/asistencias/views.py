@@ -135,7 +135,7 @@ class AsistenciaListView(LoginRequiredMixin, ListView):
                 context['stats'][key] = 0
         
         # Para los filtros
-        context['proyectos'] = Proyecto.objects.filter(activo=True, eliminado=False)
+        context['proyectos'] = Proyecto.objects.filter(eliminado=False)
         context['estados'] = Asistencia.ESTADO_CHOICES
         context['puestos'] = Asistencia.objects.values_list(
             'puesto_laboral', flat=True
@@ -185,7 +185,7 @@ class AsistenciaMarcarEntradaView(LoginRequiredMixin, View):
         
         # Filtrar proyectos activos (asumiendo que tienen campo 'activo')
         proyectos = Proyecto.objects.filter(
-            activo=True,
+            # activo=True,
             eliminado=False
         ).order_by('nombre')
         

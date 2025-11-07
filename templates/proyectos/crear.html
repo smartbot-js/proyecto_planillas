@@ -9,61 +9,215 @@
         padding: 0;
         background-color: transparent;
     }
+    
+    /* Estilos del Modal (copiados de tu archivo original) */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.6); display: flex; align-items: center;
+        justify-content: center; z-index: 1000; padding: 20px;
+        backdrop-filter: blur(4px);
+    }
+    .modal-container {
+        background: white; border-radius: 20px; max-width: 1200px;
+        width: 100%; max-height: 90vh; overflow: hidden;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        display: flex; flex-direction: column;
+    }
+    .modal-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 24px 32px; border-bottom: 2px solid #e2e8f0;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        flex-shrink: 0;
+    }
+    .modal-header h2 {
+        display: flex; align-items: center; gap: 12px; font-size: 22px;
+        font-weight: 700; color: #111827; margin: 0;
+    }
+    .modal-close {
+        background: white; border: 2px solid #e2e8f0; width: 36px;
+        height: 36px; border-radius: 8px; display: flex;
+        align-items: center; justify-content: center; cursor: pointer;
+        color: #6b7280; transition: all 0.2s;
+    }
+    .modal-close:hover {
+        background: #f9fafb; border-color: #6b7280; color: #111827;
+    }
+    .modal-body {
+        display: grid; grid-template-columns: 1fr 320px; gap: 0;
+        flex: 1; overflow: hidden; min-height: 0;
+    }
+    .form-main {
+        padding: 32px; overflow-y: auto;
+        /* [CORRECCIÓN] Se ajusta el max-height para que quepan header y footer */
+        max-height: calc(90vh - 81px - 101px); 
+    }
+    .form-section {
+        background: white; border: 2px solid #e2e8f0; border-radius: 12px;
+        padding: 24px; margin-bottom: 24px;
+    }
+    .section-header {
+        display: flex; align-items: center; gap: 10px;
+        margin-bottom: 20px; padding-bottom: 12px;
+        border-bottom: 2px solid #f3f4f6;
+    }
+    .section-icon {
+        width: 32px; height: 32px; background: #3b82f6;
+        border-radius: 8px; display: flex; align-items: center;
+        justify-content: center; color: white;
+    }
+    .section-title { font-size: 16px; font-weight: 700; color: #111827; margin: 0; }
+    .form-grid { display: grid; gap: 16px; margin-bottom: 16px; }
+    .form-grid:last-child { margin-bottom: 0; }
+    .form-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+    .form-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .form-group { display: flex; flex-direction: column; }
+    .form-group label {
+        font-size: 13px; font-weight: 600; color: #111827;
+        margin-bottom: 6px; display: flex; align-items: center; gap: 4px;
+    }
+    .form-group label .required { color: #ef4444; }
+    .form-group input, .form-group textarea, .form-group select {
+        width: 100%; padding: 10px 14px; font-size: 14px;
+        border: 2px solid #e2e8f0; border-radius: 8px;
+        background: white; transition: all 0.2s; font-family: inherit;
+    }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+        outline: none; border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-help { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    .input-with-icon { position: relative; }
+    .input-with-icon input { padding-left: 38px; }
+    .input-with-icon .icon {
+        position: absolute; left: 12px; top: 50%;
+        transform: translateY(-50%); color: #6b7280; font-weight: 600;
+    }
+    
+    /* Radio de Ubicación */
+    .location-validation-section { padding: 20px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; margin-top: 16px; }
+    .section-info { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 20px; }
+    .section-info .material-symbols-outlined { font-size: 32px; color: #0ea5e9; flex-shrink: 0; }
+    .section-info strong { display: block; font-size: 15px; color: #111827; margin-bottom: 4px; }
+    .section-info p { font-size: 13px; color: #6b7280; line-height: 1.5; }
+    .range-input-group { display: flex; align-items: center; gap: 16px; }
+    .range-input-group input[type="range"] { flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; outline: none; -webkit-appearance: none; }
+    .range-input-group input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: #3b82f6; border-radius: 50%; cursor: pointer; }
+    .range-input-group input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; background: #3b82f6; border-radius: 50%; cursor: pointer; border: none; }
+    .range-value { min-width: 80px; padding: 8px 16px; background: #3b82f6; color: white; border-radius: 8px; font-weight: 600; text-align: center; font-size: 14px; }
+    .range-labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: #6b7280; }
+    .radio-info-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+    .info-card-small { display: flex; align-items: center; gap: 12px; padding: 12px; background: white; border: 1px solid #e2e8f0; border-radius: 8px; }
+    .info-card-small .material-symbols-outlined { color: #3b82f6; font-size: 24px; flex-shrink: 0; }
+    .info-card-small strong { display: block; font-size: 13px; color: #111827; }
+    .info-card-small small { font-size: 11px; color: #6b7280; line-height: 1.4; }
+
+    /* File Upload */
+    .file-upload { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 16px; text-align: center; background: #f9fafb; cursor: pointer; transition: all 0.2s; }
+    .file-upload:hover { border-color: #3b82f6; background: rgba(59, 130, 246, 0.05); }
+    .file-upload input[type="file"] { display: none; }
+    .file-upload-label { cursor: pointer; display: block; }
+    .file-upload .material-symbols-outlined { color: #94a3b8; margin-bottom: 8px; font-size: 32px; }
+    .file-upload p { font-size: 13px; color: #111827; font-weight: 500; margin-bottom: 4px; }
+    .file-upload small { font-size: 11px; color: #6b7280; }
+
+    /* Sidebar */
+    .form-sidebar { background: #f8fafc; border-left: 2px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden; }
+    .sidebar-scroll { flex: 1; overflow-y: auto; padding: 32px 24px; }
+    .sidebar-section { background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .sidebar-title { font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .sidebar-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
+    .sidebar-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .sidebar-label { font-size: 13px; color: #6b7280; font-weight: 500; }
+    .sidebar-value { font-size: 14px; color: #111827; font-weight: 700; }
+    .sidebar-footer { flex-shrink: 0; padding: 20px 24px; border-top: 2px solid #e2e8f0; background: white; }
+    .footer-note { font-size: 11px; color: #6b7280; margin-bottom: 12px; text-align: center; }
+    .footer-buttons { display: flex; flex-direction: column; gap: 10px; }
+
+    /* Botones */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; text-decoration: none; transition: all 0.2s; }
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-secondary { background: white; color: #374151; border: 2px solid #e2e8f0; }
+    .btn-secondary:hover { background: #f9fafb; }
+    .btn-sm { padding: 8px 16px; font-size: 13px; }
+    .btn .material-symbols-outlined { font-size: 18px; }
+
+    /* Alertas */
+    .alert { padding: 16px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 12px; }
+    .alert-error { background: #fee2e2; border: 1px solid #fecaca; color: #991b1b; }
+    .alert .material-symbols-outlined { font-size: 24px; }
+    .alert ul { margin: 8px 0 0 0; padding-left: 20px; }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .modal-body { grid-template-columns: 1fr; }
+        .form-sidebar { border-left: none; border-top: 2px solid #e2e8f0; max-height: 300px; }
+        .form-grid.cols-2, .form-grid.cols-3 { grid-template-columns: 1fr; }
+        .radio-info-cards { grid-template-columns: 1fr; }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="modal-overlay active"> <div class="modal-container" style="max-width: 1200px; display: flex; flex-direction: column; max-height: 95vh;">
+<div class="modal-overlay">
+    <div class="modal-container">
         <div class="modal-header">
             <h2>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
+                <span class="material-symbols-outlined">add_circle</span>
                 Crear nuevo proyecto
             </h2>
-            <a href="{% url 'proyectos_lista' %}" class="modal-close-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+            <a href="{% url 'proyectos_lista' %}" class="modal-close">
+                <span class="material-symbols-outlined">close</span>
             </a>
         </div>
 
-        <form method="POST" enctype="multipart/form-data" id="proyectoForm" style="display: contents;">
+        <form method="POST" enctype="multipart/form-data" id="proyectoForm">
             {% csrf_token %}
             
-            <div class="modal-body" style="display: grid; grid-template-columns: 1fr 320px; gap: 0; flex: 1; overflow: hidden; min-height: 0;">
-                <div class="form-main" style="padding: 32px; overflow-y: auto;">
+            {% if messages %}
+                {% for message in messages %}
+                {% if message.tags == 'error' %}
+                <div class="alert alert-error" style="margin: 20px 32px 0; border-radius: 8px;">
+                    <span class="material-symbols-outlined">error</span>
+                    <div>{{ message }}</div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            {% endif %}
+
+            <div class="modal-body">
+                <div class="form-main">
                     
                     <div class="form-section">
                         <div class="section-header">
                             <div class="section-icon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14 2 14 8 20 8"></polyline>
-                                </svg>
+                                <span class="material-symbols-outlined">info</span>
                             </div>
                             <h3 class="section-title">Información Básica</h3>
                         </div>
 
-                        <div class="form-group">
-                            <label>Nombre del Proyecto <span class="required" style="color:red;">*</span></label>
-                            <input type="text" name="nombre" id="nombre" class="form-control" placeholder="Ej: Torre Residencial Norte" required>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="nombre">Nombre del Proyecto <span class="required">*</span></label>
+                                <input type="text" name="nombre" id="nombre" class="form-control" placeholder="Ej: Torre Residencial Norte" required>
+                            </div>
                         </div>
 
-                        <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="form-grid cols-2">
                             <div class="form-group">
-                                <label>Estatus del Proyecto <span class="required" style="color:red;">*</span></label>
-                                <select name="estado" class="form-control" required>
+                                <label for="estado">Estatus del Proyecto <span class="required">*</span></label>
+                                <select name="estado" class="form-control" required id="estado">
                                     <option value="planificacion">En planificación</option>
                                     <option value="ejecucion" selected>En ejecución</option>
                                     <option value="pausado">Pausado</option>
+                                    <option value="finalizado">Finalizado</option>
+                                    <option value="cancelado">Cancelado</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>Tipo de Proyecto <span class="required" style="color:red;">*</span></label>
-                                <select name="tipo_proyecto" class="form-control" required>
+                                <label for="tipo_proyecto">Tipo de Proyecto <span class="required">*</span></label>
+                                <select name="tipo_proyecto" class="form-control" required id="tipo_proyecto">
                                     <option value="residencial" selected>Residencial</option>
                                     <option value="comercial">Comercial</option>
                                     <option value="publico">Público</option>
@@ -73,70 +227,78 @@
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>Descripción del Proyecto</label>
-                            <textarea name="descripcion" class="form-control" placeholder="Describe brevemente el proyecto..." rows="3"></textarea>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="descripcion">Descripción del Proyecto</label>
+                                <textarea name="descripcion" id="descripcion" class="form-control" placeholder="Describe brevemente el proyecto..." rows="3"></textarea>
+                            </div>
                         </div>
                     </div>
 
                     <div class="form-section">
                         <div class="section-header">
                              <div class="section-icon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                    <circle cx="12" cy="10" r="3"></circle>
-                                </svg>
+                                <span class="material-symbols-outlined">location_on</span>
                             </div>
                             <h3 class="section-title">Ubicación</h3>
                         </div>
 
-                        <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="form-grid cols-2">
                             <div class="form-group">
-                                <label>Coordenadas GPS</label>
-                                <input type="text" name="ubicacion_coordenadas" class="form-control" placeholder="12.1354, -9.1234">
+                                <label for="ubicacion_coordenadas">Coordenadas GPS</label>
+                                <input type="text" name="ubicacion_coordenadas" class="form-control" placeholder="12.1354, -9.1234" id="ubicacion_coordenadas">
                                 <small class="form-help">Latitud, Longitud</small>
                             </div>
                             <div class="form-group">
-                                <label>Dirección <span class="required" style="color:red;">*</span></label>
-                                <input type="text" name="ubicacion" class="form-control" placeholder="Av. Principal #123" required>
+                                <label for="ubicacion">Dirección <span class="required">*</span></label>
+                                <input type="text" name="ubicacion" class="form-control" placeholder="Av. Principal #123" required id="ubicacion">
                             </div>
                         </div>
 
-                        <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="form-grid cols-2">
                             <div class="form-group">
-                                <label>Departamento</label>
-                                <input type="text" name="departamento" class="form-control" placeholder="Bogotá">
+                                <label for="departamento">Departamento</label>
+                                <input type="text" name="departamento" class="form-control" placeholder="Bogotá" id="departamento">
                             </div>
                             <div class="form-group">
-                                <label>Municipio</label>
-                                <input type="text" name="municipio" class="form-control" placeholder="Bogotá D.C.">
+                                <label for="municipio">Municipio</label>
+                                <input type="text" name="municipio" class="form-control" placeholder="Bogotá D.C." id="municipio">
                             </div>
                         </div>
-                    </div>
+
+                        <div class="location-helper">
+                            <div class="helper-info">
+                                <span class="material-symbols-outlined">info</span>
+                                <p>Usa el botón para obtener automáticamente las coordenadas GPS de tu ubicación actual</p>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-sm" onclick="obtenerUbicacionActual()">
+                                <span class="material-symbols-outlined">my_location</span>
+                                Obtener GPS
+                            </button>
+                        </div>
+                        
+                        </div>
 
                     <div class="form-section">
                         <div class="section-header">
                             <div class="section-icon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                </svg>
+                                <span class="material-symbols-outlined">layers</span>
                             </div>
                             <h3 class="section-title">Características del Proyecto</h3>
                         </div>
-
-                        <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                        <div class="form-grid cols-3">
                             <div class="form-group">
-                                <label>Tamaño (m²)</label>
-                                <input type="number" name="tamano_proyecto" class="form-control" value="0" step="0.01" min="0">
+                                <label for="tamano_proyecto">Tamaño (m²)</label>
+                                <input type="number" name="tamano_proyecto" class="form-control" value="0" step="0.01" min="0" id="tamano_proyecto">
                             </div>
                             <div class="form-group">
-                                <label>Cantidad de Unidades</label>
-                                <input type="number" name="cantidad_unidades" class="form-control" value="0" min="0">
+                                <label for="cantidad_unidades">Cantidad de Unidades</label>
+                                <input type="number" name="cantidad_unidades" class="form-control" value="0" min="0" id="cantidad_unidades">
                                 <small class="form-help">Casas, oficinas, etc.</small>
                             </div>
                             <div class="form-group">
-                                <label>Tamaño Promedio (m²)</label>
-                                <input type="number" name="tamano_promedio" class="form-control" value="0" step="0.01" min="0">
+                                <label for="tamano_promedio">Tamaño Promedio (m²)</label>
+                                <input type="number" name="tamano_promedio" class="form-control" value="0" step="0.01" min="0" id="tamano_promedio">
                             </div>
                         </div>
                     </div>
@@ -144,21 +306,18 @@
                     <div class="form-section">
                         <div class="section-header">
                             <div class="section-icon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                </svg>
+                                <span class="material-symbols-outlined">calendar_today</span>
                             </div>
                             <h3 class="section-title">Cronograma</h3>
                         </div>
-
-                        <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="form-grid cols-2">
                             <div class="form-group">
-                                <label>Fecha de Inicio <span class="required" style="color:red;">*</span></label>
-                                <input type="date" name="fecha_inicio" class="form-control" required>
+                                <label for="fecha_inicio">Fecha de Inicio <span class="required">*</span></label>
+                                <input type="date" name="fecha_inicio" class="form-control" required id="fecha_inicio">
                             </div>
                             <div class="form-group">
-                                <label>Fecha de Finalización Estimada</label>
-                                <input type="date" name="fecha_fin_estimada" class="form-control">
+                                <label for="fecha_fin_estimada">Fecha de Finalización Estimada</label>
+                                <input type="date" name="fecha_fin_estimada" class="form-control" id="fecha_fin_estimada">
                             </div>
                         </div>
                     </div>
@@ -166,17 +325,15 @@
                     <div class="form-section">
                         <div class="section-header">
                             <div class="section-icon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                </svg>
+                                <span class="material-symbols-outlined">engineering</span>
                             </div>
                             <h3 class="section-title">Personal y Gerencia</h3>
                         </div>
 
-                        <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="form-grid cols-2">
                             <div class="form-group">
-                                <label>Gerente/Supervisor <span class="required" style="color:red;">*</span></label>
-                                <select name="supervisor" class="form-control" required>
+                                <label for="supervisor">Gerente/Supervisor <span class="required">*</span></label>
+                                <select name="supervisor" class="form-control" required id="supervisor">
                                     <option value="">Seleccionar gerente...</option>
                                     {% for sup in supervisores %}
                                     <option value="{{ sup.id }}">{{ sup.nombre_completo }} - {{ sup.get_rol_display }}</option>
@@ -184,23 +341,23 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>Contratistas Asignados</label>
-                                <input type="number" name="contratistas_asignados" class="form-control" value="0" min="0">
+                                <label for="contratistas_asignados">Contratistas Asignados</label>
+                                <input type="number" name="contratistas_asignados" class="form-control" value="0" min="0" id="contratistas_asignados">
                             </div>
                         </div>
 
-                        <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                        <div class="form-grid cols-3">
                             <div class="form-group">
-                                <label>Personal Asignado</label>
-                                <input type="number" name="personal_asignado" class="form-control" value="0" min="0">
+                                <label for="personal_asignado">Personal Asignado</label>
+                                <input type="number" name="personal_asignado" class="form-control" value="0" min="0" id="personal_asignado">
                             </div>
                             <div class="form-group">
-                                <label>% Avance General</label>
-                                <input type="number" name="porcentaje_avance_general" class="form-control" id="porcentaje_avance" value="0" step="0.01" min="0" max="100">
+                                <label for="porcentaje_avance_general">% Avance General</label>
+                                <input type="number" name="porcentaje_avance_general" class="form-control" id="porcentaje_avance_general" value="0" step="0.01" min="0" max="100">
                             </div>
                             <div class="form-group">
-                                <label>% Asignación Planilla</label>
-                                <input type="number" name="porcentaje_asignacion_planilla" class="form-control" value="0" step="0.01" min="0" max="100">
+                                <label for="porcentaje_asignacion_planilla">% Asignación Planilla</label>
+                                <input type="number" name="porcentaje_asignacion_planilla" class="form-control" value="0" step="0.01" min="0" max="100" id="porcentaje_asignacion_planilla">
                             </div>
                         </div>
                     </div>
@@ -208,72 +365,70 @@
                     <div class="form-section">
                         <div class="section-header">
                              <div class="section-icon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="12" y1="1" x2="12" y2="23"></line>
-                                </svg>
+                                <span class="material-symbols-outlined">account_balance_wallet</span>
                             </div>
                             <h3 class="section-title">Presupuesto</h3>
                         </div>
 
-                        <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                        <div class="form-grid cols-3">
                             <div class="form-group">
-                                <label>Presupuesto Total <span class="required" style="color:red;">*</span></label>
+                                <label for="presupuesto_total">Presupuesto Total <span class="required">*</span></label>
                                 <div class="input-with-icon">
                                     <span class="icon">$</span>
                                     <input type="number" class="form-control" name="presupuesto_total" id="presupuesto_total" value="0" step="0.01" min="0" required>
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Presupuesto Mano de Obra</label>
+                                <label for="presupuesto_mano_obra">Presupuesto Mano de Obra</label>
                                 <div class="input-with-icon">
                                     <span class="icon">$</span>
-                                    <input type="number" class="form-control" name="presupuesto_mano_obra" value="0" step="0.01" min="0">
+                                    <input type="number" class="form-control" name="presupuesto_mano_obra" value="0" step="0.01" min="0" id="presupuesto_mano_obra">
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Presupuesto Administrativo</label>
+                                <label for="presupuesto_administrativo">Presupuesto Administrativo</label>
                                 <div class="input-with-icon">
                                     <span class="icon">$</span>
-                                    <input type="number" class="form-control" name="presupuesto_administrativo" value="0" step="0.01" min="0">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
-                            <div class="form-group">
-                                <label>Gasto Mano de Obra (Real)</label>
-                                <div class="input-with-icon">
-                                    <span class="icon">$</span>
-                                    <input type="number" class="form-control" name="gasto_mano_obra_real" value="0" step="0.01" min="0">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Gasto Administrativo (Real)</label>
-                                <div class="input-with-icon">
-                                    <span class="icon">$</span>
-                                    <input type="number" class="form-control" name="gasto_administrativo_real" value="0" step="0.01" min="0">
+                                    <input type="number" class="form-control" name="presupuesto_administrativo" value="0" step="0.01" min="0" id="presupuesto_administrativo">
                                 </div>
                             </div>
                         </div>
 
-                        <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                        <div class="form-grid cols-2">
                             <div class="form-group">
-                                <label>Anticipo</label>
+                                <label for="gasto_mano_obra_real">Gasto Mano de Obra (Real)</label>
                                 <div class="input-with-icon">
                                     <span class="icon">$</span>
-                                    <input type="number" class="form-control" name="anticipo" value="0" step="0.01" min="0">
+                                    <input type="number" class="form-control" name="gasto_mano_obra_real" value="0" step="0.01" min="0" id="gasto_mano_obra_real">
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Valor Avalúo Acumulado</label>
+                                <label for="gasto_administrativo_real">Gasto Administrativo (Real)</label>
                                 <div class="input-with-icon">
                                     <span class="icon">$</span>
-                                    <input type="number" class="form-control" name="valor_avaluo_acumulado" value="0" step="0.01" min="0">
+                                    <input type="number" class="form-control" name="gasto_administrativo_real" value="0" step="0.01" min="0" id="gasto_administrativo_real">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-grid cols-3">
+                            <div class="form-group">
+                                <label for="anticipo">Anticipo</label>
+                                <div class="input-with-icon">
+                                    <span class="icon">$</span>
+                                    <input type="number" class="form-control" name="anticipo" value="0" step="0.01" min="0" id="anticipo">
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Fecha del Avalúo</label>
-                                <input type="date" class="form-control" name="fecha_avaluo">
+                                <label for="valor_avaluo_acumulado">Valor Avalúo Acumulado</label>
+                                <div class="input-with-icon">
+                                    <span class="icon">$</span>
+                                    <input type="number" class="form-control" name="valor_avaluo_acumulado" value="0" step="0.01" min="0" id="valor_avaluo_acumulado">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="fecha_avaluo">Fecha del Avalúo</label>
+                                <input type="date" class="form-control" name="fecha_avaluo" id="fecha_avaluo">
                             </div>
                         </div>
                     </div>
@@ -281,108 +436,100 @@
                     <div class="form-section">
                         <div class="section-header">
                             <div class="section-icon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
-                                </svg>
+                                <span class="material-symbols-outlined">folder</span>
                             </div>
                             <h3 class="section-title">Documentos Adjuntos</h3>
                         </div>
-
-                        <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                        <div class="form-grid cols-3">
                             <div class="form-group">
-                                <label>Contrato</label>
-                                <div class="file-upload-box" style="padding: 16px;">
+                                <label for="archivo_contrato">Contrato</label>
+                                <div class="file-upload">
                                     <input type="file" name="archivo_contrato" id="archivo_contrato" accept=".pdf">
-                                    <label for="archivo_contrato" class="file-upload-content" style="cursor: pointer;">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        </svg>
-                                        <span>Adjuntar PDF</span>
+                                    <label for="archivo_contrato" class="file-upload-label">
+                                        <span class="material-symbols-outlined">description</span>
+                                        <p>Adjuntar PDF</p>
                                         <small>Máx. 10MB</small>
                                     </label>
                                 </div>
                             </div>
-
                             <div class="form-group">
-                                <label>Avalúo</label>
-                                <div class="file-upload-box" style="padding: 16px;">
+                                <label for="archivo_avaluo">Avalúo</label>
+                                <div class="file-upload">
                                     <input type="file" name="archivo_avaluo" id="archivo_avaluo" accept=".pdf">
-                                    <label for="archivo_avaluo" class="file-upload-content" style="cursor: pointer;">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        </svg>
-                                        <span>Adjuntar PDF</span>
+                                    <label for="archivo_avaluo" class="file-upload-label">
+                                        <span class="material-symbols-outlined">receipt_long</span>
+                                        <p>Adjuntar PDF</p>
                                         <small>Máx. 10MB</small>
                                     </label>
                                 </div>
                             </div>
-
                             <div class="form-group">
-                                <label>Presupuesto</label>
-                                <div class="file-upload-box" style="padding: 16px;">
+                                <label for="archivo_presupuesto">Presupuesto</label>
+                                <div class="file-upload">
                                     <input type="file" name="archivo_presupuesto" id="archivo_presupuesto" accept=".pdf,.xlsx,.xls">
-                                    <label for="archivo_presupuesto" class="file-upload-content" style="cursor: pointer;">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        </svg>
-                                        <span>Adjuntar archivo</span>
-                                        <small>PDF o Excel</small>
+                                    <label for="archivo_presupuesto" class="file-upload-label">
+                                        <span class="material-symbols-outlined">request_quote</span>
+                                        <p>PDF/Excel</p>
+                                        <small>Máx. 10MB</small>
                                     </label>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="form-group">
-                            <label>Imagen del Proyecto</label>
-                            <div class="file-upload-box">
-                                <input type="file" name="imagen_proyecto" id="imagen_proyecto" accept="image/*">
-                                <label for="imagen_proyecto" class="file-upload-content" style="cursor: pointer;">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                    </svg>
-                                    <p>Arrastra una imagen o haz clic para seleccionar</p>
-                                    <small>Formato recomendado: 1200×800px - JPG, PNG (Máx. 5MB)</small>
-                                </label>
+                    <div class="form-section">
+                        <div class="section-header">
+                            <div class="section-icon">
+                                <span class="material-symbols-outlined">image</span>
+                            </div>
+                            <h3 class="section-title">Imagen del Proyecto (Opcional)</h3>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <div class="file-upload" style="padding: 24px;">
+                                    <input type="file" name="imagen_proyecto" id="imagen_proyecto" accept="image/*">
+                                    <label for="imagen_proyecto" class="file-upload-label">
+                                        <span class="material-symbols-outlined">add_photo_alternate</span>
+                                        <p>Haz clic para seleccionar una imagen</p>
+                                        <small>JPG, PNG (recomendado: 1200x400px, máx. 5MB)</small>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                 </div>
 
-                <div class="form-sidebar" style="background: #f8fafc; border-left: 1px solid var(--border-color); display: flex; flex-direction: column; overflow: hidden;">
+                <div class="form-sidebar">
                     
-                    <div class="sidebar-scroll" style="flex: 1; overflow-y: auto; padding: 32px 24px;">
-                        <div class="sidebar-section" style="background: white; border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-                            <div class="sidebar-title" style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                </svg>
+                    <div class="sidebar-scroll">
+                        <div class="sidebar-section">
+                            <div class="sidebar-title">
+                                <span class="material-symbols-outlined">summarize</span>
                                 Resumen
                             </div>
-                            <div class="sidebar-row" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--bg-page);">
-                                <span class="sidebar-label" style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">Presupuesto</span>
-                                <span class="sidebar-value" id="resumen-presupuesto" style="font-size: 14px; color: var(--text-primary); font-weight: 700;">—</span>
+                            <div class="sidebar-row">
+                                <span class="sidebar-label">Presupuesto Total</span>
+                                <span class="sidebar-value" id="resumen-presupuesto">$0</span>
                             </div>
-                            <div class="sidebar-row" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
-                                <span class="sidebar-label" style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">Avance</span>
-                                <span class="sidebar-value" id="resumen-avance" style="font-size: 14px; color: var(--text-primary); font-weight: 700;">0%</span>
+                            <div class="sidebar-row">
+                                <span class="sidebar-label">Avance</span>
+                                <span class="sidebar-value" id="resumen-avance">0%</span>
                             </div>
                         </div>
-
                     </div>
 
-                    <div class="sidebar-footer" style="flex-shrink: 0; padding: 20px 24px; border-top: 1px solid var(--border-color); background: white;">
-                        <div class="footer-note" style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; text-align: center;">
+                    <div class="sidebar-footer">
+                        <div class="footer-note">
                             Los campos con <span class="required" style="color:red;">*</span> son obligatorios
                         </div>
-                        <div class="footer-buttons" style="display: flex; flex-direction: column; gap: 10px;">
+                        <div class="footer-buttons">
                             <a href="{% url 'proyectos_lista' %}" class="btn btn-secondary">
+                                <span class="material-symbols-outlined">close</span>
                                 Cancelar
                             </a>
-                            <button type="submit" class="btn btn-primary btn-icon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
+                            <button type="submit" class="btn btn-primary">
+                                <span class="material-symbols-outlined">check</span>
                                 Crear Proyecto
                             </button>
                         </div>
@@ -400,26 +547,23 @@
 <script>
 // Actualización dinámica del resumen
 document.addEventListener('DOMContentLoaded', function() {
-    const presupuestoInput = document.getElementById('presupuesto_total');
-    const avanceInput = document.getElementById('porcentaje_avance');
+    // [CORREGIDO] Apunta al 'name' correcto
+    const presupuestoInput = document.querySelector('input[name="presupuesto_total"]');
+    const avanceInput = document.querySelector('input[name="porcentaje_avance_general"]');
+    
     const resumenPresupuesto = document.getElementById('resumen-presupuesto');
     const resumenAvance = document.getElementById('resumen-avance');
 
-    // Formatear número a moneda
+    // Formatear número a moneda (simple)
     function formatearMoneda(valor) {
-        return new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(valor).replace('COP', '$');
+        return '$' + new Intl.NumberFormat('es-CO').format(valor.toFixed(0));
     }
 
     // Actualizar presupuesto
     if (presupuestoInput) {
         presupuestoInput.addEventListener('input', function() {
             const valor = parseFloat(this.value) || 0;
-            resumenPresupuesto.textContent = valor > 0 ? formatearMoneda(valor) : '—';
+            resumenPresupuesto.textContent = valor > 0 ? formatearMoneda(valor) : '$0';
         });
     }
 
@@ -427,7 +571,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (avanceInput) {
         avanceInput.addEventListener('input', function() {
             const valor = parseFloat(this.value) || 0;
-            resumenAvance.textContent = `${valor.toFixed(1)}%`;
+            resumenAvance.textContent = `${valor.toFixed(0)}%`;
         });
     }
 
@@ -435,13 +579,77 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('input[type="file"]').forEach(input => {
         input.addEventListener('change', function(e) {
             const fileName = e.target.files[0]?.name;
-            const label = this.nextElementSibling.querySelector('span');
+            const label = this.nextElementSibling.querySelector('p');
             if (fileName && label) {
                 label.textContent = fileName;
-                label.style.color = 'var(--primary-color)';
+                label.style.color = '#3b82f6';
+                label.style.fontWeight = '600';
             }
         });
     });
 });
+
+// Obtener ubicación GPS
+function obtenerUbicacionActual() {
+    if (!navigator.geolocation) {
+        alert('Tu navegador no soporta geolocalización');
+        return;
+    }
+
+    const btn = event.target.closest('button');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<span class="material-symbols-outlined">sync</span> Obteniendo...';
+    btn.disabled = true;
+
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            const lat = position.coords.latitude.toFixed(7);
+            const lon = position.coords.longitude.toFixed(7);
+            
+            // [CORREGIDO] Rellena el campo 'ubicacion_coordenadas'
+            document.querySelector('input[name="ubicacion_coordenadas"]').value = `${lat}, ${lon}`;
+            
+            btn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> ¡Obtenido!';
+            btn.style.background = '#10b981';
+            btn.style.borderColor = '#10b981';
+            
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                btn.style.background = '';
+                btn.style.borderColor = '';
+            }, 2000);
+        },
+        function(error) {
+            alert('Error: ' + (error.code === 1 ? 'Permiso denegado' : 'No disponible'));
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+}
+
+// Validación de formulario
+document.getElementById('proyectoForm').addEventListener('submit', function(e) {
+    const requiredFields = this.querySelectorAll('[required]');
+    let hasErrors = false;
+    
+    requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+            field.style.borderColor = '#ef4444';
+            hasErrors = true;
+        } else {
+            field.style.borderColor = '#e2e8f0';
+        }
+    });
+    
+    if (hasErrors) {
+        e.preventDefault();
+        alert('Por favor complete todos los campos obligatorios marcados con *');
+        // Opcional: enfocar el primer campo con error
+        requiredFields[0].focus();
+    }
+});
+
 </script>
 {% endblock %}

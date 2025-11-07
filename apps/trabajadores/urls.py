@@ -35,7 +35,7 @@ urlpatterns = [
     path('trabajadores/importar-csv/', TrabajadorImportarCSVView.as_view(), name='trabajadores_importar_csv'),
     path('trabajadores/importar-csv/confirmar/', TrabajadorImportarConfirmarView.as_view(), name='trabajadores_importar_confirmar'),
     path('trabajadores/exportar/', trabajadores_exportar, name='trabajadores_exportar'),
-    path('trabajadores/plantilla-csv/', trabajadores_plantilla_csv, name='trabajadores_plantilla_csv'),
+    path('descargar-plantilla/', trabajadores_plantilla_csv, name='trabajadores_descargar_plantilla'),
 
     # Código QR
     path('trabajadores/<int:pk>/generar-qr/', TrabajadorGenerarQRView.as_view(), name='trabajador_generar_qr'),

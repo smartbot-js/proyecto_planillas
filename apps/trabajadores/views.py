@@ -76,12 +76,18 @@ class TrabajadorListView(LoginRequiredMixin, ListView):
         """Añade contexto adicional"""
         context = super().get_context_data(**kwargs)
         
-        # Proyectos para el filtro
+        #Proyectos para el filtro
         context['proyectos'] = Proyecto.objects.filter(
-            activo=True,
+            #activo=False,
             eliminado=False
         ).order_by('nombre')
         
+        # context['proyectos'] = Proyecto.objects.filter(
+        #     activo=True,
+        #     eliminado=False
+        # ).order_by('nombre').values_list('nombre', flat=True)        
+        
+        print(f"PROYECTOOS: {context['proyectos']}")
         # Choices para los filtros
         context['estados'] = Trabajador.Estado.choices
         
@@ -119,7 +125,7 @@ class TrabajadorCreateView(LoginRequiredMixin, View):
     def get(self, request):
         """Muestra el formulario de creación"""
         proyectos = Proyecto.objects.filter(
-            activo=True,
+            # activo=True,
             eliminado=False
         ).order_by('nombre')
         
@@ -286,7 +292,7 @@ class TrabajadorEditarView(LoginRequiredMixin, View):
         
         # Obtener proyectos activos
         proyectos = Proyecto.objects.filter(
-            activo=True,
+            # activo=True,
             eliminado=False
         ).order_by('nombre')
         

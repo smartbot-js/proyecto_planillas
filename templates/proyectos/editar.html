@@ -1,144 +1,608 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Editar Proyecto - Sistema de Planillas{% endblock %}
+{% block title %}Editar Proyecto - {{ proyecto.nombre }}{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
+        <a href="{% url 'proyecto_detalle' proyecto.id %}" class="back-link">
+            <span class="material-symbols-outlined">arrow_back</span>
+            Volver al Detalle
+        </a>
         <h1>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
+            <span class="material-symbols-outlined">edit</span>
             Editar Proyecto
         </h1>
-        <p class="page-subtitle">{{ proyecto.nombre }}</p>
-    </div>
-    <div class="page-actions" style="display: flex; gap: 12px;">
-        <a href="{% url 'proyecto_detalle' proyecto.id %}" class="btn btn-outline">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="19" y1="12" x2="5" y2="12"></line>
-                <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-            Volver
-        </a>
+        <p class="page-description">{{ proyecto.nombre }} - ID: {{ proyecto.id }}</p>
     </div>
 </div>
 
-<div class="content-wrapper" style="max-width: 1024px; margin: 0 auto;">
-    {% if messages %}
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">
-            {{ message }}
+<form method="POST" enctype="multipart/form-data" class="form-container" id="formProyecto">
+    {% csrf_token %}
+    
+    <div class="accordion-section">
+        <div class="accordion-header active" onclick="toggleAccordion(this)">
+            <div class="accordion-title">
+                <span class="material-symbols-outlined">info</span>
+                <h3>Información General</h3>
+            </div>
+            <span class="material-symbols-outlined accordion-icon">expand_more</span>
         </div>
-        {% endfor %}
-    {% endif %}
+        <div class="accordion-content active">
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label for="id_nombre">Nombre del Proyecto *</label>
+                    <input type="text" name="nombre" class="form-control" value="{{ proyecto.nombre }}" required id="id_nombre">
+                </div>
+                <div class="form-group">
+                    <label for="id_tipo_proyecto">Tipo de Proyecto *</label>
+                    <select name="tipo_proyecto" class="form-control" required id="id_tipo_proyecto">
+                        {% for value, label in proyecto.TipoProyecto.choices %}
+                        <option value="{{ value }}" {% if proyecto.tipo_proyecto == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group full-width">
+                    <label for="id_descripcion">Descripción</label>
+                    <textarea name="descripcion" class="form-control" rows="3" id="id_descripcion">{{ proyecto.descripcion }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="id_estado">Estado *</label>
+                    <select name="estado" class="form-control" required id="id_estado">
+                        {% for value, label in proyecto.Estado.choices %}
+                        <option value="{{ value }}" {% if proyecto.estado == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="id_supervisor">Supervisor *</label>
+                    <select name="supervisor" class="form-control" required id="id_supervisor">
+                        {% for sup in supervisores %}
+                        <option value="{{ sup.id }}" {% if proyecto.supervisor.id == sup.id %}selected{% endif %}>
+                            {{ sup.nombre_completo }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <div class="form-container" style="background: #fff; border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden; margin-top: 0;">
-        <form method="POST" class="proyecto-form" enctype="multipart/form-data">
-            {% csrf_token %}
-
-            <div class="form-section" style="padding: 24px 32px; border-bottom: 1px solid var(--border-color, #e5e7eb);">
-                <h3 class="section-title">Información Básica</h3>
-
-                <div class="form-group" style="margin-bottom: 20px;">
-                    <label for="nombre">Nombre del Proyecto *</label>
-                    <input type="text" id="nombre" name="nombre" class="form-control" value="{{ proyecto.nombre }}" required>
+    <div class="accordion-section">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="accordion-title">
+                <span class="material-symbols-outlined">location_on</span>
+                <h3>Ubicación y Geolocalización</h3>
+            </div>
+            <span class="material-symbols-outlined accordion-icon">expand_more</span>
+        </div>
+        <div class="accordion-content">
+            <div class="form-grid-2">
+                <div class="form-group full-width">
+                    <label for="id_ubicacion">Dirección *</label>
+                    <input type="text" name="ubicacion" class="form-control" value="{{ proyecto.ubicacion }}" required id="id_ubicacion">
+                </div>
+                <div class="form-group">
+                    <label for="id_departamento">Departamento</label>
+                    <input type="text" name="departamento" class="form-control" value="{{ proyecto.departamento|default:'' }}" id="id_departamento">
+                </div>
+                <div class="form-group">
+                    <label for="id_municipio">Municipio</label>
+                    <input type="text" name="municipio" class="form-control" value="{{ proyecto.municipio|default:'' }}" id="id_municipio">
                 </div>
                 
-                <div class="form-group" style="margin-bottom: 20px;">
-                    <label for="ubicacion">Ubicación *</label>
-                    <input type="text" id="ubicacion" name="ubicacion" class="form-control" value="{{ proyecto.ubicacion }}" required>
+                <div class="form-group full-width">
+                    <label for="id_ubicacion_coordenadas">Coordenadas</label>
+                    <input type="text" name="ubicacion_coordenadas" class="form-control" value="{{ proyecto.ubicacion_coordenadas|default:'' }}" id="id_ubicacion_coordenadas" placeholder="Ej: 12.1354, -9.1234">
+                    <small class="form-text">Latitud, Longitud. Usado para el mapa y la geovalla.</small>
                 </div>
+            </div>
 
-                <div class="form-group" style="margin-bottom: 20px;">
-                    <label for="descripcion">Descripción</label>
-                    <textarea id="descripcion" name="descripcion" class="form-control" rows="4">{{ proyecto.descripcion }}</textarea>
+            <div class="location-validation-section">
+                <div class="section-info">
+                    <span class="material-symbols-outlined">my_location</span>
+                    <div>
+                        <strong>Validación de Asistencias</strong>
+                        <p>Configure el radio de tolerancia para validar que los trabajadores marquen asistencia dentro del área del proyecto</p>
+                    </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="imagen_proyecto">Imagen del Proyecto</label>
-                    {% if proyecto.imagen_proyecto %}
-                        <div class="current-file-preview" style="margin-bottom: 10px;">
-                            <img src="{{ proyecto.imagen_proyecto.url }}" alt="Imagen actual" style="max-width: 200px; height: auto; border-radius: 8px; border: 1px solid var(--border-color);">
-                        </div>
-                    {% endif %}
-                    <input type="file" id="imagen_proyecto" name="imagen_proyecto" class="form-control" accept="image/*">
-                    <small class="form-help">Cargar una nueva imagen reemplazará la actual.</small>
-                </div>
-            </div>
-
-            <div class="form-section" style="padding: 24px 32px; border-bottom: 1px solid var(--border-color, #e5e7eb);">
-                <h3 class="section-title">Fechas</h3>
-                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
-                    <div class="form-group">
-                        <label for="fecha_inicio">Fecha de Inicio *</label>
-                        <input type="date" id="fecha_inicio" name="fecha_inicio" class="form-control" value="{{ proyecto.fecha_inicio|date:'Y-m-d' }}" required>
+                    <label for="id_radio_geovalla">Radio de Ubicación (metros) *</label>
+                    <div class="range-input-group">
+                        <input type="range" name="radio_geovalla" min="50" max="500" step="10" 
+                               value="{{ proyecto.radio_geovalla|default:'150' }}" class="form-control" id="id_radio_geovalla">
+                        <span class="range-value" id="radioValue">{{ proyecto.radio_geovalla|default:"150" }} m</span>
                     </div>
-                    <div class="form-group">
-                        <label for="fecha_fin_estimada">Fecha Fin Estimada</label>
-                        <input type="date" id="fecha_fin_estimada" name="fecha_fin_estimada" class="form-control" value="{% if proyecto.fecha_fin_estimada %}{{ proyecto.fecha_fin_estimada|date:'Y-m-d' }}{% endif %}">
+                    <div class="range-labels">
+                        <span>50m</span>
+                        <span>500m</span>
                     </div>
-                </div>
-            </div>
-
-            <div class="form-section" style="padding: 24px 32px; border-bottom: 1px solid var(--border-color, #e5e7eb);">
-                <h3 class="section-title">Gestión</h3>
-                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
-                    <div class="form-group">
-                        <label for="supervisor">Supervisor Responsable *</label>
-                        <select id="supervisor" name="supervisor" class="form-control" required>
-                            {% for sup in supervisores %}
-                            <option value="{{ sup.id }}" {% if sup.id == proyecto.supervisor.id %}selected{% endif %}>
-                                {{ sup.nombre_completo }} - {{ sup.get_rol_display }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="estado">Estado *</label>
-                        <select id="estado" name="estado" class="form-control" required>
-                            {% for value, label in proyecto.Estado.choices %}
-                            <option value="{{ value }}" {% if value == proyecto.estado %}selected{% endif %}>
-                                {{ label }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-section" style="padding: 24px 32px; border-bottom: 1px solid var(--border-color, #e5e7eb);">
-                <h3 class="section-title">Presupuesto</h3>
-                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
-                    <div class="form-group">
-                        <label for="presupuesto_total">Presupuesto Total *</label>
-                        <div class="input-with-icon">
-                            <span class="input-icon">$</span>
-                            <input type="number" id="presupuesto_total" name="presupuesto_total" class="form-control" step="0.01" min="0" value="{{ proyecto.presupuesto_total }}" required>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="gasto_mano_obra_real">Gasto Mano de Obra (Real)</label>
-                        <div class="input-with-icon">
-                            <span class="input-icon">$</span>
-                            <input type="number" id="gasto_mano_obra_real" name="gasto_mano_obra_real" class="form-control" step="0.01" min="0" value="{{ proyecto.gasto_mano_obra_real }}">
-                        </div>
-                    </div>
+                    <small class="form-text">Los trabajadores deben estar dentro de este radio para marcar asistencia</small>
                 </div>
             </div>
             
-            <div class="form-actions" style="background: var(--bg-page, #f9fafb);">
-                <a href="{% url 'proyecto_detalle' proyecto.id %}" class="btn btn-outline">Cancelar</a>
-                <button type="submit" class="btn btn-primary">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                    </svg>
-                    Guardar Cambios
+            <div class="map-preview">
+                <button type="button" class="btn btn-primary btn-sm" onclick="obtenerUbicacionActual()">
+                    <span class="material-symbols-outlined">my_location</span>
+                    Usar mi ubicación actual
                 </button>
+                {% if proyecto.ubicacion_coordenadas %}
+                <a href="https://maps.google.com/maps?q={{ proyecto.ubicacion_coordenadas }}" 
+                   target="_blank" class="btn btn-outline btn-sm">
+                    <span class="material-symbols-outlined">map</span>
+                    Ver ubicación en Google Maps
+                </a>
+                {% endif %}
             </div>
-        </form>
+        </div>
     </div>
-</div>
+
+    <div class="accordion-section">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="accordion-title">
+                <span class="material-symbols-outlined">calendar_today</span>
+                <h3>Fechas del Proyecto</h3>
+            </div>
+            <span class="material-symbols-outlined accordion-icon">expand_more</span>
+        </div>
+        <div class="accordion-content">
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label for="id_fecha_inicio">Fecha de Inicio *</label>
+                    <input type="date" name="fecha_inicio" class="form-control" value="{{ proyecto.fecha_inicio|date:'Y-m-d' }}" required id="id_fecha_inicio">
+                </div>
+                <div class="form-group">
+                    <label for="id_fecha_fin_estimada">Fecha Fin Estimada</label>
+                    <input type="date" name="fecha_fin_estimada" class="form-control" value="{{ proyecto.fecha_fin_estimada|date:'Y-m-d' }}" id="id_fecha_fin_estimada">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion-section">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="accordion-title">
+                <span class="material-symbols-outlined">layers</span>
+                <h3>Características del Proyecto</h3>
+            </div>
+            <span class="material-symbols-outlined accordion-icon">expand_more</span>
+        </div>
+        <div class="accordion-content">
+            <div class="form-grid-2" style="grid-template-columns: 1fr 1fr 1fr;">
+                <div class="form-group">
+                    <label for="id_tamano_proyecto">Tamaño (m²)</label>
+                    <input type="number" name="tamano_proyecto" class="form-control" value="{{ proyecto.tamano_proyecto|floatformat:'-2' }}" step="0.01" min="0" id="id_tamano_proyecto">
+                </div>
+                <div class="form-group">
+                    <label for="id_cantidad_unidades">Cantidad de Unidades</label>
+                    <input type="number" name="cantidad_unidades" class="form-control" value="{{ proyecto.cantidad_unidades }}" min="0" id="id_cantidad_unidades">
+                </div>
+                <div class="form-group">
+                    <label for="id_tamano_promedio">Tamaño Promedio (m²)</label>
+                    <input type="number" name="tamano_promedio" class="form-control" value="{{ proyecto.tamano_promedio|floatformat:'-2' }}" step="0.01" min="0" id="id_tamano_promedio">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion-section">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="accordion-title">
+                <span class="material-symbols-outlined">engineering</span>
+                <h3>Personal y Avance</h3>
+            </div>
+            <span class="material-symbols-outlined accordion-icon">expand_more</span>
+        </div>
+        <div class="accordion-content">
+            <div class="form-grid-2" style="grid-template-columns: 1fr 1fr;">
+                <div class="form-group">
+                    <label for="id_personal_asignado">Personal Asignado (Nro.)</label>
+                    <input type="number" name="personal_asignado" class="form-control" value="{{ proyecto.personal_asignado }}" min="0" id="id_personal_asignado">
+                    <small class="form-text">Campo numérico de referencia. No se vincula a trabajadores.</small>
+                </div>
+                <div class="form-group">
+                    <label for="id_contratistas_asignados">Contratistas Asignados (Nro.)</label>
+                    <input type="number" name="contratistas_asignados" class="form-control" value="{{ proyecto.contratistas_asignados }}" min="0" id="id_contratistas_asignados">
+                    <small class="form-text">Campo numérico de referencia.</small>
+                </div>
+            </div>
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label for="id_porcentaje_avance_general">% Avance General</label>
+                    <input type="number" name="porcentaje_avance_general" class="form-control" value="{{ proyecto.porcentaje_avance_general|floatformat:'-2' }}" step="0.01" min="0" max="100" id="id_porcentaje_avance_general">
+                </div>
+                <div class="form-group">
+                    <label for="id_porcentaje_asignacion_planilla">% Asignación Planilla</label>
+                    <input type="number" name="porcentaje_asignacion_planilla" class="form-control" value="{{ proyecto.porcentaje_asignacion_planilla|floatformat:'-2' }}" step="0.01" min="0" max="100" id="id_porcentaje_asignacion_planilla">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion-section">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="accordion-title">
+                <span class="material-symbols-outlined">account_balance_wallet</span>
+                <h3>Presupuesto y Finanzas</h3>
+            </div>
+            <span class="material-symbols-outlined accordion-icon">expand_more</span>
+        </div>
+        <div class="accordion-content">
+            <div class="form-grid-2" style="grid-template-columns: 1fr 1fr 1fr;">
+                <div class="form-group">
+                    <label for="id_presupuesto_total">Presupuesto Total *</label>
+                    <div class="input-group">
+                        <span class="input-prefix">$</span>
+                        <input type="number" class="form-control" name="presupuesto_total" value="{{ proyecto.presupuesto_total|floatformat:'-2' }}" step="0.01" min="0" required id="id_presupuesto_total">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="id_presupuesto_mano_obra">Presupuesto Mano de Obra</label>
+                    <div class="input-group">
+                        <span class="input-prefix">$</span>
+                        <input type="number" class="form-control" name="presupuesto_mano_obra" value="{{ proyecto.presupuesto_mano_obra|floatformat:'-2' }}" step="0.01" min="0" id="id_presupuesto_mano_obra">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="id_presupuesto_administrativo">Presupuesto Administrativo</label>
+                    <div class="input-group">
+                        <span class="input-prefix">$</span>
+                        <input type="number" class="form-control" name="presupuesto_administrativo" value="{{ proyecto.presupuesto_administrativo|floatformat:'-2' }}" step="0.01" min="0" id="id_presupuesto_administrativo">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label for="id_gasto_mano_obra_real">Gasto Mano de Obra (Real)</label>
+                    <div class="input-group">
+                        <span class="input-prefix">$</span>
+                        <input type="number" class="form-control" name="gasto_mano_obra_real" value="{{ proyecto.gasto_mano_obra_real|floatformat:'-2' }}" step="0.01" min="0" id="id_gasto_mano_obra_real">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="id_gasto_administrativo_real">Gasto Administrativo (Real)</label>
+                    <div class="input-group">
+                        <span class="input-prefix">$</span>
+                        <input type="number" class="form-control" name="gasto_administrativo_real" value="{{ proyecto.gasto_administrativo_real|floatformat:'-2' }}" step="0.01" min="0" id="id_gasto_administrativo_real">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-grid-2" style="grid-template-columns: 1fr 1fr 1fr;">
+                <div class="form-group">
+                    <label for="id_anticipo">Anticipo</label>
+                    <div class="input-group">
+                        <span class="input-prefix">$</span>
+                        <input type="number" class="form-control" name="anticipo" value="{{ proyecto.anticipo|floatformat:'-2' }}" step="0.01" min="0" id="id_anticipo">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="id_valor_avaluo_acumulado">Valor Avalúo Acumulado</label>
+                    <div class="input-group">
+                        <span class="input-prefix">$</span>
+                        <input type="number" class="form-control" name="valor_avaluo_acumulado" value="{{ proyecto.valor_avaluo_acumulado|floatformat:'-2' }}" step="0.01" min="0" id="id_valor_avaluo_acumulado">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="id_fecha_avaluo">Fecha del Avalúo</label>
+                    <input type="date" class="form-control" name="fecha_avaluo" value="{{ proyecto.fecha_avaluo|date:'Y-m-d' }}" id="id_fecha_avaluo">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion-section">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="accordion-title">
+                <span class="material-symbols-outlined">folder</span>
+                <h3>Documentos del Proyecto</h3>
+            </div>
+            <span class="material-symbols-outlined accordion-icon">expand_more</span>
+        </div>
+        <div class="accordion-content">
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label for="id_archivo_contrato">Contrato</label>
+                    {% if proyecto.archivo_contrato %}
+                    <div class="current-file">
+                        <span class="material-symbols-outlined">description</span>
+                        <div>
+                            <small>Archivo actual:</small>
+                            <a href="{{ proyecto.archivo_contrato.url }}" target="_blank">Ver contrato</a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <input type="file" name="archivo_contrato" class="form-control" id="id_archivo_contrato">
+                    <small class="form-text">PDF, DOC (máx. 10MB). Cargar uno nuevo reemplazará el actual.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_archivo_avaluo">Avalúo</label>
+                    {% if proyecto.archivo_avaluo %}
+                    <div class="current-file">
+                        <span class="material-symbols-outlined">receipt_long</span>
+                        <div>
+                            <small>Archivo actual:</small>
+                            <a href="{{ proyecto.archivo_avaluo.url }}" target="_blank">Ver avalúo</a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <input type="file" name="archivo_avaluo" class="form-control" id="id_archivo_avaluo">
+                    <small class="form-text">PDF, DOC (máx. 10MB). Cargar uno nuevo reemplazará el actual.</small>
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="id_archivo_presupuesto">Presupuesto</label>
+                    {% if proyecto.archivo_presupuesto %}
+                    <div class="current-file">
+                        <span class="material-symbols-outlined">request_quote</span>
+                        <div>
+                            <small>Archivo actual:</small>
+                            <a href="{{ proyecto.archivo_presupuesto.url }}" target="_blank">Ver presupuesto</a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <input type="file" name="archivo_presupuesto" class="form-control" id="id_archivo_presupuesto">
+                    <small class="form-text">PDF, Excel (máx. 10MB). Cargar uno nuevo reemplazará el actual.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="accordion-section">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="accordion-title">
+                <span class="material-symbols-outlined">image</span>
+                <h3>Imagen del Proyecto</h3>
+            </div>
+            <span class="material-symbols-outlined accordion-icon">expand_more</span>
+        </div>
+        <div class="accordion-content">
+            <div class="form-group">
+                <label for="id_imagen_proyecto">Imagen principal del proyecto</label>
+                {% if proyecto.imagen_proyecto %}
+                <div class="current-image">
+                    <img src="{{ proyecto.imagen_proyecto.url }}" alt="Imagen actual">
+                    <small>Imagen actual</small>
+                </div>
+                {% endif %}
+                <input type="file" name="imagen_proyecto" class="form-control" id="id_imagen_proyecto" accept="image/*">
+                <small class="form-text">JPG, PNG. Cargar una nueva reemplazará la actual.</small>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="form-actions">
+        <a href="{% url 'proyecto_detalle' proyecto.id %}" class="btn btn-secondary">
+            <span class="material-symbols-outlined">close</span>
+            Cancelar
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <span class="material-symbols-outlined">save</span>
+            Guardar Cambios
+        </button>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+.page-header { margin-bottom: 24px; }
+.page-header h1 { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 700; color: #111827; }
+.page-description { color: #6b7280; font-size: 14px; margin-top: 4px; }
+.back-link { display: inline-flex; align-items: center; gap: 8px; color: #3b82f6; text-decoration: none; font-size: 14px; margin-bottom: 12px; }
+.back-link:hover { color: #2563eb; }
+
+.form-container { max-width: 1000px; margin: 0 auto; }
+
+/* Acordeón */
+.accordion-section { background: white; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+.accordion-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; cursor: pointer; transition: all 0.2s; }
+.accordion-header:hover { background: #f9fafb; }
+.accordion-header.active { background: #f0f9ff; border-bottom: 1px solid #e2e8f0; }
+.accordion-title { display: flex; align-items: center; gap: 12px; }
+.accordion-title .material-symbols-outlined { font-size: 24px; color: #3b82f6; }
+.accordion-title h3 { font-size: 18px; font-weight: 600; color: #111827; }
+.accordion-icon { color: #6b7280; transition: transform 0.2s; }
+.accordion-header.active .accordion-icon { transform: rotate(180deg); }
+.accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+.accordion-content.active { max-height: 3000px; padding: 24px; }
+
+/* Formulario */
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.form-group { display: flex; flex-direction: column; }
+.form-group.full-width { grid-column: 1 / -1; }
+.form-group label { margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151; }
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="date"],
+.form-group input[type="range"],
+.form-group select,
+.form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; }
+.form-group textarea { resize: vertical; min-height: 100px; }
+.form-group input[type="file"] { border: 1px solid #e2e8f0; } /* Ajuste para file input */
+.form-text { font-size: 12px; color: #6b7280; margin-top: 4px; }
+
+.input-group { display: flex; align-items: center; }
+.input-prefix { padding: 10px 12px; background: #f3f4f6; border: 1px solid #e2e8f0; border-right: none; border-radius: 8px 0 0 8px; font-weight: 600; color: #374151; }
+.input-suffix { padding: 10px 12px; background: #f3f4f6; border: 1px solid #e2e8f0; border-left: none; border-radius: 0 8px 8px 0; font-weight: 600; color: #374151; }
+.input-group input { border-radius: 0 8px 8px 0 !important; }
+.input-group input:first-child { border-radius: 8px 0 0 8px !important; }
+
+/* Validación de Ubicación */
+.location-validation-section { padding: 20px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; margin-top: 24px; }
+.section-info { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 24px; }
+.section-info .material-symbols-outlined { font-size: 32px; color: #0ea5e9; }
+.section-info strong { display: block; font-size: 16px; color: #111827; margin-bottom: 4px; }
+.section-info p { font-size: 14px; color: #6b7280; line-height: 1.5; }
+
+.range-input-group { display: flex; align-items: center; gap: 16px; }
+.range-input-group input[type="range"] { flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; outline: none; }
+.range-input-group input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: #3b82f6; border-radius: 50%; cursor: pointer; }
+.range-input-group input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; background: #3b82f6; border-radius: 50%; cursor: pointer; border: none; }
+.range-value { min-width: 80px; padding: 8px 16px; background: #3b82f6; color: white; border-radius: 8px; font-weight: 600; text-align: center; }
+
+.range-labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: #6b7280; }
+
+.radio-info-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+.info-card-small { display: flex; align-items: center; gap: 12px; padding: 12px; background: white; border: 1px solid #e2e8f0; border-radius: 8px; }
+.info-card-small .material-symbols-outlined { color: #3b82f6; font-size: 24px; }
+.info-card-small strong { display: block; font-size: 13px; color: #111827; }
+.info-card-small small { font-size: 11px; color: #6b7280; }
+
+/* Archivos actuales */
+.current-image { margin-bottom: 16px; padding: 16px; background: #f9fafb; border: 1px solid #e2e8f0; border-radius: 8px; }
+.current-image img { max-width: 100%; height: auto; max-height: 200px; border-radius: 8px; margin-bottom: 8px; }
+.current-image small { font-size: 12px; color: #6b7280; }
+
+.current-file { display: flex; align-items: center; gap: 12px; padding: 12px; background: #f9fafb; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 12px; }
+.current-file .material-symbols-outlined { color: #3b82f6; font-size: 24px; }
+.current-file small { display: block; font-size: 11px; color: #6b7280; }
+.current-file a { color: #3b82f6; text-decoration: none; font-size: 13px; font-weight: 500; }
+.current-file a:hover { text-decoration: underline; }
+
+.map-preview { margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* Botones */
+.form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; padding-top: 24px; border-top: 2px solid #f3f4f6; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; text-decoration: none; transition: all 0.2s; }
+.btn-primary { background: #3b82f6; color: white; }
+.btn-primary:hover { background: #2563eb; }
+.btn-secondary { background: white; color: #374151; border: 1px solid #e2e8f0; }
+.btn-secondary:hover { background: #f9fafb; }
+.btn-outline { background: transparent; color: #3b82f6; border: 1px solid #3b82f6; }
+.btn-outline:hover { background: #eff6ff; }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+.btn .material-symbols-outlined { font-size: 18px; }
+
+/* Alertas */
+.alert { padding: 16px; border-radius: 8px; margin-bottom: 24px; display: flex; gap: 12px; }
+.alert-error { background: #fee2e2; border: 1px solid #fecaca; color: #991b1b; }
+.alert .material-symbols-outlined { font-size: 24px; }
+.alert ul { margin: 8px 0 0 0; padding-left: 20px; }
+
+@media (max-width: 768px) {
+    .form-grid-2 { grid-template-columns: 1fr; }
+    .radio-info-cards { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleAccordion(header) {
+    const content = header.nextElementSibling;
+    const isActive = header.classList.contains('active');
+    
+    // Comentado para permitir múltiples secciones abiertas
+    // document.querySelectorAll('.accordion-header').forEach(h => h.classList.remove('active'));
+    // document.querySelectorAll('.accordion-content').forEach(c => c.classList.remove('active'));
+    
+    if (!isActive) {
+        header.classList.add('active');
+        content.classList.add('active');
+    } else {
+        header.classList.remove('active');
+        content.classList.remove('active');
+    }
+}
+
+// Actualizar valor del radio en tiempo real
+const radioInput = document.querySelector('input[name="radio_geovalla"]');
+const radioValue = document.getElementById('radioValue');
+
+if (radioInput && radioValue) {
+    radioInput.addEventListener('input', function() {
+        radioValue.textContent = this.value + ' m';
+    });
+}
+
+// Obtener ubicación actual
+function obtenerUbicacionActual() {
+    if (!navigator.geolocation) {
+        alert('Tu navegador no soporta geolocalización');
+        return;
+    }
+
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="material-symbols-outlined">sync</span> Obteniendo...';
+    btn.disabled = true;
+
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            const lat = position.coords.latitude.toFixed(7);
+            const lon = position.coords.longitude.toFixed(7);
+            
+            // [CORREGIDO] Actualiza el campo de coordenadas de texto
+            document.querySelector('input[name="ubicacion_coordenadas"]').value = `${lat}, ${lon}`;
+            
+            // [ELIMINADO] Ya no existen estos campos
+            // document.querySelector('input[name="latitud"]').value = lat;
+            // document.querySelector('input[name="longitud"]').value = lon;
+            
+            btn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> ¡Obtenida!';
+            btn.style.background = '#10b981';
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                btn.style.background = '';
+            }, 2000);
+        },
+        function(error) {
+            alert('Error al obtener ubicación: ' + error.message);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
+}
+
+// Validación del formulario
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('formProyecto');
+    
+    form.addEventListener('submit', function(e) {
+        const requiredFields = form.querySelectorAll('[required]');
+        let hasErrors = false;
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                field.style.borderColor = '#ef4444';
+                hasErrors = true;
+            } else {
+                field.style.borderColor = '#e2e8f0';
+            }
+        });
+        
+        if (hasErrors) {
+            e.preventDefault();
+            alert('Por favor complete todos los campos obligatorios marcados con *');
+        }
+    });
+
+    // Validar porcentaje de avance
+    const porcentajeInput = document.querySelector('input[name="porcentaje_avance_general"]');
+    if (porcentajeInput) {
+        porcentajeInput.addEventListener('input', function() {
+            let value = parseInt(this.value);
+            if (value < 0) this.value = 0;
+            if (value > 100) this.value = 100;
+        });
+    }
+
+});
+</script>
 {% endblock %}
