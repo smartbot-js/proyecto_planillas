@@ -5,68 +5,114 @@
 {% block title %}Asistencias - Sistema de Gestión{% endblock %}
 
 {% block content %}
-<div class="asistencias-page">
-    <!-- Top Bar -->
-    <div class="top-bar">
-        <div class="top-tabs">
-            <a href="{% url 'asistencias_lista' %}" class="top-tab active">
-                <span class="material-symbols-outlined">today</span>
-                Asistencias
-            </a>
-            <a href="#" class="top-tab">
-                <span class="material-symbols-outlined">calendar_today</span>
-                Hoy
-            </a>
+<div class="page-container">
+    <!-- Page Header -->
+    <div class="page-header-section">
+        <div class="page-title-wrapper">
+            <span class="material-symbols-outlined page-icon">clipboard_check</span>
+            <div>
+                <h1 class="page-title">Control de Asistencias</h1>
+                <p class="page-subtitle">Gestión y validación de asistencias de trabajadores</p>
+            </div>
         </div>
-        <div class="top-actions">
-            <a href="{% url 'asistencias_exportar' %}?fecha_inicio={{ filtros.fecha_inicio }}&fecha_fin={{ filtros.fecha_fin }}" class="btn-outline">
-                Exportar
+        <div class="page-actions">
+            {% if user.es_supervisor or user.es_administrador %}
+            <a href="{% url 'asistencias_validar_lista' %}" class="btn-success">
+                <span class="material-symbols-outlined">task_alt</span>
+                Validar Pendientes
             </a>
-            <a href="{% url 'asistencia_marcar_entrada' %}" class="btn-blue">
-                Marcar manual
+            {% endif %}
+            <a href="{% url 'asistencias_lista' %}" class="btn-primary">
+                <span class="material-symbols-outlined">refresh</span>
+                Actualizar
             </a>
         </div>
     </div>
 
-    <!-- Stats Grid -->
-    <div class="stats-container">
-        <div class="stat-box-modern">
-            <div class="stat-label-modern">Registrados</div>
-            <div class="stat-value-modern">{{ stats.total }}</div>
+    <!-- Alerta de pendientes de validación -->
+    {% if user.es_supervisor or user.es_administrador %}
+    {% if stats.pendientes_validacion > 0 %}
+    <div class="alert-warning-banner">
+        <span class="material-symbols-outlined">notification_important</span>
+        <div>
+            <strong>{{ stats.pendientes_validacion }} asistencias pendientes de validación</strong>
+            <p>Hay asistencias cerradas que requieren tu aprobación.</p>
         </div>
-        <div class="stat-box-modern">
-            <div class="stat-label-modern">Presentes</div>
-            <div class="stat-value-modern">{{ stats.cerrados }}</div>
+        <a href="{% url 'asistencias_validar_lista' %}" class="btn-alert">
+            Ir a validar →
+        </a>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <!-- Stats Cards -->
+    <div class="stats-grid-modern">
+        <div class="stat-card-modern">
+            <div class="stat-icon-wrapper blue">
+                <span class="material-symbols-outlined">event_available</span>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.cerrados|default:0 }}</h3>
+                <p>Asistencias Cerradas</p>
+            </div>
         </div>
-        <div class="stat-box-modern">
-            <div class="stat-label-modern">Ausentes</div>
-            <div class="stat-value-modern">{{ stats.abiertos }}</div>
+        
+        <div class="stat-card-modern">
+            <div class="stat-icon-wrapper orange">
+                <span class="material-symbols-outlined">pending_actions</span>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.abiertos|default:0 }}</h3>
+                <p>Turnos Abiertos</p>
+            </div>
         </div>
-        <div class="stat-box-modern">
-            <div class="stat-label-modern">Tarde</div>
-            <div class="stat-value-modern">{{ stats.tarde }}</div>
+        
+        <div class="stat-card-modern">
+            <div class="stat-icon-wrapper green">
+                <span class="material-symbols-outlined">check_circle</span>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.pendientes_validacion|default:0 }}</h3>
+                <p>Pendientes Validación</p>
+            </div>
         </div>
-        <div class="stat-box-modern">
-            <div class="stat-label-modern">Horas extras</div>
-            <div class="stat-value-modern">{{ stats.horas_extras|floatformat:0 }}h</div>
+        
+        <div class="stat-card-modern">
+            <div class="stat-icon-wrapper red">
+                <span class="material-symbols-outlined">schedule</span>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.tarde|default:0 }}</h3>
+                <p>Llegadas Tarde</p>
+            </div>
+        </div>
+        
+        <div class="stat-card-modern">
+            <div class="stat-icon-wrapper purple">
+                <span class="material-symbols-outlined">access_time</span>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.horas_extras|floatformat:0|default:0 }}h</h3>
+                <p>Horas Extras</p>
+            </div>
         </div>
     </div>
 
-    <!-- Filters Bar -->
-    <div class="filters-bar">
-        <form method="GET" class="filters-form-horizontal">
-            <input 
-                type="text" 
-                name="busqueda" 
-                placeholder="Buscar trabajador..." 
-                class="filter-input-search" 
-                value="{{ filtros.busqueda }}"
-            >
-            
-            <div class="filter-item">
-                <span class="material-symbols-outlined">apartment</span>
-                <select name="proyecto" class="filter-select-modern">
-                    <option value="">Proyecto</option>
+    <!-- Filters Card -->
+    <div class="filters-card-modern">
+        <div class="filters-header">
+            <div class="filters-title">
+                <span class="material-symbols-outlined">filter_list</span>
+                Filtros
+            </div>
+        </div>
+        
+        <form method="GET" class="filters-form-grid">
+            <!-- Proyecto -->
+            <div class="filter-group">
+                <label class="filter-label">Proyecto</label>
+                <select name="proyecto" class="filter-select">
+                    <option value="">Todos los proyectos</option>
                     {% for proyecto in proyectos %}
                     <option value="{{ proyecto.id }}" {% if filtros.proyecto == proyecto.id|stringformat:"s" %}selected{% endif %}>
                         {{ proyecto.nombre }}
@@ -75,236 +121,289 @@
                 </select>
             </div>
 
-            <div class="filter-item">
-                <span class="material-symbols-outlined">work</span>
-                <select name="puesto" class="filter-select-modern">
-                    <option value="">Puesto laboral</option>
-                    {% for puesto in puestos %}
-                    <option value="{{ puesto }}" {% if filtros.puesto == puesto %}selected{% endif %}>
-                        {{ puesto }}
-                    </option>
-                    {% endfor %}
-                </select>
+            <!-- Fecha Inicio -->
+            <div class="filter-group">
+                <label class="filter-label">Fecha Inicio</label>
+                <input type="date" name="fecha_inicio" class="filter-input" value="{{ filtros.fecha_inicio }}">
             </div>
 
-            <div class="filter-item">
-                <span class="material-symbols-outlined">info</span>
-                <select name="estado" class="filter-select-modern">
-                    <option value="">Estado</option>
-                    {% for value, label in estados %}
-                    <option value="{{ value }}" {% if filtros.estado == value %}selected{% endif %}>
-                        {{ label }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <button type="submit" class="btn-filter">
-                <span class="material-symbols-outlined">filter_alt</span>
-            </button>
-            
-            <a href="{% url 'asistencias_lista' %}?ver_todos=1" class="btn-filter" title="Ver Todos">
-                <span class="material-symbols-outlined">view_list</span>
-            </a>
-        </form>
-
-    <!-- Date Range Filter -->
-    <div class="date-range-bar">
-        <form method="GET" class="date-range-form">
-            <span class="material-symbols-outlined">schedule</span>
-            <span class="date-label">Turno</span>
-            
-            <span class="material-symbols-outlined">event</span>
-            <span class="date-label">Desde:</span>
-            <input type="date" name="fecha_inicio" value="{{ filtros.fecha_inicio }}" class="date-input-compact">
-            
-            <span class="material-symbols-outlined">event</span>
-            <span class="date-label">Hasta:</span>
-            <input type="date" name="fecha_fin" value="{{ filtros.fecha_fin }}" class="date-input-compact">
-            
-            <button type="submit" class="btn-outline-sm">Aplicar</button>
-        </form>
-    </div>
-
-    <!-- Table Header -->
-    <div class="table-modern">
-        <div class="table-header-row">
-            <div class="th-trabajador">Trabajador</div>
-            <div class="th-proyecto">Proyecto</div>
-            <div class="th-puesto">Puesto</div>
-            <div class="th-entrada">Entrada</div>
-            <div class="th-salida">Salida</div>
-            <div class="th-estado">Estado</div>
-            <div class="th-horas">Horas</div>
-            <div class="th-extras">Extras</div>
-            <div class="th-actions"></div>
-        </div>
-
-        <!-- Table Body -->
-        {% if asistencias %}
-        {% for asistencia in asistencias %}
-        <div class="table-row-card">
-            <!-- Trabajador -->
-            <div class="td-trabajador">
-                <div class="worker-profile">
-                    {% if asistencia.trabajador.foto %}
-                    <img src="{{ asistencia.trabajador.foto.url }}" alt="" class="worker-photo">
-                    {% else %}
-                    <div class="worker-photo-placeholder">
-                        {{ asistencia.trabajador.nombre|first }}{{ asistencia.trabajador.apellido|first }}
-                    </div>
-                    {% endif %}
-                    <div class="worker-details">
-                        <div class="worker-name-text">{{ asistencia.trabajador.nombre }} {{ asistencia.trabajador.apellido }}</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Proyecto -->
-            <div class="td-proyecto">{{ asistencia.proyecto.nombre }}</div>
-
-            <!-- Puesto -->
-            <div class="td-puesto">{{ asistencia.puesto_laboral }}</div>
-
-            <!-- Entrada -->
-            <div class="td-entrada">
-                <span class="time-text {% if asistencia.llego_tarde %}time-late{% endif %}">
-                    {{ asistencia.hora_entrada|time:"H:i" }}
-                </span>
-                {% if asistencia.llego_tarde %}
-                <span class="badge-yellow">Tarde</span>
-                {% endif %}
-            </div>
-
-            <!-- Salida -->
-            <div class="td-salida">
-                {% if asistencia.hora_salida %}
-                <span class="time-text">{{ asistencia.hora_salida|time:"H:i" }}</span>
-                {% else %}
-                <span class="time-empty">—</span>
-                {% endif %}
+            <!-- Fecha Fin -->
+            <div class="filter-group">
+                <label class="filter-label">Fecha Fin</label>
+                <input type="date" name="fecha_fin" class="filter-input" value="{{ filtros.fecha_fin }}">
             </div>
 
             <!-- Estado -->
-            <div class="td-estado">
-                {% if asistencia.estado == 'cerrado' %}
-                <span class="badge-green">Presente</span>
-                {% elif asistencia.estado == 'abierto' %}
-                <span class="badge-red">Ausente</span>
-                {% else %}
-                <span class="badge-gray">{{ asistencia.get_estado_display }}</span>
-                {% endif %}
+            <div class="filter-group">
+                <label class="filter-label">Estado</label>
+                <select name="estado" class="filter-select">
+                    <option value="">Todos</option>
+                    <option value="abierto" {% if filtros.estado == 'abierto' %}selected{% endif %}>Abierto</option>
+                    <option value="cerrado" {% if filtros.estado == 'cerrado' %}selected{% endif %}>Cerrado</option>
+                    <option value="validado" {% if filtros.estado == 'validado' %}selected{% endif %}>Validado</option>
+                    <option value="rechazado" {% if filtros.estado == 'rechazado' %}selected{% endif %}>Rechazado</option>
+                </select>
             </div>
 
-            <!-- Horas -->
-            <div class="td-horas">
-                <div class="hours-detail">
-                    <span class="hours-label-small">Normales:</span>
-                    <span class="hours-value-small">{{ asistencia.horas_normales|floatformat:0 }}h</span>
-                </div>
+            <!-- Búsqueda -->
+            <div class="filter-group filter-search">
+                <label class="filter-label">Buscar</label>
+                <input type="text" name="busqueda" class="filter-input" placeholder="Nombre o cédula..." value="{{ filtros.busqueda }}">
             </div>
 
-            <!-- Extras -->
-            <div class="td-extras">
-                <div class="hours-detail">
-                    <span class="hours-label-small">Extras:</span>
-                    <span class="hours-value-small">{{ asistencia.horas_extras|floatformat:0 }}h</span>
-                </div>
+            <!-- Botones de acción -->
+            <div class="filter-actions-group">
+                <button type="submit" class="btn-filter-primary">
+                    <span class="material-symbols-outlined">search</span>
+                    Filtrar
+                </button>
+                <a href="{% url 'asistencias_lista' %}" class="btn-filter-secondary">
+                    <span class="material-symbols-outlined">visibility</span>
+                    Ver Todos
+                </a>
+                <button type="reset" class="btn-filter-outline" onclick="window.location.href='{% url 'asistencias_lista' %}'">
+                    <span class="material-symbols-outlined">clear</span>
+                    Limpiar
+                </button>
             </div>
+        </form>
+    </div>
 
-            <!-- Actions -->
-            <div class="td-actions">
-                <div class="dropdown-actions">
-                    <button class="dropdown-trigger-visible">
-                        <span class="material-symbols-outlined">more_vert</span>
-                    </button>
-                    <div class="dropdown-menu-fixed">
-                        <a href="{% url 'asistencia_detalle' asistencia.id %}" class="dropdown-item-modern">
-                            <span class="material-symbols-outlined">visibility</span>
-                            <span>Detalles</span>
-                        </a>
-                        
-                        <a href="{% url 'asistencia_historial' asistencia.trabajador.id %}" class="dropdown-item-modern">
-                            <span class="material-symbols-outlined">history</span>
-                            <span>Historial</span>
-                        </a>
-
-                        <!-- NUEVO: Editar asistencia -->
-                        {% if user.es_administrador or user.es_contador or user == asistencia.proyecto.supervisor %}
-                        <a href="{% url 'asistencia_editar' asistencia.id %}" class="dropdown-item-modern">
-                            <span class="material-symbols-outlined">edit</span>
-                            <span>Editar</span>
-                        </a>
-                        {% endif %}
-
-                        {% if asistencia.estado == 'abierto' %}
-                        <button type="button" onclick="abrirModalCerrar({{ asistencia.id }}, '{{ asistencia.trabajador.nombre }} {{ asistencia.trabajador.apellido }}')" class="dropdown-item-modern dropdown-item-button">
-                            <span class="material-symbols-outlined">logout</span>
-                            <span>Cerrar turno</span>
-                        </button>
-                        {% endif %}
-                        
-                        <a href="{% url 'asistencia_marcar_entrada' %}?trabajador={{ asistencia.trabajador.id }}&return_url={{ request.get_full_path|urlencode }}" class="dropdown-item-modern" onclick="return validarNuevaEntrada('{{ asistencia.estado }}')">
-                            <span class="material-symbols-outlined">login</span>
-                            <span>Marcar entrada</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
+    <!-- Table Card -->
+    <div class="table-card-modern">
+        <div class="table-card-header">
+            <h3>
+                <span class="material-symbols-outlined">list</span>
+                Lista de Asistencias
+            </h3>
+            <span class="result-count">{{ page_obj.paginator.count }} resultado{{ page_obj.paginator.count|pluralize }}</span>
         </div>
-        {% endfor %}
+
+        {% if asistencias %}
+        <div class="table-responsive">
+            <table class="table-modern-styled">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Trabajador</th>
+                        <th>Proyecto</th>
+                        <th>Entrada</th>
+                        <th>Salida</th>
+                        <th>Horas</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asistencia in asistencias %}
+                    <tr>
+                        <!-- Fecha -->
+                        <td>
+                            <div class="date-cell">
+                                <strong>{{ asistencia.fecha|date:"d/m/Y" }}</strong>
+                                <small>{{ asistencia.fecha|date:"l" }}</small>
+                            </div>
+                        </td>
+
+                        <!-- Trabajador -->
+                        <td>
+                            <div class="worker-cell">
+                                <div class="worker-avatar">
+                                    {{ asistencia.trabajador.nombre|first }}{{ asistencia.trabajador.apellido|first }}
+                                </div>
+                                <div class="worker-info">
+                                    <div class="worker-name">
+                                        {{ asistencia.trabajador.nombre_completo }}
+                                        {% if asistencia.llego_tarde %}
+                                        <span class="badge-indicator late">
+                                            <span class="material-symbols-outlined">schedule</span>
+                                            {{ asistencia.minutos_tarde }}min
+                                        </span>
+                                        {% endif %}
+                                        {% if asistencia.fue_corregida %}
+                                        <span class="badge-indicator corrected">
+                                            <span class="material-symbols-outlined">edit</span>
+                                            Corregida
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="worker-role">{{ asistencia.puesto_laboral }}</div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Proyecto -->
+                        <td>
+                            <span class="project-name">{{ asistencia.proyecto.nombre }}</span>
+                        </td>
+
+                        <!-- Entrada -->
+                        <td>
+                            <strong class="time-value">{{ asistencia.hora_entrada|time:"H:i" }}</strong>
+                        </td>
+
+                        <!-- Salida -->
+                        <td>
+                            {% if asistencia.hora_salida %}
+                            <strong class="time-value">{{ asistencia.hora_salida|time:"H:i" }}</strong>
+                            {% else %}
+                            <span class="time-empty">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Horas -->
+                        <td>
+                            <div class="hours-cell">
+                                <span class="hours-main">{{ asistencia.horas_totales|floatformat:1 }}h</span>
+                                {% if asistencia.horas_extras > 0 %}
+                                <span class="hours-extra">+{{ asistencia.horas_extras|floatformat:1 }}h extras</span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- Estado -->
+                        <td>
+                            <span class="badge-status {{ asistencia.estado }}">
+                                {% if asistencia.estado == 'abierto' %}
+                                <span class="material-symbols-outlined">radio_button_unchecked</span>
+                                Abierto
+                                {% elif asistencia.estado == 'cerrado' %}
+                                <span class="material-symbols-outlined">pending</span>
+                                Cerrado
+                                {% elif asistencia.estado == 'validado' %}
+                                <span class="material-symbols-outlined">check_circle</span>
+                                Validado
+                                {% elif asistencia.estado == 'rechazado' %}
+                                <span class="material-symbols-outlined">cancel</span>
+                                Rechazado
+                                {% else %}
+                                {{ asistencia.get_estado_display }}
+                                {% endif %}
+                            </span>
+                        </td>
+
+                        <!-- Acciones -->
+                        <td>
+                            <div class="actions-cell">
+                                <a href="{% url 'asistencia_detalle' asistencia.id %}" class="btn-icon-action view" title="Ver detalle">
+                                    <span class="material-symbols-outlined">visibility</span>
+                                </a>
+                                
+                                {% if user.es_supervisor or user.es_administrador %}
+                                    {% if asistencia.estado == 'cerrado' and not asistencia.validado %}
+                                    <a href="{% url 'asistencia_validar' asistencia.id %}" class="btn-icon-action validate" title="Validar">
+                                        <span class="material-symbols-outlined">task_alt</span>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    {% if asistencia.estado != 'abierto' %}
+                                    <a href="{% url 'asistencia_corregir' asistencia.id %}" class="btn-icon-action edit" title="Corregir">
+                                        <span class="material-symbols-outlined">edit</span>
+                                    </a>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
         <!-- Pagination -->
-        {% if page_obj.has_other_pages %}
-        <div class="pagination-compact">
-            {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-link-compact">
-                Anterior
-            </a>
-            {% endif %}
-
-            <div class="page-numbers-compact">
-                <span class="page-current-compact">{{ page_obj.number }}</span>
-                <span class="page-separator">/</span>
-                <span class="page-total-compact">{{ page_obj.paginator.num_pages }}</span>
+        {% if is_paginated %}
+        <div class="pagination-wrapper">
+            <div class="pagination-info">
+                Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} resultados
             </div>
-
-            {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-link-compact">
-                Siguiente
-            </a>
-            {% endif %}
+            <nav class="pagination-nav">
+                <ul class="pagination">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if filtros.proyecto %}&proyecto={{ filtros.proyecto }}{% endif %}{% if filtros.estado %}&estado={{ filtros.estado }}{% endif %}{% if filtros.fecha_inicio %}&fecha_inicio={{ filtros.fecha_inicio }}{% endif %}{% if filtros.fecha_fin %}&fecha_fin={{ filtros.fecha_fin }}{% endif %}{% if filtros.busqueda %}&busqueda={{ filtros.busqueda }}{% endif %}">
+                            Primera
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filtros.proyecto %}&proyecto={{ filtros.proyecto }}{% endif %}{% if filtros.estado %}&estado={{ filtros.estado }}{% endif %}{% if filtros.fecha_inicio %}&fecha_inicio={{ filtros.fecha_inicio }}{% endif %}{% if filtros.fecha_fin %}&fecha_fin={{ filtros.fecha_fin }}{% endif %}{% if filtros.busqueda %}&busqueda={{ filtros.busqueda }}{% endif %}">
+                            Anterior
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                    </li>
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filtros.proyecto %}&proyecto={{ filtros.proyecto }}{% endif %}{% if filtros.estado %}&estado={{ filtros.estado }}{% endif %}{% if filtros.fecha_inicio %}&fecha_inicio={{ filtros.fecha_inicio }}{% endif %}{% if filtros.fecha_fin %}&fecha_fin={{ filtros.fecha_fin }}{% endif %}{% if filtros.busqueda %}&busqueda={{ filtros.busqueda }}{% endif %}">
+                            Siguiente
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if filtros.proyecto %}&proyecto={{ filtros.proyecto }}{% endif %}{% if filtros.estado %}&estado={{ filtros.estado }}{% endif %}{% if filtros.fecha_inicio %}&fecha_inicio={{ filtros.fecha_inicio }}{% endif %}{% if filtros.fecha_fin %}&fecha_fin={{ filtros.fecha_fin }}{% endif %}{% if filtros.busqueda %}&busqueda={{ filtros.busqueda }}{% endif %}">
+                            Última
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
         </div>
         {% endif %}
+
         {% else %}
-        <div class="empty-message">
-            <span class="material-symbols-outlined">inbox</span>
-            <p>No hay registros para mostrar</p>
+        <!-- Empty State -->
+        <div class="empty-state-modern">
+            <div class="empty-icon">
+                <span class="material-symbols-outlined">event_busy</span>
+            </div>
+            <h4>No hay asistencias registradas</h4>
+            <p>No se encontraron asistencias con los filtros aplicados.</p>
+            <a href="{% url 'asistencias_lista' %}" class="btn-primary">
+                <span class="material-symbols-outlined">visibility</span>
+                Ver Todas las Asistencias
+            </a>
         </div>
         {% endif %}
     </div>
 
-    <!-- Project Summary -->
+    <!-- Resumen por Proyecto -->
     {% if resumen_proyectos %}
-    <div class="summary-box">
-        <h3 class="summary-title">Resumen por proyecto</h3>
-        <div class="summary-grid">
-            <div class="summary-grid-header">
-                <div>Proyecto</div>
-                <div>Presentes</div>
-                <div>Ausentes</div>
-                <div>Tarde</div>
-                <div>Horas</div>
-                <div>Extras</div>
-            </div>
+    <div class="summary-card-modern">
+        <div class="summary-header">
+            <h3>
+                <span class="material-symbols-outlined">analytics</span>
+                Resumen por Proyecto
+            </h3>
+            <span class="summary-count">{{ resumen_proyectos|length }} proyecto{{ resumen_proyectos|length|pluralize }}</span>
+        </div>
+
+        <div class="summary-grid-projects">
             {% for proyecto in resumen_proyectos %}
-            <div class="summary-grid-row">
-                <div class="summary-project-name">{{ proyecto.proyecto__nombre }}</div>
-                <div>{{ proyecto.total_presentes }}</div>
-                <div>{{ proyecto.total_ausentes }}</div>
-                <div>{{ proyecto.total_tarde }}</div>
-                <div>{{ proyecto.total_horas|floatformat:0 }}h</div>
-                <div>{{ proyecto.total_extras|floatformat:0 }}h</div>
+            <div class="project-summary-card">
+                <div class="project-header">
+                    <span class="material-symbols-outlined">folder</span>
+                    <h4>{{ proyecto.proyecto__nombre }}</h4>
+                </div>
+                <div class="project-stats-grid">
+                    <div class="project-stat-item">
+                        <span class="stat-label-small">Total asistencias</span>
+                        <span class="stat-value-large">{{ proyecto.total }}</span>
+                    </div>
+                    <div class="project-stat-item">
+                        <span class="stat-label-small">Validadas</span>
+                        <span class="stat-value-large success-text">{{ proyecto.validadas }}</span>
+                    </div>
+                    <div class="project-stat-item">
+                        <span class="stat-label-small">Pendientes</span>
+                        <span class="stat-value-large warning-text">{{ proyecto.pendientes }}</span>
+                    </div>
+                    <div class="project-stat-item">
+                        <span class="stat-label-small">Horas totales</span>
+                        <span class="stat-value-large">{{ proyecto.total_horas|floatformat:1 }}h</span>
+                    </div>
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -312,900 +411,883 @@
     {% endif %}
 </div>
 
-<!-- Modal Cerrar Turno -->
-<div id="modalCerrarTurno" class="modal-backdrop" style="display: none;" onclick="cerrarModal()">
-    <div class="modal-content-modern" onclick="event.stopPropagation()">
-        <div class="modal-header-modern">
-            <h3>Cerrar Turno</h3>
-            <button type="button" class="modal-close-modern" onclick="cerrarModal()">×</button>
-        </div>
-        <form method="POST" id="formCerrarTurno">
-            {% csrf_token %}
-            <div class="modal-body-modern">
-                <p id="nombreTrabajador" class="modal-confirm-text"></p>
-                
-                <div class="form-field">
-                    <label>Hora de Salida</label>
-                    <input type="time" name="hora_salida" class="input-modern" id="horaSalidaModal" required>
-                </div>
-                
-                <div class="form-field">
-                    <label>Observaciones (opcional)</label>
-                    <textarea name="observaciones" class="textarea-modern" rows="3"></textarea>
-                </div>
-            </div>
-            <div class="modal-footer-modern">
-                <button type="button" class="btn-outline" onclick="cerrarModal()">Cancelar</button>
-                <button type="submit" class="btn-blue">Confirmar Cierre</button>
-            </div>
-        </form>
-    </div>
-</div>
-
 <style>
-/* ==================== GENERAL ==================== */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+/* ==================== VARIABLES ==================== */
+:root {
+    --primary-color: #3b82f6;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --purple-color: #8b5cf6;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
 }
 
-.asistencias-page {
+/* ==================== CONTAINER ==================== */
+.page-container {
     max-width: 1400px;
     margin: 0 auto;
     padding: 24px;
-    background: #f8f9fa;
 }
 
-/* ==================== TOP BAR ==================== */
-.top-bar {
+/* ==================== PAGE HEADER ==================== */
+.page-header-section {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
 }
 
-.top-tabs {
+.page-title-wrapper {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: 16px;
 }
 
-.top-tab {
+.page-icon {
+    font-size: 40px;
+    color: var(--primary-color);
+}
+
+.page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin: 0;
+}
+
+.page-subtitle {
+    font-size: 14px;
+    color: var(--gray-600);
+    margin: 4px 0 0 0;
+}
+
+.page-actions {
     display: flex;
+    gap: 12px;
+}
+
+.btn-primary, .btn-success {
+    display: inline-flex;
     align-items: center;
     gap: 8px;
     padding: 10px 20px;
     border-radius: 8px;
-    text-decoration: none;
-    color: #64748b;
-    font-weight: 500;
-    font-size: 14px;
-    transition: all 0.2s;
-    background: white;
-    border: 1px solid #e2e8f0;
-}
-
-.top-tab:hover {
-    background: #f1f5f9;
-    color: #334155;
-}
-
-.top-tab.active {
-    background: white;
-    color: #1e293b;
-    border-color: #cbd5e1;
-}
-
-.top-tab .material-symbols-outlined {
-    font-size: 20px;
-}
-
-.top-actions {
-    display: flex;
-    gap: 12px;
-}
-
-.btn-blue {
-    background: #3b82f6;
-    color: white;
-    padding: 10px 24px;
-    border-radius: 8px;
-    border: none;
     font-weight: 600;
     font-size: 14px;
-    cursor: pointer;
     text-decoration: none;
-    display: inline-block;
+    border: none;
+    cursor: pointer;
     transition: all 0.2s;
 }
 
-.btn-blue:hover {
-    background: #2563eb;
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
 }
 
-.btn-outline {
-    background: white;
-    color: #475569;
-    padding: 10px 24px;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    font-weight: 500;
-    font-size: 14px;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
-    transition: all 0.2s;
+.btn-primary:hover {
+    background-color: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-.btn-outline:hover {
-    background: #f8fafc;
-    border-color: #cbd5e1;
+.btn-success {
+    background-color: var(--success-color);
+    color: white;
 }
 
-.btn-outline-sm {
-    background: white;
-    color: #475569;
+.btn-success:hover {
+    background-color: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* ==================== ALERT BANNER ==================== */
+.alert-warning-banner {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-left: 4px solid var(--warning-color);
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1);
+}
+
+.alert-warning-banner .material-symbols-outlined {
+    font-size: 32px;
+    color: var(--warning-color);
+}
+
+.alert-warning-banner strong {
+    color: var(--gray-900);
+    font-size: 15px;
+}
+
+.alert-warning-banner p {
+    margin: 4px 0 0 0;
+    font-size: 13px;
+    color: var(--gray-700);
+}
+
+.btn-alert {
+    background: var(--warning-color);
+    color: white;
     padding: 8px 16px;
     border-radius: 6px;
-    border: 1px solid #e2e8f0;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 13px;
-    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
     transition: all 0.2s;
+    margin-left: auto;
 }
 
-.btn-outline-sm:hover {
-    background: #f8fafc;
+.btn-alert:hover {
+    background: #d97706;
+    color: white;
 }
 
-/* ==================== STATS ==================== */
-.stats-container {
+/* ==================== STATS GRID ==================== */
+.stats-grid-modern {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
     margin-bottom: 24px;
 }
 
-.stat-box-modern {
-    background: #f1f5f9;
-    padding: 20px;
-    border-radius: 12px;
-}
-
-.stat-label-modern {
-    font-size: 13px;
-    color: #64748b;
-    margin-bottom: 8px;
-    font-weight: 500;
-}
-
-.stat-value-modern {
-    font-size: 32px;
-    font-weight: 700;
-    color: #1e293b;
-    line-height: 1;
-}
-
-/* ==================== FILTERS ==================== */
-.filters-bar {
+.stat-card-modern {
     background: white;
-    border: 1px solid #e2e8f0;
+    padding: 24px;
     border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 16px;
-}
-
-.filters-form-horizontal {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-.filter-input-search {
-    flex: 1;
-    min-width: 250px;
-    padding: 10px 16px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 14px;
-    color: #1e293b;
-}
-
-.filter-input-search::placeholder {
-    color: #94a3b8;
-}
-
-.filter-item {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     display: flex;
     align-items: center;
-    gap: 8px;
-    background: #f8fafc;
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    gap: 16px;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.filter-item .material-symbols-outlined {
-    font-size: 18px;
-    color: #64748b;
+.stat-card-modern:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
-.filter-select-modern {
-    background: transparent;
-    border: none;
-    padding: 4px 8px;
-    font-size: 14px;
-    color: #1e293b;
-    cursor: pointer;
-    outline: none;
-}
-
-.btn-filter {
-    background: white;
-    border: 1px solid #e2e8f0;
-    padding: 10px;
-    border-radius: 8px;
-    cursor: pointer;
+.stat-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
 }
 
-.btn-filter:hover {
-    background: #f8fafc;
-    border-color: #3b82f6;
+.stat-icon-wrapper.blue { background-color: #dbeafe; color: #1e40af; }
+.stat-icon-wrapper.orange { background-color: #fed7aa; color: #9a3412; }
+.stat-icon-wrapper.green { background-color: #d1fae5; color: #065f46; }
+.stat-icon-wrapper.red { background-color: #fee2e2; color: #991b1b; }
+.stat-icon-wrapper.purple { background-color: #ede9fe; color: #6b21a8; }
+
+.stat-icon-wrapper .material-symbols-outlined {
+    font-size: 28px;
 }
 
-.btn-filter .material-symbols-outlined {
-    font-size: 20px;
-    color: #64748b;
+.stat-content h3 {
+    margin: 0;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--gray-900);
+    line-height: 1;
 }
 
-.extra-actions-bar {
-    display: flex;
-    gap: 8px;
-    padding-top: 16px;
-    border-top: 1px solid #f1f5f9;
-}
-
-/* ==================== DATE RANGE ==================== */
-.date-range-bar {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 16px 20px;
-    margin-bottom: 24px;
-}
-
-.date-range-form {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 14px;
-}
-
-.date-label {
-    color: #475569;
+.stat-content p {
+    margin: 6px 0 0 0;
+    font-size: 13px;
+    color: var(--gray-600);
     font-weight: 500;
 }
 
-.date-input-compact {
-    padding: 8px 12px;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    font-size: 13px;
-    color: #1e293b;
-}
-
-.date-range-form .material-symbols-outlined {
-    font-size: 18px;
-    color: #64748b;
-}
-
-/* ==================== TABLE ==================== */
-.table-modern {
+/* ==================== FILTERS CARD ==================== */
+.filters-card-modern {
     background: white;
-    border: 1px solid #e2e8f0;
     border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.filters-header {
+    margin-bottom: 20px;
+}
+
+.filters-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--gray-900);
+}
+
+.filters-title .material-symbols-outlined {
+    font-size: 24px;
+    color: var(--primary-color);
+}
+
+.filters-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    align-items: end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-group.filter-search {
+    grid-column: span 2;
+}
+
+.filter-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.filter-select, .filter-input {
+    padding: 10px 14px;
+    border: 2px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--gray-900);
+    background: white;
+    transition: all 0.2s;
+}
+
+.filter-select:focus, .filter-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-actions-group {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 12px;
+    padding-top: 8px;
+}
+
+.btn-filter-primary, .btn-filter-secondary, .btn-filter-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn-filter-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-filter-primary:hover {
+    background-color: #2563eb;
+}
+
+.btn-filter-secondary {
+    background-color: white;
+    color: var(--gray-700);
+    border: 2px solid var(--gray-300);
+}
+
+.btn-filter-secondary:hover {
+    background-color: var(--gray-50);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.btn-filter-outline {
+    background-color: white;
+    color: var(--gray-600);
+    border: 2px solid var(--gray-200);
+}
+
+.btn-filter-outline:hover {
+    background-color: var(--gray-50);
+}
+
+/* ==================== TABLE CARD ==================== */
+.table-card-modern {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     overflow: hidden;
     margin-bottom: 24px;
 }
 
-.table-header-row {
-    display: grid;
-    grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr 1fr 1fr 1fr 60px;
-    gap: 16px;
-    padding: 16px 20px;
-    background: #f8fafc;
-    font-size: 12px;
-    font-weight: 600;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.table-row-card {
-    display: grid;
-    grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr 1fr 1fr 1fr 60px;
-    gap: 16px;
-    padding: 20px;
-    border-bottom: 1px solid #f1f5f9;
-    align-items: center;
-    transition: all 0.2s;
-}
-
-.table-row-card:hover {
-    background: #f8fafc;
-}
-
-.table-row-card:last-child {
-    border-bottom: none;
-}
-
-/* Worker Profile */
-.worker-profile {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.worker-photo {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    flex-shrink: 0;
-}
-
-.worker-photo-placeholder {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #3b82f6;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 14px;
-    flex-shrink: 0;
-}
-
-.worker-name-text {
-    font-weight: 600;
-    color: #1e293b;
-    font-size: 14px;
-}
-
-/* Time */
-.time-text {
-    font-family: 'Courier New', Courier, monospace;
-    font-weight: 600;
-    font-size: 14px;
-    color: #1e293b;
-}
-
-.time-text.time-late {
-    color: #ef4444;
-}
-
-.time-empty {
-    color: #cbd5e1;
-    font-size: 16px;
-}
-
-/* Badges */
-.badge-green {
-    background: #d1fae5;
-    color: #065f46;
-    padding: 4px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    display: inline-block;
-}
-
-.badge-yellow {
-    background: #fef3c7;
-    color: #92400e;
-    padding: 4px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    display: inline-block;
-    margin-left: 8px;
-}
-
-.badge-red {
-    background: #fee2e2;
-    color: #991b1b;
-    padding: 4px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    display: inline-block;
-}
-
-.badge-gray {
-    background: #f1f5f9;
-    color: #475569;
-    padding: 4px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    display: inline-block;
-}
-
-/* Hours */
-.hours-detail {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.hours-label-small {
-    font-size: 12px;
-    color: #64748b;
-}
-
-.hours-value-small {
-    font-weight: 600;
-    font-size: 14px;
-    color: #1e293b;
-}
-
-/* Actions Dropdown - MEJORADO */
-.td-actions {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.dropdown-actions {
-    position: relative;
-}
-
-.dropdown-trigger-visible {
-    background: white;
-    border: 1px solid #e2e8f0;
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    color: #64748b;
-}
-
-.dropdown-trigger-visible:hover {
-    background: #f8fafc;
-    border-color: #cbd5e1;
-    color: #334155;
-}
-
-.dropdown-trigger-visible .material-symbols-outlined {
-    font-size: 20px;
-}
-
-.dropdown-menu-fixed {
-    display: none;
-    position: absolute;
-    right: 0;
-    top: calc(100% + 4px);
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
-    padding: 6px;
-    min-width: 200px;
-    z-index: 1000;
-}
-
-.dropdown-actions:hover .dropdown-menu-fixed,
-.dropdown-menu-fixed:hover {
-    display: block;
-}
-
-.dropdown-item-modern {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
-    text-decoration: none;
-    color: #334155;
-    font-size: 14px;
-    border-radius: 6px;
-    transition: all 0.15s;
-    white-space: nowrap;
-    cursor: pointer;
-}
-
-.dropdown-item-modern:hover {
-    background: #f1f5f9;
-    color: #1e293b;
-}
-
-.dropdown-item-modern .material-symbols-outlined {
-    font-size: 20px;
-    color: #64748b;
-}
-
-.dropdown-item-modern:hover .material-symbols-outlined {
-    color: #3b82f6;
-}
-
-.dropdown-item-button {
-    border: none;
-    background: none;
-    width: 100%;
-    text-align: left;
-    font-family: inherit;
-}
-/* Pagination */
-.pagination-compact {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 16px;
-    padding: 20px;
-    border-top: 1px solid #f1f5f9;
-}
-
-.page-link-compact {
-    padding: 8px 16px;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    text-decoration: none;
-    color: #475569;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.2s;
-}
-
-.page-link-compact:hover {
-    background: #f8fafc;
-    border-color: #cbd5e1;
-}
-
-.page-numbers-compact {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-}
-
-.page-current-compact {
-    font-weight: 700;
-    color: #1e293b;
-}
-
-.page-separator {
-    color: #cbd5e1;
-}
-
-.page-total-compact {
-    color: #64748b;
-}
-
-/* Empty State */
-.empty-message {
-    text-align: center;
-    padding: 60px 20px;
-    color: #94a3b8;
-}
-
-.empty-message .material-symbols-outlined {
-    font-size: 64px;
-    color: #cbd5e1;
-    margin-bottom: 16px;
-}
-
-.empty-message p {
-    font-size: 14px;
-}
-
-/* ==================== SUMMARY ==================== */
-.summary-box {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 24px;
-}
-
-.summary-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1e293b;
-    margin-bottom: 20px;
-}
-
-.summary-grid {
-    font-size: 14px;
-}
-
-.summary-grid-header,
-.summary-grid-row {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
-    gap: 16px;
-    padding: 12px 0;
-}
-
-.summary-grid-header {
-    font-weight: 600;
-    color: #64748b;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.summary-grid-row {
-    color: #334155;
-    border-bottom: 1px solid #f8fafc;
-}
-
-.summary-grid-row:last-child {
-    border-bottom: none;
-}
-
-.summary-project-name {
-    font-weight: 600;
-    color: #1e293b;
-}
-
-/* ==================== MODAL ==================== */
-.modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-
-.modal-content-modern {
-    background: white;
-    border-radius: 12px;
-    max-width: 500px;
-    width: 90%;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
-.modal-header-modern {
+.table-card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 20px 24px;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--gray-200);
 }
 
-.modal-header-modern h3 {
+.table-card-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 18px;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--gray-900);
     margin: 0;
 }
 
-.modal-close-modern {
-    background: none;
-    border: none;
-    font-size: 28px;
-    color: #94a3b8;
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-}
-
-.modal-close-modern:hover {
-    color: #64748b;
-}
-
-.modal-body-modern {
-    padding: 24px;
-}
-
-.modal-confirm-text {
+.result-count {
     font-size: 14px;
-    color: #475569;
-    margin-bottom: 20px;
+    color: var(--gray-600);
 }
 
-.form-field {
-    margin-bottom: 16px;
+.table-responsive {
+    overflow-x: auto;
 }
 
-.form-field label {
-    display: block;
-    margin-bottom: 8px;
+.table-modern-styled {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-modern-styled thead {
+    background-color: var(--gray-50);
+}
+
+.table-modern-styled th {
+    padding: 16px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.table-modern-styled tbody tr {
+    border-bottom: 1px solid var(--gray-200);
+    transition: background-color 0.2s;
+}
+
+.table-modern-styled tbody tr:hover {
+    background-color: var(--gray-50);
+}
+
+.table-modern-styled td {
+    padding: 16px;
+    font-size: 14px;
+    color: var(--gray-700);
+    vertical-align: middle;
+}
+
+/* Date Cell */
+.date-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.date-cell strong {
+    color: var(--gray-900);
+}
+
+.date-cell small {
+    color: var(--gray-500);
+    font-size: 12px;
+}
+
+/* Worker Cell */
+.worker-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.worker-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
     font-weight: 600;
     font-size: 14px;
-    color: #334155;
+    flex-shrink: 0;
 }
 
-.input-modern,
-.textarea-modern {
-    width: 100%;
-    padding: 10px 14px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+.worker-info {
+    flex: 1;
+}
+
+.worker-name {
+    font-weight: 600;
+    color: var(--gray-900);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.worker-role {
+    font-size: 12px;
+    color: var(--gray-500);
+    margin-top: 2px;
+}
+
+.badge-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.badge-indicator.late {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.badge-indicator.corrected {
+    background-color: #fce7f3;
+    color: #9f1239;
+}
+
+.badge-indicator .material-symbols-outlined {
     font-size: 14px;
-    color: #1e293b;
+}
+
+/* Project Name */
+.project-name {
+    color: var(--gray-700);
+    font-size: 13px;
+}
+
+/* Time Value */
+.time-value {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: var(--gray-900);
+}
+
+.time-empty {
+    color: var(--gray-400);
+}
+
+/* Hours Cell */
+.hours-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.hours-main {
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+.hours-extra {
+    font-size: 12px;
+    color: var(--warning-color);
+    font-weight: 600;
+}
+
+/* Badge Status */
+.badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-status .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.badge-status.abierto {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.badge-status.cerrado {
+    background-color: #e0e7ff;
+    color: #4338ca;
+}
+
+.badge-status.validado {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.badge-status.rechazado {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+/* Actions Cell */
+.actions-cell {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.btn-icon-action {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
     transition: all 0.2s;
 }
 
-.input-modern:focus,
-.textarea-modern:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+.btn-icon-action.view {
+    background-color: #dbeafe;
+    color: #1e40af;
 }
 
-.textarea-modern {
-    resize: vertical;
-    font-family: inherit;
+.btn-icon-action.view:hover {
+    background-color: #bfdbfe;
+    transform: scale(1.1);
 }
 
-.modal-footer-modern {
+.btn-icon-action.validate {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.btn-icon-action.validate:hover {
+    background-color: #a7f3d0;
+    transform: scale(1.1);
+}
+
+.btn-icon-action.edit {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.btn-icon-action.edit:hover {
+    background-color: #fde68a;
+    transform: scale(1.1);
+}
+
+.btn-icon-action .material-symbols-outlined {
+    font-size: 20px;
+}
+
+/* ==================== PAGINATION ==================== */
+.pagination-wrapper {
     display: flex;
-    justify-content: flex-end;
-    gap: 12px;
+    justify-content: space-between;
+    align-items: center;
     padding: 20px 24px;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid var(--gray-200);
+}
+
+.pagination-info {
+    font-size: 14px;
+    color: var(--gray-600);
+}
+
+.pagination-nav .pagination {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 8px;
+}
+
+.page-item {
+    display: inline-block;
+}
+
+.page-link {
+    padding: 8px 16px;
+    border: 2px solid var(--gray-200);
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--gray-700);
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.page-link:hover {
+    background-color: var(--gray-50);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+/* ==================== EMPTY STATE ==================== */
+.empty-state-modern {
+    text-align: center;
+    padding: 80px 20px;
+}
+
+.empty-icon {
+    font-size: 80px;
+    color: var(--gray-300);
+    margin-bottom: 20px;
+}
+
+.empty-icon .material-symbols-outlined {
+    font-size: 80px;
+}
+
+.empty-state-modern h4 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 8px;
+}
+
+.empty-state-modern p {
+    font-size: 14px;
+    color: var(--gray-600);
+    margin-bottom: 24px;
+}
+
+/* ==================== SUMMARY CARD ==================== */
+.summary-card-modern {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    padding: 24px;
+}
+
+.summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.summary-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0;
+}
+
+.summary-count {
+    font-size: 13px;
+    color: var(--gray-600);
+}
+
+.summary-grid-projects {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.project-summary-card {
+    padding: 24px;
+    background: white;
+    border-radius: 12px;
+    border: 2px solid var(--gray-200);
+    transition: all 0.2s;
+}
+
+.project-summary-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+    transform: translateY(-2px);
+}
+
+.project-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.project-header .material-symbols-outlined {
+    font-size: 24px;
+    color: var(--primary-color);
+}
+
+.project-header h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0;
+}
+
+.project-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.project-stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stat-label-small {
+    font-size: 12px;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.stat-value-large {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+.success-text {
+    color: var(--success-color);
+}
+
+.warning-text {
+    color: var(--warning-color);
 }
 
 /* ==================== RESPONSIVE ==================== */
-@media (max-width: 1200px) {
-    .stats-container {
-        grid-template-columns: repeat(3, 1fr);
+@media (max-width: 1024px) {
+    .stats-grid-modern {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     }
-
-    .table-header-row,
-    .table-row-card {
-        font-size: 12px;
-        gap: 12px;
-        padding: 16px;
+    
+    .filters-form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-group.filter-search {
+        grid-column: span 1;
+    }
+    
+    .summary-grid-projects {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     }
 }
 
 @media (max-width: 768px) {
-    .stats-container {
+    .page-container {
+        padding: 16px;
+    }
+    
+    .page-header-section {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .page-actions {
+        width: 100%;
+    }
+    
+    .btn-primary, .btn-success {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .stats-grid-modern {
         grid-template-columns: repeat(2, 1fr);
     }
-
-    .top-bar {
+    
+    .table-responsive {
+        overflow-x: scroll;
+    }
+    
+    .table-modern-styled {
+        min-width: 1000px;
+    }
+    
+    .summary-grid-projects {
+        grid-template-columns: 1fr;
+    }
+    
+    .pagination-wrapper {
         flex-direction: column;
         gap: 16px;
     }
+    
+    .project-stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
 
-    .filters-form-horizontal {
+@media (max-width: 480px) {
+    .stats-grid-modern {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-actions-group {
         flex-direction: column;
     }
-
-    .filter-input-search {
+    
+    .btn-filter-primary,
+    .btn-filter-secondary,
+    .btn-filter-outline {
         width: 100%;
+        justify-content: center;
     }
-}
-
-/* =================================
-   CORRECCIÓN DROPDOWN (PEGAR AL FINAL)
-   ================================= */
-
-/* 1. Soluciona el problema de "corte" (no se sobrepone) */
-.table-modern {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    /* overflow: hidden;  <-- ELIMINA O COMENTA ESTA LÍNEA */
-    margin-bottom: 24px;
-}
-
-/* 2. Soluciona el problema de "se oculta de una" (el gap) */
-.dropdown-menu-fixed {
-    display: none;
-    position: absolute;
-    right: 0;
-    
-    /* ANTES: top: calc(100% + 4px); */
-    top: 100%; /* <-- CAMBIO 1: Elimina el gap */
-    
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
-    
-    /* ANTES: padding: 6px; */
-    padding: 10px 6px 6px 6px; /* <-- CAMBIO 2: Añade padding superior para mantener la separación visual */
-    
-    min-width: 200px;
-    z-index: 1000;
-}
-/* =================================
-   FIX DROPDOWN (PEGAR AL FINAL)
-   ================================= */
-
-/* 1. Arregla el "corte" del menú */
-.table-modern {
-    overflow: visible !important; /* Permite que el menú se salga de la tabla */
-}
-
-/* 2. Arregla el "gap" que hace desaparecer el menú */
-.dropdown-menu-fixed {
-    top: 100% !important; /* Pega el menú al botón (0px de gap) */
-    
-    /* Añade espacio *dentro* del menú para compensar visualmente */
-    padding-top: 10px !important; 
-    padding-bottom: 6px !important;
-    padding-left: 6px !important;
-    padding-right: 6px !important;
 }
 </style>
 
 <script>
-// Validar que no haya una entrada abierta antes de marcar nueva entrada
-function validarNuevaEntrada(estadoActual) {
-    if (estadoActual === 'abierto') {
-        alert('⚠️ Este trabajador tiene un turno abierto.\n\nDebe cerrar el turno actual antes de marcar una nueva entrada.');
-        return false;
-    }
-    return true;
-}
-
-// Abrir modal de cerrar turno
-function abrirModalCerrar(asistenciaId, nombreTrabajador) {
-    document.getElementById('nombreTrabajador').textContent = `¿Confirmar cierre de turno de ${nombreTrabajador}?`;
-    document.getElementById('formCerrarTurno').action = `/asistencias/${asistenciaId}/cerrar-turno/`;
-    
-    const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    document.getElementById('horaSalidaModal').value = `${hours}:${minutes}`;
-    
-    document.getElementById('modalCerrarTurno').style.display = 'flex';
-}
-
-// Cerrar modal
-function cerrarModal() {
-    document.getElementById('modalCerrarTurno').style.display = 'none';
-}
-
-// Cerrar modal con tecla ESC
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        cerrarModal();
-    }
-});
-
-// Guardar filtros en sessionStorage
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('.filters-form-horizontal');
-    const dateForm = document.querySelector('.date-range-form');
-    
-    // Restaurar filtros desde sessionStorage al cargar
-    const savedFilters = sessionStorage.getItem('asistencias_filters');
-    if (savedFilters && !window.location.search) {
-        const filters = JSON.parse(savedFilters);
-        window.location.search = filters;
-    }
-    
-    // Guardar filtros cuando se envía el formulario
-    if (form) {
-        form.addEventListener('submit', function() {
-            sessionStorage.setItem('asistencias_filters', window.location.search);
-        });
-    }
-    
-    if (dateForm) {
-        dateForm.addEventListener('submit', function() {
-            sessionStorage.setItem('asistencias_filters', window.location.search);
-        });
-    }
+// Smooth scroll behavior
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth' });
+        }
+    });
 });
 </script>
 {% endblock %}

@@ -3,7 +3,7 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from apps.usuarios.models import Usuario
 from django.utils.text import slugify
-
+from datetime import time, datetime, timedelta
 
 def contrato_upload_path(instance, filename):
     """Ruta para contratos"""
@@ -328,6 +328,41 @@ class Proyecto(models.Model):
         else:  # Domingo
             return (None, None, 0)  # No se trabaja
 
+    # ==================== HORARIOS DE TRABAJO ====================
+    hora_entrada_esperada = models.TimeField(
+        default=time(8, 0),
+        verbose_name='Hora de Entrada Esperada',
+        help_text='Hora de entrada esperada para este proyecto (formato 24h)'
+    )
+
+    hora_salida_esperada = models.TimeField(
+        default=time(17, 0),
+        verbose_name='Hora de Salida Esperada',
+        help_text='Hora de salida esperada para este proyecto (formato 24h)'
+    )
+
+    minutos_tolerancia = models.IntegerField(
+        default=15,
+        verbose_name='Minutos de Tolerancia',
+        help_text='Minutos permitidos de retraso sin marcar como llegada tarde'
+    )
+
+    horas_jornada = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=8.0,
+        verbose_name='Horas por Jornada',
+        help_text='Cantidad de horas diarias de trabajo esperadas'
+    )
+
+    # Días laborales (almacenados como string separado por comas)
+    # Formato: "1,2,3,4,5" donde 1=Lunes, 2=Martes, ..., 7=Domingo
+    dias_laborales = models.CharField(
+        max_length=50,
+        default='1,2,3,4,5',
+        verbose_name='Días Laborales',
+        help_text='Días de la semana que se trabaja en este proyecto (1=Lun, 2=Mar, ..., 7=Dom)'
+    )
     class Meta:
         verbose_name = 'Proyecto'
         verbose_name_plural = 'Proyectos'
@@ -342,7 +377,192 @@ class Proyecto(models.Model):
     
     def __str__(self):
         return self.nombre
-    
+
+    def get_dias_laborales_list(self):
+        """
+        Retorna lista de días laborales como integers
+        
+        Returns:
+            list: Lista de días laborales [1, 2, 3, 4, 5]
+        """
+        if not self.dias_laborales:
+            return [1, 2, 3, 4, 5]  # Default: Lunes a Viernes
+        
+        try:
+            return [int(d.strip()) for d in self.dias_laborales.split(',') if d.strip()]
+        except:
+            return [1, 2, 3, 4, 5]
+
+
+    def get_dias_laborales_nombres(self):
+        """
+        Retorna nombres de los días laborales
+        
+        Returns:
+            str: "Lunes, Martes, Miércoles, Jueves, Viernes"
+        """
+        dias_dict = {
+            1: 'Lunes',
+            2: 'Martes',
+            3: 'Miércoles',
+            4: 'Jueves',
+            5: 'Viernes',
+            6: 'Sábado',
+            7: 'Domingo',
+        }
+        
+        dias = self.get_dias_laborales_list()
+        nombres = [dias_dict.get(d, '') for d in dias]
+        return ', '.join(nombres)
+
+
+    def es_dia_laboral(self, fecha):
+        """
+        Verifica si una fecha es día laboral del proyecto
+        
+        Args:
+            fecha: date object o datetime
+        
+        Returns:
+            tuple: (bool, str) - (es_laboral, mensaje)
+        """
+        if isinstance(fecha, datetime):
+            fecha = fecha.date()
+        
+        # 1=Lunes, 2=Martes, ..., 7=Domingo
+        dia_semana = fecha.isoweekday()
+        
+        dias_laborales = self.get_dias_laborales_list()
+        
+        if dia_semana in dias_laborales:
+            return True, "Día laboral"
+        else:
+            dias_dict = {
+                1: 'Lunes', 2: 'Martes', 3: 'Miércoles',
+                4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 7: 'Domingo'
+            }
+            dia_nombre = dias_dict.get(dia_semana, 'Desconocido')
+            return False, f"El {dia_nombre} no es día laboral en este proyecto"
+
+
+    def calcular_llegada_tarde(self, hora_entrada_real):
+        """
+        Calcula si hubo llegada tarde y cuántos minutos
+        
+        Args:
+            hora_entrada_real: time object con la hora real de entrada
+        
+        Returns:
+            tuple: (minutos_tarde, llego_tarde)
+                - minutos_tarde (int): Minutos de retraso efectivos (descontando tolerancia)
+                - llego_tarde (bool): True si llegó tarde después de aplicar tolerancia
+        """
+        if not hora_entrada_real or not self.hora_entrada_esperada:
+            return 0, False
+        
+        # Convertir a datetime para calcular diferencia
+        entrada_esperada = datetime.combine(datetime.today(), self.hora_entrada_esperada)
+        entrada_real = datetime.combine(datetime.today(), hora_entrada_real)
+        
+        # Si llegó antes o a tiempo
+        if entrada_real <= entrada_esperada:
+            return 0, False
+        
+        # Calcular minutos de retraso
+        diferencia = entrada_real - entrada_esperada
+        minutos_retraso_total = int(diferencia.total_seconds() / 60)
+        
+        # Aplicar tolerancia
+        if minutos_retraso_total <= self.minutos_tolerancia:
+            return 0, False  # Dentro de la tolerancia
+        
+        # Retraso efectivo (descontando tolerancia)
+        minutos_tarde_efectivos = minutos_retraso_total - self.minutos_tolerancia
+        
+        return minutos_tarde_efectivos, True
+
+
+    def calcular_horas_extras(self, hora_salida_real):
+        """
+        Calcula horas extras trabajadas
+        
+        Args:
+            hora_salida_real: time object con la hora real de salida
+        
+        Returns:
+            float: Horas extras trabajadas (puede ser 0)
+        """
+        if not hora_salida_real or not self.hora_salida_esperada:
+            return 0.0
+        
+        # Convertir a datetime para calcular diferencia
+        salida_esperada = datetime.combine(datetime.today(), self.hora_salida_esperada)
+        salida_real = datetime.combine(datetime.today(), hora_salida_real)
+        
+        # Si salió antes o a la hora esperada, no hay extras
+        if salida_real <= salida_esperada:
+            return 0.0
+        
+        # Calcular horas extras
+        diferencia = salida_real - salida_esperada
+        horas_extras = diferencia.total_seconds() / 3600
+        
+        return round(horas_extras, 2)
+
+
+    def calcular_horas_trabajadas(self, hora_entrada, hora_salida):
+        """
+        Calcula el total de horas trabajadas en el turno
+        
+        Args:
+            hora_entrada: time object
+            hora_salida: time object
+        
+        Returns:
+            float: Horas totales trabajadas
+        """
+        if not hora_entrada or not hora_salida:
+            return 0.0
+        
+        entrada = datetime.combine(datetime.today(), hora_entrada)
+        salida = datetime.combine(datetime.today(), hora_salida)
+        
+        # Si la salida es al día siguiente (después de medianoche)
+        if salida < entrada:
+            salida += timedelta(days=1)
+        
+        diferencia = salida - entrada
+        horas = diferencia.total_seconds() / 3600
+        
+        return round(horas, 2)
+
+
+    def get_horario_display(self):
+        """
+        Retorna el horario en formato legible
+        
+        Returns:
+            str: "08:00 - 17:00 (8.0h)"
+        """
+        entrada = self.hora_entrada_esperada.strftime('%H:%M')
+        salida = self.hora_salida_esperada.strftime('%H:%M')
+        return f"{entrada} - {salida} ({self.horas_jornada}h)"
+
+
+    @property
+    def tiene_horario_configurado(self):
+        """
+        Verifica si el proyecto tiene horarios configurados
+        
+        Returns:
+            bool: True si tiene horarios válidos
+        """
+        return (
+            self.hora_entrada_esperada is not None and
+            self.hora_salida_esperada is not None and
+            self.horas_jornada > 0
+        )
+
     @property
     def porcentaje_gastado(self):
         """Calcula el porcentaje del presupuesto total gastado"""

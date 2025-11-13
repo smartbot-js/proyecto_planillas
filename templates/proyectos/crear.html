@@ -156,6 +156,168 @@
         .form-grid.cols-2, .form-grid.cols-3 { grid-template-columns: 1fr; }
         .radio-info-cards { grid-template-columns: 1fr; }
     }
+
+    /* ===== ESTILOS HORARIOS ===== */
+    .horarios-info-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px;
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        border-left: 4px solid #3b82f6;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .horarios-info-banner .material-symbols-outlined {
+        font-size: 28px;
+        color: #1e40af;
+        flex-shrink: 0;
+    }
+    
+    .horarios-info-banner strong {
+        display: block;
+        color: #1e3a8a;
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+    
+    .horarios-info-banner p {
+        color: #1e40af;
+        font-size: 13px;
+        margin: 0;
+    }
+    
+    .input-with-badge {
+        display: flex;
+        align-items: center;
+        gap: 0;
+    }
+    
+    .input-with-badge input {
+        flex: 1;
+        border-radius: 8px 0 0 8px !important;
+        border-right: none !important;
+    }
+    
+    .input-badge {
+        padding: 10px 14px;
+        background: #f3f4f6;
+        border: 2px solid #e2e8f0;
+        border-left: none;
+        border-radius: 0 8px 8px 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: #6b7280;
+        white-space: nowrap;
+    }
+    
+    .dias-laborales-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+    }
+    
+    .dia-checkbox {
+        display: block;
+        cursor: pointer;
+        margin: 0;
+    }
+    
+    .dia-checkbox input[type="checkbox"] {
+        display: none;
+    }
+    
+    .dia-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    
+    .dia-checkbox:hover .dia-label {
+        border-color: #3b82f6;
+        background: #f0f9ff;
+    }
+    
+    .dia-checkbox input[type="checkbox"]:checked + .dia-label {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        border-color: #1e40af;
+        color: white;
+    }
+    
+    .dia-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #f3f4f6;
+        font-weight: 700;
+        font-size: 13px;
+        color: #374151;
+        flex-shrink: 0;
+    }
+    
+    .dia-checkbox input[type="checkbox"]:checked + .dia-label .dia-icon {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+    
+    .dia-nombre {
+        font-size: 13px;
+        font-weight: 500;
+        color: #374151;
+    }
+    
+    .dia-checkbox input[type="checkbox"]:checked + .dia-label .dia-nombre {
+        color: white;
+    }
+    
+    .horario-resumen {
+        margin-top: 20px;
+        padding: 16px;
+        background: #f9fafb;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .resumen-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 10px 0;
+    }
+    
+    .resumen-item:not(:last-child) {
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .resumen-item .material-symbols-outlined {
+        font-size: 22px;
+        color: #6b7280;
+        flex-shrink: 0;
+    }
+    
+    .resumen-item strong {
+        display: block;
+        font-size: 12px;
+        color: #374151;
+        margin-bottom: 4px;
+    }
+    
+    .resumen-item p {
+        font-size: 13px;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+    }
 </style>
 {% endblock %}
 
@@ -500,6 +662,130 @@
 
                 </div>
 
+                <!-- ✨ SECCIÓN DE HORARIOS Y DÍAS LABORALES -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <span class="material-symbols-outlined">schedule</span>
+                        </div>
+                        <h3 class="section-title">Horarios y Días Laborales</h3>
+                    </div>
+
+                    <div class="horarios-info-banner">
+                        <span class="material-symbols-outlined">info</span>
+                        <div>
+                            <strong>Configura el horario laboral de este proyecto</strong>
+                            <p>Estos horarios se usarán para calcular automáticamente llegadas tarde y horas extras.</p>
+                        </div>
+                    </div>
+
+                    <div class="form-grid cols-2">
+                        <div class="form-group">
+                            <label>Hora de Entrada <span class="required">*</span></label>
+                            <input type="time" name="hora_entrada_esperada" id="hora_entrada_esperada" value="08:00" required>
+                            <span class="form-help">Hora en que deben llegar los trabajadores</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Hora de Salida <span class="required">*</span></label>
+                            <input type="time" name="hora_salida_esperada" id="hora_salida_esperada" value="17:00" required>
+                            <span class="form-help">Hora en que termina la jornada</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Minutos de Tolerancia <span class="required">*</span></label>
+                            <div class="input-with-badge">
+                                <input type="number" name="minutos_tolerancia" id="minutos_tolerancia" value="15" min="0" max="60" required>
+                                <span class="input-badge">minutos</span>
+                            </div>
+                            <span class="form-help">Minutos permitidos de retraso</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Horas por Jornada <span class="required">*</span></label>
+                            <div class="input-with-badge">
+                                <input type="number" name="horas_jornada" id="horas_jornada" value="8.0" min="1" max="24" step="0.5" required>
+                                <span class="input-badge">horas</span>
+                            </div>
+                            <span class="form-help">Horas diarias de trabajo</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Días Laborales <span class="required">*</span></label>
+                        <div class="dias-laborales-grid">
+                            <label class="dia-checkbox">
+                                <input type="checkbox" name="dias_laborales" value="1" checked>
+                                <span class="dia-label">
+                                    <span class="dia-icon">L</span>
+                                    <span class="dia-nombre">Lunes</span>
+                                </span>
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" name="dias_laborales" value="2" checked>
+                                <span class="dia-label">
+                                    <span class="dia-icon">M</span>
+                                    <span class="dia-nombre">Martes</span>
+                                </span>
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" name="dias_laborales" value="3" checked>
+                                <span class="dia-label">
+                                    <span class="dia-icon">M</span>
+                                    <span class="dia-nombre">Miércoles</span>
+                                </span>
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" name="dias_laborales" value="4" checked>
+                                <span class="dia-label">
+                                    <span class="dia-icon">J</span>
+                                    <span class="dia-nombre">Jueves</span>
+                                </span>
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" name="dias_laborales" value="5" checked>
+                                <span class="dia-label">
+                                    <span class="dia-icon">V</span>
+                                    <span class="dia-nombre">Viernes</span>
+                                </span>
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" name="dias_laborales" value="6">
+                                <span class="dia-label">
+                                    <span class="dia-icon">S</span>
+                                    <span class="dia-nombre">Sábado</span>
+                                </span>
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" name="dias_laborales" value="7">
+                                <span class="dia-label">
+                                    <span class="dia-icon">D</span>
+                                    <span class="dia-nombre">Domingo</span>
+                                </span>
+                            </label>
+                        </div>
+                        <span class="form-help">Selecciona los días que se trabaja en este proyecto</span>
+                    </div>
+
+                    <div class="horario-resumen">
+                        <div class="resumen-item">
+                            <span class="material-symbols-outlined">schedule</span>
+                            <div>
+                                <strong>Horario configurado:</strong>
+                                <p id="horario-preview">08:00 - 17:00 (8.0 horas)</p>
+                            </div>
+                        </div>
+                        <div class="resumen-item">
+                            <span class="material-symbols-outlined">event</span>
+                            <div>
+                                <strong>Días laborales:</strong>
+                                <p id="dias-preview">Lunes, Martes, Miércoles, Jueves, Viernes</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- FIN SECCIÓN HORARIOS -->
+
                 <div class="form-sidebar">
                     
                     <div class="sidebar-scroll">
@@ -651,5 +937,48 @@ document.getElementById('proyectoForm').addEventListener('submit', function(e) {
     }
 });
 
+// ===== PREVIEW HORARIOS EN TIEMPO REAL =====
+function actualizarPreviewHorario() {
+    const horaEntrada = document.getElementById('hora_entrada_esperada')?.value || '08:00';
+    const horaSalida = document.getElementById('hora_salida_esperada')?.value || '17:00';
+    const horasJornada = document.getElementById('horas_jornada')?.value || '8.0';
+    
+    const preview = document.getElementById('horario-preview');
+    if (preview) {
+        preview.textContent = `${horaEntrada} - ${horaSalida} (${parseFloat(horasJornada).toFixed(1)} horas)`;
+    }
+}
+
+function actualizarPreviewDias() {
+    const diasNombres = {
+        '1': 'Lunes', '2': 'Martes', '3': 'Miércoles',
+        '4': 'Jueves', '5': 'Viernes', '6': 'Sábado', '7': 'Domingo'
+    };
+    
+    const checkboxes = document.querySelectorAll('input[name="dias_laborales"]:checked');
+    const diasSeleccionados = Array.from(checkboxes)
+        .map(cb => diasNombres[cb.value])
+        .join(', ');
+    
+    const preview = document.getElementById('dias-preview');
+    if (preview) {
+        preview.textContent = diasSeleccionados || 'Ningún día seleccionado';
+    }
+}
+
+// Event listeners para previews
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('hora_entrada_esperada')?.addEventListener('change', actualizarPreviewHorario);
+    document.getElementById('hora_salida_esperada')?.addEventListener('change', actualizarPreviewHorario);
+    document.getElementById('horas_jornada')?.addEventListener('input', actualizarPreviewHorario);
+    
+    document.querySelectorAll('input[name="dias_laborales"]').forEach(checkbox => {
+        checkbox.addEventListener('change', actualizarPreviewDias);
+    });
+    
+    // Inicializar previews
+    actualizarPreviewHorario();
+    actualizarPreviewDias();
+});
 </script>
 {% endblock %}

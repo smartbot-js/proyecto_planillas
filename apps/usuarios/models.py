@@ -66,9 +66,12 @@ class Usuario(AbstractUser):
     class Rol(models.TextChoices):
         """Roles disponibles en el sistema"""
         ADMINISTRADOR = 'administrador', _('Administrador')
+        GERENTE = 'gerente', _('Gerente')
+        CONTADOR = 'contador', _('Contador')
+        RESIDENTE = 'residente', _('Residente de Obra')
         SUPERVISOR = 'supervisor', _('Supervisor')
         TRABAJADOR = 'trabajador', _('Trabajador')
-
+        
     # Eliminamos el campo username, usaremos email
     username = None
     first_name = None

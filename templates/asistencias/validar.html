@@ -1,0 +1,237 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}✓ Validar Asistencia{% endblock %}
+
+{% block extra_css %}
+<style>
+    .validation-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .asistencia-card {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin: 20px 0;
+    }
+    
+    .info-item label {
+        display: block;
+        font-size: 12px;
+        color: #64748b;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+    
+    .info-item .value {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1e293b;
+    }
+    
+    .alert-card {
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin: 15px 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .alert-card.warning {
+        background-color: #fef3c7;
+        border-left: 4px solid #f59e0b;
+    }
+    
+    .alert-card.info {
+        background-color: #dbeafe;
+        border-left: 4px solid #3b82f6;
+    }
+    
+    .btn-group-validacion {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+    }
+    
+    .btn-lg {
+        padding: 15px 30px;
+        font-size: 16px;
+        font-weight: 600;
+        border-radius: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="validation-container py-4">
+    
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>✓ Validar Asistencia</h2>
+        <a href="{% url 'asistencias_validar_lista' %}" class="btn btn-secondary">
+            ← Volver
+        </a>
+    </div>
+    
+    <!-- Card de Información -->
+    <div class="asistencia-card">
+        
+        <!-- Trabajador -->
+        <div class="mb-4">
+            <h3 class="mb-1">{{ asistencia.trabajador.nombre_completo }}</h3>
+            <p class="text-muted mb-0">
+                <strong>Cédula:</strong> {{ asistencia.trabajador.numero_cedula }} | 
+                <strong>Cargo:</strong> {{ asistencia.puesto_laboral }}
+            </p>
+        </div>
+        
+        <!-- Información Principal -->
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Proyecto</label>
+                <div class="value">{{ asistencia.proyecto.nombre }}</div>
+            </div>
+            
+            <div class="info-item">
+                <label>Fecha</label>
+                <div class="value">{{ asistencia.fecha|date:"d/m/Y" }}</div>
+                <small class="text-muted">{{ asistencia.fecha|date:"l" }}</small>
+            </div>
+            
+            <div class="info-item">
+                <label>Hora Entrada</label>
+                <div class="value">{{ asistencia.hora_entrada|time:"H:i" }}</div>
+            </div>
+            
+            <div class="info-item">
+                <label>Hora Salida</label>
+                <div class="value">{{ asistencia.hora_salida|time:"H:i" }}</div>
+            </div>
+            
+            <div class="info-item">
+                <label>Horas Trabajadas</label>
+                <div class="value">{{ asistencia.horas_totales|floatformat:1 }} hrs</div>
+                <small class="text-muted">{{ asistencia.duracion_jornada }}</small>
+            </div>
+            
+            <div class="info-item">
+                <label>Horas Extras</label>
+                <div class="value">
+                    {% if asistencia.horas_extras > 0 %}
+                    <span class="text-warning">{{ asistencia.horas_extras|floatformat:1 }} hrs</span>
+                    {% else %}
+                    -
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Alertas -->
+        {% if asistencia.llego_tarde %}
+        <div class="alert-card warning">
+            <span class="material-symbols-outlined">schedule</span>
+            <div>
+                <strong>Llegada Tarde</strong>
+                <p class="mb-0">El trabajador llegó {{ asistencia.minutos_tarde }} minutos tarde.</p>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if asistencia.horas_extras > 0 %}
+        <div class="alert-card info">
+            <span class="material-symbols-outlined">access_time</span>
+            <div>
+                <strong>Horas Extras Detectadas</strong>
+                <p class="mb-0">Este trabajador realizó {{ asistencia.horas_extras|floatformat:1 }} horas extras.</p>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if asistencia.observaciones %}
+        <div class="alert-card info">
+            <span class="material-symbols-outlined">info</span>
+            <div>
+                <strong>Observaciones</strong>
+                <p class="mb-0">{{ asistencia.observaciones }}</p>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Formulario de Validación -->
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+            
+            <div class="form-group mb-3">
+                <label for="observaciones" class="form-label">
+                    Observaciones (opcional)
+                </label>
+                <textarea 
+                    name="observaciones" 
+                    id="observaciones" 
+                    class="form-control" 
+                    rows="3"
+                    placeholder="Agrega comentarios sobre esta asistencia si es necesario..."></textarea>
+                <small class="form-text text-muted">
+                    Si rechazas la asistencia, las observaciones son obligatorias.
+                </small>
+            </div>
+            
+            <div class="btn-group-validacion">
+                <button 
+                    type="submit" 
+                    name="accion" 
+                    value="validar" 
+                    class="btn btn-success btn-lg flex-fill">
+                    <span class="material-symbols-outlined">check_circle</span>
+                    Validar Asistencia
+                </button>
+                
+                <button 
+                    type="submit" 
+                    name="accion" 
+                    value="rechazar" 
+                    class="btn btn-danger btn-lg flex-fill"
+                    onclick="return confirm('¿Estás seguro de rechazar esta asistencia? Debes proporcionar un motivo.');">
+                    <span class="material-symbols-outlined">cancel</span>
+                    Rechazar Asistencia
+                </button>
+                
+                <a 
+                    href="{% url 'asistencia_corregir' asistencia.id %}" 
+                    class="btn btn-warning btn-lg">
+                    <span class="material-symbols-outlined">edit</span>
+                    Corregir
+                </a>
+            </div>
+        </form>
+        
+    </div>
+    
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Validar que el rechazo tenga observaciones
+    document.querySelector('button[value="rechazar"]').addEventListener('click', function(e) {
+        const observaciones = document.getElementById('observaciones').value.trim();
+        if (!observaciones) {
+            e.preventDefault();
+            alert('Debes proporcionar un motivo en las observaciones para rechazar la asistencia.');
+            document.getElementById('observaciones').focus();
+        }
+    });
+</script>
+{% endblock %}

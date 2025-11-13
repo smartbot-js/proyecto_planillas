@@ -25,7 +25,17 @@ from .serializers import (
     CheckInSerializer,
     CheckOutSerializer,
     SincronizarAsistenciasSerializer,
-    ResumenDiarioSerializer
+    ResumenDiarioSerializer,
+    ValidarAsistenciaSerializer,
+    RechazarAsistenciaSerializer,
+    CorregirAsistenciaSerializer,
+    AsistenciaPendienteValidacionSerializer,
+)
+
+from .permissions import (
+    PuedeValidarAsistencias,
+    PuedeCorregirAsistencias,
+    EsSupervisorDelProyecto,
 )
 from apps.trabajadores.models import Trabajador
 from apps.proyectos.models import Proyecto
@@ -37,45 +47,58 @@ import csv
 # VISTAS WEB
 # ============================================
 
-class AsistenciaListView(LoginRequiredMixin, ListView):
+# ========================================
+# VISTA: LISTA DE PENDIENTES
+# ========================================
+
+class AsistenciaValidarListView(LoginRequiredMixin, ListView):
+    """
+    Vista para listar asistencias pendientes de validación
+    
+    URL: /asistencias/validar/
+    Template: templates/asistencias/validar_lista.html
+    """
     model = Asistencia
-    template_name = 'asistencias/lista.html'
+    template_name = 'asistencias/validar_lista.html'
     context_object_name = 'asistencias'
-    paginate_by = 20
+    paginate_by = 50
     
     def get_queryset(self):
-        queryset = Asistencia.objects.select_related(
-            'trabajador', 'proyecto', 'registrado_por'
-        ).order_by('-fecha', '-hora_entrada')
+        """
+        Obtiene asistencias pendientes de validación
+        """
+        # Filtro base: cerradas, no validadas, no eliminadas
+        queryset = Asistencia.objects.filter(
+            estado='cerrado',
+            validado=False,
+            eliminado=False
+        ).select_related('trabajador', 'proyecto', 'registrado_por')
         
-        # Filtros
+        # Si es supervisor, solo sus proyectos
+        if self.request.user.es_supervisor() and not self.request.user.es_administrador():
+            queryset = queryset.filter(proyecto__supervisor=self.request.user)
+        
+        # Filtros desde GET
+        proyecto_id = self.request.GET.get('proyecto')
+        if proyecto_id:
+            queryset = queryset.filter(proyecto_id=proyecto_id)
+        
         fecha_inicio = self.request.GET.get('fecha_inicio')
-        fecha_fin = self.request.GET.get('fecha_fin')
-        proyecto = self.request.GET.get('proyecto')
-        estado = self.request.GET.get('estado')
-        puesto = self.request.GET.get('puesto')
-        llego_tarde = self.request.GET.get('llego_tarde')
-        busqueda = self.request.GET.get('busqueda')
-        
-        # Aplicar filtros de fecha (si existen)
         if fecha_inicio:
-            queryset = queryset.filter(fecha__gte=fecha_inicio)
-        if fecha_fin:
-            queryset = queryset.filter(fecha__lte=fecha_fin)
+            try:
+                queryset = queryset.filter(fecha__gte=fecha_inicio)
+            except:
+                pass
         
-        # Si no hay rango de fechas Y no se especificó "ver_todos", filtrar por hoy
-        ver_todos = self.request.GET.get('ver_todos')
-        if not fecha_inicio and not fecha_fin and not ver_todos:
-            queryset = queryset.filter(fecha=timezone.now().date())
-
-        if proyecto:
-            queryset = queryset.filter(proyecto_id=proyecto)
-        if estado:
-            queryset = queryset.filter(estado=estado)
-        if puesto:
-            queryset = queryset.filter(puesto_laboral=puesto)
-        if llego_tarde == 'si':
-            queryset = queryset.filter(llego_tarde=True)
+        fecha_fin = self.request.GET.get('fecha_fin')
+        if fecha_fin:
+            try:
+                queryset = queryset.filter(fecha__lte=fecha_fin)
+            except:
+                pass
+        
+        # Búsqueda por nombre de trabajador
+        busqueda = self.request.GET.get('busqueda')
         if busqueda:
             queryset = queryset.filter(
                 Q(trabajador__nombre__icontains=busqueda) |
@@ -83,86 +106,391 @@ class AsistenciaListView(LoginRequiredMixin, ListView):
                 Q(trabajador__numero_cedula__icontains=busqueda)
             )
         
-        return queryset
+        # Ordenar
+        return queryset.order_by('-fecha', '-hora_entrada')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Determinar el rango de fechas para stats y resumen
-        fecha_inicio = self.request.GET.get('fecha_inicio')
-        fecha_fin = self.request.GET.get('fecha_fin')
-        
-        ver_todos = self.request.GET.get('ver_todos')
-
-        if fecha_inicio and fecha_fin:
-            base_query = Asistencia.objects.filter(
-                fecha__range=[fecha_inicio, fecha_fin]
-            )
-            context['fecha_inicio_filtro'] = fecha_inicio
-            context['fecha_fin_filtro'] = fecha_fin
-        elif ver_todos:
-            # Mostrar todos los registros sin filtro de fecha
-            base_query = Asistencia.objects.all()
-            context['fecha_inicio_filtro'] = ''
-            context['fecha_fin_filtro'] = ''
-            context['ver_todos'] = True
+        # Proyectos para filtro
+        if self.request.user.es_administrador():
+            proyectos = Proyecto.objects.filter(activo=True, eliminado=False)
         else:
-            # Si no hay rango ni ver_todos, usar fecha de hoy
-            hoy = timezone.now().date()
-            base_query = Asistencia.objects.filter(fecha=hoy)
-            context['fecha_inicio_filtro'] = hoy.strftime('%Y-%m-%d')
-            context['fecha_fin_filtro'] = hoy.strftime('%Y-%m-%d')
+            proyectos = Proyecto.objects.filter(
+                supervisor=self.request.user,
+                activo=True,
+                eliminado=False
+            )
+        context['proyectos'] = proyectos
         
+        # Estadísticas
+        queryset_base = self.get_queryset()
         
-        # Aplicar filtro de proyecto si existe
-        proyecto_filtro = self.request.GET.get('proyecto')
-        if proyecto_filtro:
-            base_query = base_query.filter(proyecto_id=proyecto_filtro)
-
-        # Estadísticas (basadas en el rango de fechas)
-        context['stats'] = base_query.aggregate(
-            total=Count('id'),
-            cerrados=Count('id', filter=Q(estado='cerrado')),
-            abiertos=Count('id', filter=Q(estado='abierto')),
-            tarde=Count('id', filter=Q(llego_tarde=True)),
-            horas_totales=Sum('horas_totales'),
-            horas_extras=Sum('horas_extras')
-        )
-
-        # Limpiar agregados nulos
-        for key, value in context['stats'].items():
-            if value is None:
-                context['stats'][key] = 0
+        context['estadisticas'] = {
+            'total_pendientes': queryset_base.count(),
+            'validadas_hoy': Asistencia.objects.filter(
+                validado=True,
+                validado_fecha__date=timezone.now().date()
+            ).count(),
+            'pendientes_hoy': queryset_base.filter(
+                fecha=timezone.now().date()
+            ).count(),
+            'pendientes_ayer': queryset_base.filter(
+                fecha=timezone.now().date() - timedelta(days=1)
+            ).count(),
+        }
         
-        # Para los filtros
-        context['proyectos'] = Proyecto.objects.filter(eliminado=False)
-        context['estados'] = Asistencia.ESTADO_CHOICES
-        context['puestos'] = Asistencia.objects.values_list(
-            'puesto_laboral', flat=True
-        ).distinct()
-        
-        # Filtros aplicados
+        # Mantener filtros en el contexto
         context['filtros'] = {
-            'fecha_inicio': context['fecha_inicio_filtro'],
-            'fecha_fin': context['fecha_fin_filtro'],
             'proyecto': self.request.GET.get('proyecto', ''),
-            'estado': self.request.GET.get('estado', ''),
-            'puesto': self.request.GET.get('puesto', ''),
-            'llego_tarde': self.request.GET.get('llego_tarde', ''),
+            'fecha_inicio': self.request.GET.get('fecha_inicio', ''),
+            'fecha_fin': self.request.GET.get('fecha_fin', ''),
             'busqueda': self.request.GET.get('busqueda', ''),
         }
         
-        # Resumen por proyecto (basado en el rango de fechas)
-        context['resumen_proyectos'] = base_query.values(
+        return context
+
+
+# ========================================
+# VISTA: VALIDAR/RECHAZAR INDIVIDUAL
+# ========================================
+
+class AsistenciaValidarView(LoginRequiredMixin, View):
+    """
+    Vista para validar o rechazar una asistencia individual
+    
+    URL: /asistencias/<pk>/validar/
+    Template: templates/asistencias/validar.html
+    """
+    template_name = 'asistencias/validar.html'
+    
+    def get(self, request, pk):
+        """
+        Muestra formulario de validación
+        """
+        asistencia = get_object_or_404(Asistencia, pk=pk, eliminado=False)
+        
+        # Verificar permisos
+        if not self._tiene_permiso(request.user, asistencia):
+            messages.error(
+                request,
+                '❌ No tienes permisos para validar esta asistencia.'
+            )
+            return redirect('asistencias_validar_lista')
+        
+        # Verificar que puede ser validada
+        if not asistencia.puede_ser_validada():
+            messages.error(
+                request,
+                '❌ Esta asistencia no puede ser validada.'
+            )
+            return redirect('asistencias_validar_lista')
+        
+        context = {
+            'asistencia': asistencia,
+        }
+        
+        return render(request, self.template_name, context)
+    
+    def post(self, request, pk):
+        """
+        Procesa validación o rechazo
+        """
+        asistencia = get_object_or_404(Asistencia, pk=pk, eliminado=False)
+        
+        # Verificar permisos
+        if not self._tiene_permiso(request.user, asistencia):
+            messages.error(
+                request,
+                '❌ No tienes permisos para validar esta asistencia.'
+            )
+            return redirect('asistencias_validar_lista')
+        
+        accion = request.POST.get('accion')
+        observaciones = request.POST.get('observaciones', '')
+        
+        try:
+            if accion == 'validar':
+                asistencia.validar(
+                    usuario=request.user,
+                    observaciones=observaciones
+                )
+                messages.success(
+                    request,
+                    f'✅ Asistencia validada exitosamente para {asistencia.trabajador.nombre_completo}'
+                )
+            
+            elif accion == 'rechazar':
+                if not observaciones or observaciones.strip() == '':
+                    messages.error(
+                        request,
+                        '❌ Debe proporcionar un motivo para rechazar la asistencia.'
+                    )
+                    return redirect('asistencia_validar', pk=pk)
+                
+                asistencia.rechazar(
+                    usuario=request.user,
+                    motivo=observaciones
+                )
+                messages.warning(
+                    request,
+                    f'⚠️ Asistencia rechazada para {asistencia.trabajador.nombre_completo}'
+                )
+            
+            else:
+                messages.error(request, '❌ Acción no válida.')
+                return redirect('asistencia_validar', pk=pk)
+            
+            return redirect('asistencias_validar_lista')
+        
+        except ValueError as e:
+            messages.error(request, f'❌ Error: {str(e)}')
+            return redirect('asistencia_validar', pk=pk)
+        except Exception as e:
+            messages.error(request, f'❌ Error inesperado: {str(e)}')
+            return redirect('asistencia_validar', pk=pk)
+    
+    def _tiene_permiso(self, usuario, asistencia):
+        """
+        Verifica si el usuario tiene permiso para validar
+        """
+        if usuario.es_administrador():
+            return True
+        
+        if usuario.es_supervisor():
+            return asistencia.proyecto.supervisor == usuario
+        
+        return False
+
+
+# ========================================
+# VISTA: CORREGIR MARCACIONES
+# ========================================
+
+class AsistenciaCorregirView(LoginRequiredMixin, View):
+    """
+    Vista para corregir marcaciones erróneas
+    
+    URL: /asistencias/<pk>/corregir/
+    Template: templates/asistencias/corregir.html
+    """
+    template_name = 'asistencias/corregir.html'
+    
+    def get(self, request, pk):
+        """
+        Muestra formulario de corrección
+        """
+        asistencia = get_object_or_404(Asistencia, pk=pk, eliminado=False)
+        
+        # Verificar permisos
+        if not self._tiene_permiso(request.user, asistencia):
+            messages.error(
+                request,
+                '❌ No tienes permisos para corregir esta asistencia.'
+            )
+            return redirect('asistencias_validar_lista')
+        
+        context = {
+            'asistencia': asistencia,
+        }
+        
+        return render(request, self.template_name, context)
+    
+    def post(self, request, pk):
+        """
+        Procesa corrección de marcaciones
+        """
+        asistencia = get_object_or_404(Asistencia, pk=pk, eliminado=False)
+        
+        # Verificar permisos
+        if not self._tiene_permiso(request.user, asistencia):
+            messages.error(
+                request,
+                '❌ No tienes permisos para corregir esta asistencia.'
+            )
+            return redirect('asistencias_validar_lista')
+        
+        # Obtener datos del formulario
+        nueva_hora_entrada_str = request.POST.get('nueva_hora_entrada')
+        nueva_hora_salida_str = request.POST.get('nueva_hora_salida')
+        motivo = request.POST.get('motivo_correccion', '')
+        
+        # Validar que hay motivo
+        if not motivo or motivo.strip() == '':
+            messages.error(
+                request,
+                '❌ Debe proporcionar un motivo para la corrección.'
+            )
+            return redirect('asistencia_corregir', pk=pk)
+        
+        try:
+            # Convertir horas
+            nueva_hora_entrada = None
+            nueva_hora_salida = None
+            
+            if nueva_hora_entrada_str:
+                nueva_hora_entrada = datetime.strptime(nueva_hora_entrada_str, '%H:%M').time()
+            
+            if nueva_hora_salida_str:
+                nueva_hora_salida = datetime.strptime(nueva_hora_salida_str, '%H:%M').time()
+            
+            # Validar que al menos una hora fue proporcionada
+            if not nueva_hora_entrada and not nueva_hora_salida:
+                messages.error(
+                    request,
+                    '❌ Debe proporcionar al menos una hora para corregir.'
+                )
+                return redirect('asistencia_corregir', pk=pk)
+            
+            # Corregir
+            asistencia.corregir(
+                usuario=request.user,
+                nueva_hora_entrada=nueva_hora_entrada,
+                nueva_hora_salida=nueva_hora_salida,
+                motivo=motivo
+            )
+            
+            messages.success(
+                request,
+                f'✅ Marcación corregida exitosamente para {asistencia.trabajador.nombre_completo}'
+            )
+            return redirect('asistencias_validar_lista')
+        
+        except ValueError as e:
+            messages.error(request, f'❌ Error: {str(e)}')
+            return redirect('asistencia_corregir', pk=pk)
+        except Exception as e:
+            messages.error(request, f'❌ Error inesperado: {str(e)}')
+            return redirect('asistencia_corregir', pk=pk)
+    
+    def _tiene_permiso(self, usuario, asistencia):
+        """
+        Verifica si el usuario tiene permiso para corregir
+        """
+        if usuario.es_administrador():
+            return True
+        
+        if usuario.es_supervisor():
+            return asistencia.proyecto.supervisor == usuario
+        
+        return False
+
+
+class AsistenciaListView(LoginRequiredMixin, ListView):
+    model = Asistencia
+    template_name = 'asistencias/lista.html'
+    context_object_name = 'asistencias'
+    paginate_by = 50
+    
+    def get_queryset(self):
+        queryset = Asistencia.objects.filter(
+            eliminado=False
+        ).select_related(
+            'trabajador',
+            'proyecto',
+            'registrado_por'
+        ).order_by('-fecha', '-hora_entrada')
+        
+        # Filtro por proyecto
+        proyecto_id = self.request.GET.get('proyecto')
+        if proyecto_id:
+            queryset = queryset.filter(proyecto_id=proyecto_id)
+        
+        # Filtro por fechas
+        fecha_inicio = self.request.GET.get('fecha_inicio')
+        if fecha_inicio:
+            queryset = queryset.filter(fecha__gte=fecha_inicio)
+        
+        fecha_fin = self.request.GET.get('fecha_fin')
+        if fecha_fin:
+            queryset = queryset.filter(fecha__lte=fecha_fin)
+        
+        # Filtro por estado
+        estado = self.request.GET.get('estado')
+        if estado:
+            queryset = queryset.filter(estado=estado)
+        
+        # Búsqueda
+        busqueda = self.request.GET.get('busqueda')
+        if busqueda:
+            queryset = queryset.filter(
+                Q(trabajador__nombre__icontains=busqueda) |
+                Q(trabajador__apellido__icontains=busqueda) |
+                Q(trabajador__numero_cedula__icontains=busqueda)
+            )
+        
+        # Si es supervisor, solo sus proyectos
+        if self.request.user.es_supervisor() and not self.request.user.es_administrador():
+            queryset = queryset.filter(proyecto__supervisor=self.request.user)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        """
+        Agregar contexto adicional para el template
+        """
+        context = super().get_context_data(**kwargs)
+        
+        # Proyectos para filtro
+        if self.request.user.es_administrador():
+            proyectos = Proyecto.objects.filter(activo=True, eliminado=False)
+        else:
+            proyectos = Proyecto.objects.filter(
+                supervisor=self.request.user,
+                activo=True,
+                eliminado=False
+            )
+        context['proyectos'] = proyectos
+        
+        # Obtener asistencias del período filtrado
+        asistencias_periodo = self.get_queryset()
+        
+        # Contar pendientes de validación
+        pendientes_validacion = asistencias_periodo.filter(
+            estado='cerrado',
+            validado=False
+        ).count()
+        
+        # ============================================
+        # REVISADO 1: Renombrar 'resumen' a 'stats' y ajustar las claves
+        # ============================================
+        # La plantilla espera 'stats', no 'resumen'.
+        # También espera claves como 'cerrados', 'abiertos', 'tarde'.
+        context['stats'] = {
+            'cerrados': asistencias_periodo.filter(estado='cerrado').count(),
+            'abiertos': asistencias_periodo.filter(estado='abierto').count(),
+            'horas_extras': asistencias_periodo.aggregate(total=Sum('horas_extras'))['total'] or 0,
+            'tarde': asistencias_periodo.filter(llego_tarde=True).count(),
+            'pendientes_validacion': pendientes_validacion,
+        }
+        
+        # ============================================
+        # REVISADO 2: Reemplazar el bucle manual por un .annotate()
+        # ============================================
+        # El bucle manual de Python era ineficiente y usaba claves incorrectas.
+        # Este .annotate() hace una sola consulta y devuelve los datos
+        # exactamente como la plantilla los espera (ej. 'proyecto__nombre', 'total').
+        
+        resumen_proyectos = asistencias_periodo.values(
+            'proyecto', 
             'proyecto__nombre'
         ).annotate(
-            total_asistencias=Count('id'),
-            total_presentes=Count('id', filter=Q(estado='cerrado')),
-            total_ausentes=Count('id', filter=Q(estado='abierto')),
-            total_tarde=Count('id', filter=Q(llego_tarde=True)),
-            total_horas=Sum('horas_totales'),
-            total_extras=Sum('horas_extras')
+            total=Count('id'),
+            validadas=Count('id', filter=Q(validado=True)),
+            pendientes=Count('id', filter=Q(estado='cerrado', validado=False)),
+            total_horas=Sum('horas_totales')
         ).order_by('proyecto__nombre')
+
+        context['resumen_proyectos'] = resumen_proyectos
+        
+        # Mantener filtros en el contexto
+        context['filtros'] = {
+            'proyecto': self.request.GET.get('proyecto', ''),
+            'fecha_inicio': self.request.GET.get('fecha_inicio', ''),
+            'fecha_fin': self.request.GET.get('fecha_fin', ''),
+            'estado': self.request.GET.get('estado', ''),
+            'busqueda': self.request.GET.get('busqueda', ''),
+        }
         
         return context
 
@@ -951,4 +1279,340 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
                 resultados['errores'].append(f"Cédula {data.get('trabajador_cedula')}: {str(e)}")
         
         return Response(resultados, status=status.HTTP_200_OK)
+    
+    @action(
+    detail=True,
+    methods=['post'],
+    url_path='validar',
+    permission_classes=[PuedeValidarAsistencias, EsSupervisorDelProyecto]
+    )
+    def validar(self, request, pk=None):
+        """
+        Valida una asistencia
+        
+        POST /api/asistencias/{id}/validar/
+        
+        Body:
+        {
+            "observaciones": "Asistencia verificada y correcta"
+        }
+        
+        Returns:
+            200: Asistencia validada exitosamente
+            400: Error en validación
+            403: Sin permisos
+            404: Asistencia no encontrada
+        """
+        asistencia = self.get_object()
+        
+        serializer = ValidarAsistenciaSerializer(
+            data=request.data,
+            context={'asistencia': asistencia}
+        )
+        
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Validar usando el método del modelo
+            asistencia.validar(
+                usuario=request.user,
+                observaciones=serializer.validated_data.get('observaciones', '')
+            )
+            
+            # Serializar y retornar
+            from .serializers import AsistenciaSerializer
+            response_serializer = AsistenciaSerializer(asistencia)
+            
+            return Response({
+                'message': 'Asistencia validada exitosamente',
+                'asistencia': response_serializer.data
+            }, status=status.HTTP_200_OK)
+            
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Error inesperado: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+    @action(
+        detail=True,
+        methods=['post'],
+        url_path='rechazar',
+        permission_classes=[PuedeValidarAsistencias, EsSupervisorDelProyecto]
+    )
+    def rechazar(self, request, pk=None):
+        """
+        Rechaza una asistencia
+        
+        POST /api/asistencias/{id}/rechazar/
+        
+        Body:
+        {
+            "motivo": "Horario incorrecto, trabajador llegó más tarde"
+        }
+        
+        Returns:
+            200: Asistencia rechazada exitosamente
+            400: Error en validación
+            403: Sin permisos
+            404: Asistencia no encontrada
+        """
+        asistencia = self.get_object()
+        
+        serializer = RechazarAsistenciaSerializer(
+            data=request.data,
+            context={'asistencia': asistencia}
+        )
+        
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Rechazar usando el método del modelo
+            asistencia.rechazar(
+                usuario=request.user,
+                motivo=serializer.validated_data['motivo']
+            )
+            
+            # Serializar y retornar
+            from .serializers import AsistenciaSerializer
+            response_serializer = AsistenciaSerializer(asistencia)
+            
+            return Response({
+                'message': 'Asistencia rechazada',
+                'asistencia': response_serializer.data
+            }, status=status.HTTP_200_OK)
+            
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Error inesperado: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+    @action(
+        detail=True,
+        methods=['post'],
+        url_path='corregir',
+        permission_classes=[PuedeCorregirAsistencias, EsSupervisorDelProyecto]
+    )
+    def corregir(self, request, pk=None):
+        """
+        Corrige las marcaciones de una asistencia
+        
+        POST /api/asistencias/{id}/corregir/
+        
+        Body:
+        {
+            "nueva_hora_entrada": "08:15:00",
+            "nueva_hora_salida": "17:30:00",
+            "motivo_correccion": "El trabajador olvidó marcar salida, se corrige según reporte"
+        }
+        
+        Returns:
+            200: Asistencia corregida exitosamente
+            400: Error en validación
+            403: Sin permisos
+            404: Asistencia no encontrada
+        """
+        asistencia = self.get_object()
+        
+        serializer = CorregirAsistenciaSerializer(
+            data=request.data,
+            context={'asistencia': asistencia}
+        )
+        
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Corregir usando el método del modelo
+            asistencia.corregir(
+                usuario=request.user,
+                nueva_hora_entrada=serializer.validated_data.get('nueva_hora_entrada'),
+                nueva_hora_salida=serializer.validated_data.get('nueva_hora_salida'),
+                motivo=serializer.validated_data['motivo_correccion']
+            )
+            
+            # Serializar y retornar
+            from .serializers import AsistenciaSerializer
+            response_serializer = AsistenciaSerializer(asistencia)
+            
+            return Response({
+                'message': 'Asistencia corregida exitosamente',
+                'asistencia': response_serializer.data
+            }, status=status.HTTP_200_OK)
+            
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Error inesperado: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='pendientes-validacion',
+        permission_classes=[PuedeValidarAsistencias]
+    )
+    def pendientes_validacion(self, request):
+        """
+        Lista asistencias pendientes de validación
+        
+        GET /api/asistencias/pendientes-validacion/
+        
+        Query params:
+            - proyecto: ID del proyecto (opcional)
+            - fecha_inicio: Filtrar desde fecha (opcional, formato YYYY-MM-DD)
+            - fecha_fin: Filtrar hasta fecha (opcional, formato YYYY-MM-DD)
+        
+        Returns:
+            200: Lista de asistencias pendientes
+        """
+        # Filtro base: asistencias cerradas, no validadas, no eliminadas
+        queryset = self.get_queryset().filter(
+            estado='cerrado',
+            validado=False,
+            eliminado=False
+        )
+        
+        # Si es supervisor, solo ver sus proyectos
+        if request.user.es_supervisor() and not request.user.es_administrador():
+            queryset = queryset.filter(proyecto__supervisor=request.user)
+        
+        # Filtros opcionales
+        proyecto_id = request.query_params.get('proyecto')
+        if proyecto_id:
+            queryset = queryset.filter(proyecto_id=proyecto_id)
+        
+        fecha_inicio = request.query_params.get('fecha_inicio')
+        if fecha_inicio:
+            queryset = queryset.filter(fecha__gte=fecha_inicio)
+        
+        fecha_fin = request.query_params.get('fecha_fin')
+        if fecha_fin:
+            queryset = queryset.filter(fecha__lte=fecha_fin)
+        
+        # Ordenar por fecha descendente
+        queryset = queryset.order_by('-fecha', '-hora_entrada')
+        
+        # Serializar
+        serializer = AsistenciaPendienteValidacionSerializer(
+            queryset,
+            many=True,
+            context={'request': request}
+        )
+        
+        # Estadísticas
+        total_pendientes = queryset.count()
+        validadas_hoy = self.get_queryset().filter(
+            validado=True,
+            validado_fecha__date=timezone.now().date()
+        ).count()
+        
+        return Response({
+            'count': total_pendientes,
+            'validadas_hoy': validadas_hoy,
+            'results': serializer.data
+        }, status=status.HTTP_200_OK)
+
+
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path='validar-multiple',
+        permission_classes=[PuedeValidarAsistencias]
+    )
+    def validar_multiple(self, request):
+        """
+        Valida múltiples asistencias a la vez
+        
+        POST /api/asistencias/validar-multiple/
+        
+        Body:
+        {
+            "asistencias_ids": [1, 2, 3, 4, 5],
+            "observaciones": "Validación masiva del día"
+        }
+        
+        Returns:
+            200: Resultado de validación masiva
+        """
+        asistencias_ids = request.data.get('asistencias_ids', [])
+        observaciones = request.data.get('observaciones', '')
+        
+        if not asistencias_ids or not isinstance(asistencias_ids, list):
+            return Response(
+                {'error': 'Debe proporcionar una lista de IDs de asistencias'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Obtener asistencias
+        queryset = self.get_queryset().filter(
+            id__in=asistencias_ids,
+            estado='cerrado',
+            validado=False,
+            eliminado=False
+        )
+        
+        # Si es supervisor, filtrar por sus proyectos
+        if request.user.es_supervisor() and not request.user.es_administrador():
+            queryset = queryset.filter(proyecto__supervisor=request.user)
+        
+        resultados = {
+            'exitosas': [],
+            'fallidas': [],
+            'total_procesadas': 0,
+            'total_exitosas': 0,
+            'total_fallidas': 0
+        }
+        
+        for asistencia in queryset:
+            try:
+                asistencia.validar(
+                    usuario=request.user,
+                    observaciones=observaciones
+                )
+                resultados['exitosas'].append(asistencia.id)
+                resultados['total_exitosas'] += 1
+            except Exception as e:
+                resultados['fallidas'].append({
+                    'id': asistencia.id,
+                    'error': str(e)
+                })
+                resultados['total_fallidas'] += 1
+            
+            resultados['total_procesadas'] += 1
+        
+        return Response({
+            'message': f'Procesadas {resultados["total_procesadas"]} asistencias',
+            'resultados': resultados
+        }, status=status.HTTP_200_OK)
     

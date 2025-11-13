@@ -44,7 +44,8 @@
                     <span>Asistencias</span>
                 </a>
                 
-                <a href="#" class="nav-item" title="Planillas (Próximamente)"> <span class="material-symbols-outlined">receipt_long</span>
+                <a href="{% url 'planillas_lista' %}" class="nav-item {% if 'planillas' in request.path %}active{% endif %}" title="Planillas">
+                    <span class="material-symbols-outlined">receipt_long</span>
                     <span>Planillas</span>
                 </a>
                 

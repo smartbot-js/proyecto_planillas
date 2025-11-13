@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'apps.proyectos',
     'apps.trabajadores',
     'apps.asistencias',
+    'apps.planillas',
 ]
 
 MIDDLEWARE = [

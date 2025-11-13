@@ -22,6 +22,7 @@ urlpatterns = [
     path('', include('apps.proyectos.urls')),
     path('', include('apps.trabajadores.urls')),
     path('', include('apps.asistencias.urls')),
+    path('', include('apps.planillas.urls')),
 ]
 
 # API REST

@@ -375,6 +375,133 @@
         </div>
     </div>
 
+    <!-- ✨ SECCIÓN DE HORARIOS Y DÍAS LABORALES -->
+    <div class="accordion-section">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="accordion-title">
+                <span class="material-symbols-outlined">schedule</span>
+                <h3>Horarios y Días Laborales</h3>
+            </div>
+            <span class="material-symbols-outlined accordion-icon">expand_more</span>
+        </div>
+        <div class="accordion-content">
+            <div class="horarios-info-banner">
+                <span class="material-symbols-outlined">info</span>
+                <div>
+                    <strong>Configura el horario laboral de este proyecto</strong>
+                    <p>Estos horarios se usarán para calcular automáticamente llegadas tarde y horas extras.</p>
+                </div>
+            </div>
+
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label for="id_hora_entrada">Hora de Entrada *</label>
+                    <input type="time" name="hora_entrada_esperada" id="id_hora_entrada" class="form-control" value="{{ proyecto.hora_entrada_esperada|time:'H:i' }}" required>
+                    <small class="form-text">Hora en que deben llegar los trabajadores</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_hora_salida">Hora de Salida *</label>
+                    <input type="time" name="hora_salida_esperada" id="id_hora_salida" class="form-control" value="{{ proyecto.hora_salida_esperada|time:'H:i' }}" required>
+                    <small class="form-text">Hora en que termina la jornada</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_minutos_tolerancia">Minutos de Tolerancia *</label>
+                    <div class="input-with-badge">
+                        <input type="number" name="minutos_tolerancia" id="id_minutos_tolerancia" class="form-control" value="{{ proyecto.minutos_tolerancia }}" min="0" max="60" required>
+                        <span class="input-badge">minutos</span>
+                    </div>
+                    <small class="form-text">Minutos permitidos de retraso</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_horas_jornada">Horas por Jornada *</label>
+                    <div class="input-with-badge">
+                        <input type="number" name="horas_jornada" id="id_horas_jornada" class="form-control" value="{{ proyecto.horas_jornada }}" min="1" max="24" step="0.5" required>
+                        <span class="input-badge">horas</span>
+                    </div>
+                    <small class="form-text">Horas diarias de trabajo</small>
+                </div>
+            </div>
+
+            <div class="form-group full-width">
+                <label>Días Laborales *</label>
+                <div class="dias-laborales-grid">
+                    {% with dias=proyecto.get_dias_laborales_list %}
+                    <label class="dia-checkbox">
+                        <input type="checkbox" name="dias_laborales" value="1" {% if 1 in dias %}checked{% endif %}>
+                        <span class="dia-label">
+                            <span class="dia-icon">L</span>
+                            <span class="dia-nombre">Lunes</span>
+                        </span>
+                    </label>
+                    <label class="dia-checkbox">
+                        <input type="checkbox" name="dias_laborales" value="2" {% if 2 in dias %}checked{% endif %}>
+                        <span class="dia-label">
+                            <span class="dia-icon">M</span>
+                            <span class="dia-nombre">Martes</span>
+                        </span>
+                    </label>
+                    <label class="dia-checkbox">
+                        <input type="checkbox" name="dias_laborales" value="3" {% if 3 in dias %}checked{% endif %}>
+                        <span class="dia-label">
+                            <span class="dia-icon">M</span>
+                            <span class="dia-nombre">Miércoles</span>
+                        </span>
+                    </label>
+                    <label class="dia-checkbox">
+                        <input type="checkbox" name="dias_laborales" value="4" {% if 4 in dias %}checked{% endif %}>
+                        <span class="dia-label">
+                            <span class="dia-icon">J</span>
+                            <span class="dia-nombre">Jueves</span>
+                        </span>
+                    </label>
+                    <label class="dia-checkbox">
+                        <input type="checkbox" name="dias_laborales" value="5" {% if 5 in dias %}checked{% endif %}>
+                        <span class="dia-label">
+                            <span class="dia-icon">V</span>
+                            <span class="dia-nombre">Viernes</span>
+                        </span>
+                    </label>
+                    <label class="dia-checkbox">
+                        <input type="checkbox" name="dias_laborales" value="6" {% if 6 in dias %}checked{% endif %}>
+                        <span class="dia-label">
+                            <span class="dia-icon">S</span>
+                            <span class="dia-nombre">Sábado</span>
+                        </span>
+                    </label>
+                    <label class="dia-checkbox">
+                        <input type="checkbox" name="dias_laborales" value="7" {% if 7 in dias %}checked{% endif %}>
+                        <span class="dia-label">
+                            <span class="dia-icon">D</span>
+                            <span class="dia-nombre">Domingo</span>
+                        </span>
+                    </label>
+                    {% endwith %}
+                </div>
+                <small class="form-text">Selecciona los días que se trabaja en este proyecto</small>
+            </div>
+
+            <div class="horario-resumen">
+                <div class="resumen-item">
+                    <span class="material-symbols-outlined">schedule</span>
+                    <div>
+                        <strong>Horario actual:</strong>
+                        <p id="horario-preview-edit">{{ proyecto.get_horario_display }}</p>
+                    </div>
+                </div>
+                <div class="resumen-item">
+                    <span class="material-symbols-outlined">event</span>
+                    <div>
+                        <strong>Días laborales:</strong>
+                        <p id="dias-preview-edit">{{ proyecto.get_dias_laborales_nombres }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- FIN SECCIÓN HORARIOS -->
 
     <div class="form-actions">
         <a href="{% url 'proyecto_detalle' proyecto.id %}" class="btn btn-secondary">
@@ -492,6 +619,167 @@
     .form-grid-2 { grid-template-columns: 1fr; }
     .radio-info-cards { grid-template-columns: 1fr; }
 }
+/* ===== ESTILOS HORARIOS ===== */
+.horarios-info-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border-left: 4px solid #3b82f6;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.horarios-info-banner .material-symbols-outlined {
+    font-size: 28px;
+    color: #1e40af;
+    flex-shrink: 0;
+}
+
+.horarios-info-banner strong {
+    display: block;
+    color: #1e3a8a;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.horarios-info-banner p {
+    color: #1e40af;
+    font-size: 13px;
+    margin: 0;
+}
+
+.input-with-badge {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+.input-with-badge input {
+    flex: 1;
+    border-radius: 8px 0 0 8px !important;
+    border-right: none !important;
+}
+
+.input-badge {
+    padding: 10px 14px;
+    background: #f3f4f6;
+    border: 2px solid #e2e8f0;
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+.dias-laborales-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.dia-checkbox {
+    display: block;
+    cursor: pointer;
+    margin: 0;
+}
+
+.dia-checkbox input[type="checkbox"] {
+    display: none;
+}
+
+.dia-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.dia-checkbox:hover .dia-label {
+    border-color: #3b82f6;
+    background: #f0f9ff;
+}
+
+.dia-checkbox input[type="checkbox"]:checked + .dia-label {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border-color: #1e40af;
+    color: white;
+}
+
+.dia-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #f3f4f6;
+    font-weight: 700;
+    font-size: 13px;
+    color: #374151;
+    flex-shrink: 0;
+}
+
+.dia-checkbox input[type="checkbox"]:checked + .dia-label .dia-icon {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.dia-nombre {
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.dia-checkbox input[type="checkbox"]:checked + .dia-label .dia-nombre {
+    color: white;
+}
+
+.horario-resumen {
+    margin-top: 20px;
+    padding: 16px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.resumen-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+}
+
+.resumen-item:not(:last-child) {
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.resumen-item .material-symbols-outlined {
+    font-size: 22px;
+    color: #6b7280;
+    flex-shrink: 0;
+}
+
+.resumen-item strong {
+    display: block;
+    font-size: 12px;
+    color: #374151;
+    margin-bottom: 4px;
+}
+
+.resumen-item p {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+}
 </style>
 {% endblock %}
 
@@ -604,5 +892,46 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 });
+// ===== PREVIEW HORARIOS EN TIEMPO REAL (EDITAR) =====
+function actualizarPreviewHorarioEdit() {
+    const horaEntrada = document.getElementById('id_hora_entrada')?.value;
+    const horaSalida = document.getElementById('id_hora_salida')?.value;
+    const horasJornada = document.getElementById('id_horas_jornada')?.value;
+    
+    if (horaEntrada && horaSalida && horasJornada) {
+        const preview = document.getElementById('horario-preview-edit');
+        if (preview) {
+            preview.textContent = `${horaEntrada} - ${horaSalida} (${parseFloat(horasJornada).toFixed(1)} horas)`;
+        }
+    }
+}
+
+function actualizarPreviewDiasEdit() {
+    const diasNombres = {
+        '1': 'Lunes', '2': 'Martes', '3': 'Miércoles',
+        '4': 'Jueves', '5': 'Viernes', '6': 'Sábado', '7': 'Domingo'
+    };
+    
+    const checkboxes = document.querySelectorAll('input[name="dias_laborales"]:checked');
+    const diasSeleccionados = Array.from(checkboxes)
+        .map(cb => diasNombres[cb.value])
+        .join(', ');
+    
+    const preview = document.getElementById('dias-preview-edit');
+    if (preview) {
+        preview.textContent = diasSeleccionados || 'Ningún día seleccionado';
+    }
+}
+
+// Event listeners para horarios
+setTimeout(function() {
+    document.getElementById('id_hora_entrada')?.addEventListener('change', actualizarPreviewHorarioEdit);
+    document.getElementById('id_hora_salida')?.addEventListener('change', actualizarPreviewHorarioEdit);
+    document.getElementById('id_horas_jornada')?.addEventListener('input', actualizarPreviewHorarioEdit);
+    
+    document.querySelectorAll('input[name="dias_laborales"]').forEach(checkbox => {
+        checkbox.addEventListener('change', actualizarPreviewDiasEdit);
+    });
+}, 100);
 </script>
 {% endblock %}

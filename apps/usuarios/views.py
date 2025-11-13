@@ -220,13 +220,19 @@ class LoginTemplateView(View):
     def get(self, request):
         if request.user.is_authenticated:
             return redirect('dashboard')
-        return render(request, self.template_name)
+        #return render(request, self.template_name)
+        context = {
+        'roles': Usuario.Rol.choices
+            }
+        return render(request, self.template_name, context)
     
     def post(self, request):
         email = request.POST.get('email', '').strip()
         password = request.POST.get('password', '')
         remember = request.POST.get('remember')
-        
+        context = {
+            'roles': Usuario.Rol.choices
+        }
         # Debug: Imprimir lo que llega
         print(f"Intento de login - Email: {email}")
         
@@ -237,7 +243,8 @@ class LoginTemplateView(View):
         except Usuario.DoesNotExist:
             print(f"Usuario NO encontrado con email: {email}")
             messages.error(request, 'No existe un usuario con este correo electrónico.')
-            return render(request, self.template_name)
+            #return render(request, self.template_name)
+            return render(request, self.template_name, context)
         
         # Autenticar usuario
         user = authenticate(request, username=email, password=password)
@@ -267,7 +274,8 @@ class LoginTemplateView(View):
             print(f"Autenticación FALLIDA para: {email}")
             messages.error(request, 'Credenciales incorrectas. Verifica tu correo y contraseña.')
         
-        return render(request, self.template_name)
+        #return render(request, self.template_name)
+        return render(request, self.template_name, context)
 
 class RegistroTemplateView(View):
     """Vista para registro de nuevos usuarios"""
@@ -279,15 +287,19 @@ class RegistroTemplateView(View):
         password = request.POST.get('password', '')
         password_confirm = request.POST.get('password_confirm', '')
         rol = request.POST.get('rol', 'trabajador')
-        
+        context = {
+            'roles': Usuario.Rol.choices
+        }
         # Validaciones
         if password != password_confirm:
             messages.error(request, 'Las contraseñas no coinciden.')
-            return render(request, self.template_name)
+            #return render(request, self.template_name)
+            return render(request, self.template_name, context)
         
         if Usuario.objects.filter(email=email).exists():
             messages.error(request, 'El email ya está registrado.')
-            return render(request, self.template_name)
+            #return render(request, self.template_name)
+            return render(request, self.template_name, context)
         
         try:
             # IMPORTANTE: Usar create_user() NO create()
@@ -304,8 +316,9 @@ class RegistroTemplateView(View):
             
         except Exception as e:
             messages.error(request, f'Error al crear la cuenta: {str(e)}')
-            return render(request, self.template_name)
-
+            #return render(request, self.template_name)
+            return render(request, self.template_name, context)
+        
 class LogoutTemplateView(View):
     """Vista para cerrar sesión"""
     def get(self, request):

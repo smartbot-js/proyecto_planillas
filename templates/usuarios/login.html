@@ -157,9 +157,9 @@
                     <label for="register-rol">Rol</label>
                     <select id="register-rol" name="rol" required>
                         <option value="">Seleccionar rol...</option>
-                        <option value="administrador">Administrador</option>
-                        <option value="supervisor">Supervisor</option>
-                        <option value="trabajador">Trabajador</option>
+                        {% for value, display_name in roles %}
+                        <option value="{{ value }}">{{ display_name }}</option>
+                        {% endfor %}
                     </select>
                 </div>
 

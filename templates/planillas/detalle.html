@@ -1,0 +1,811 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load planillas_tags %}
+
+{% block title %}Detalle Planilla {{ planilla.codigo }} - Sistema de Planillas{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Header */
+.page-header {
+    margin-bottom: 24px;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 14px;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.back-link:hover {
+    color: #2563eb;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.header-info h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Badges */
+.badge {
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.badge-borrador { background: #f3f4f6; color: #6b7280; }
+.badge-aprobada_gerente { background: #fef3c7; color: #92400e; }
+.badge-aprobada_final { background: #d1fae5; color: #065f46; }
+.badge-pagada { background: #dbeafe; color: #1e40af; }
+.badge-cancelada { background: #fee2e2; color: #991b1b; }
+
+/* Info Cards */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.info-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.info-card-label {
+    font-size: 12px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.info-card-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.info-card-value.large {
+    font-size: 24px;
+}
+
+.info-card-value.success {
+    color: #059669;
+}
+
+.info-card-value.info {
+    color: #2563eb;
+}
+
+/* Summary Box */
+.summary-box {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+}
+
+.summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.summary-label {
+    font-size: 13px;
+    opacity: 0.9;
+}
+
+.summary-value {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+/* Table */
+.table-container {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.table-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f9fafb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.table-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.detalle-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.detalle-table thead {
+    background: #f9fafb;
+}
+
+.detalle-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+.detalle-table td {
+    padding: 14px 16px;
+    font-size: 14px;
+    color: #374151;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.detalle-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+.detalle-table tfoot {
+    background: #f9fafb;
+    font-weight: 600;
+}
+
+.detalle-table tfoot td {
+    border-top: 2px solid #e2e8f0;
+    border-bottom: none;
+    padding: 16px;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-success {
+    color: #059669;
+    font-weight: 600;
+}
+
+.text-info {
+    color: #2563eb;
+    font-weight: 600;
+}
+
+/* Buttons */
+.btn {
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+.btn-success {
+    background: #10b981;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #059669;
+}
+
+.btn-warning {
+    background: #f59e0b;
+    color: white;
+}
+
+.btn-warning:hover {
+    background: #d97706;
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 0;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #111827;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.form-input,
+.form-textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+/* Messages */
+.messages {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 24px 0;
+}
+
+.message {
+    padding: 14px 18px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 14px;
+}
+
+.message.success {
+    background: #d1fae5;
+    border: 1px solid #10b981;
+    color: #065f46;
+}
+
+.message.error {
+    background: #fee2e2;
+    border: 1px solid #ef4444;
+    color: #991b1b;
+}
+
+.message.warning {
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    color: #92400e;
+}
+
+.message.info {
+    background: #dbeafe;
+    border: 1px solid #3b82f6;
+    color: #1e40af;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+    }
+    
+    .header-actions {
+        width: 100%;
+    }
+    
+    .btn {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'planillas_lista' %}" class="back-link">
+    <span class="material-symbols-outlined" style="font-size: 18px;">arrow_back</span>
+    Volver a planillas
+</a>
+
+{% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+    <li class="message {{ message.tags }}">
+        {% if message.tags == 'success' %}
+            <span class="material-symbols-outlined">check_circle</span>
+        {% elif message.tags == 'error' %}
+            <span class="material-symbols-outlined">error</span>
+        {% elif message.tags == 'warning' %}
+            <span class="material-symbols-outlined">warning</span>
+        {% else %}
+            <span class="material-symbols-outlined">info</span>
+        {% endif %}
+        <span>{{ message }}</span>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<div class="page-header">
+    <div class="header-content">
+        <div class="header-info">
+            <h1>
+                {{ planilla.codigo }}
+                <span class="badge badge-{{ planilla.estado }}">{{ planilla.get_estado_display }}</span>
+            </h1>
+            <p style="color: #6b7280; font-size: 14px; margin: 0;">
+                Generada el {{ planilla.fecha_generacion|date:"d/m/Y H:i" }} por {{ planilla.generada_por.get_full_name }}
+            </p>
+        </div>
+        
+        <div class="header-actions">
+            {% if puede_aprobar_gerente %}
+            <button class="btn btn-success" onclick="confirmarAprobarGerente()">
+                <span class="material-symbols-outlined">check_circle</span>
+                Aprobar como Gerente
+            </button>
+            {% endif %}
+            
+            {% if puede_aprobar_contador %}
+            <button class="btn btn-success" onclick="confirmarAprobarContador()">
+                <span class="material-symbols-outlined">verified</span>
+                Aprobar como Contador
+            </button>
+            {% endif %}
+            
+            {% if puede_marcar_pagada %}
+            <button class="btn btn-warning" onclick="confirmarMarcarPagada()">
+                <span class="material-symbols-outlined">payments</span>
+                Marcar como Pagada
+            </button>
+            {% endif %}
+            
+            {% if puede_editar %}
+            <button class="btn btn-danger" onclick="confirmarEliminar()">
+                <span class="material-symbols-outlined">delete</span>
+                Eliminar
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="info-grid">
+    <div class="info-card">
+        <div class="info-card-label">
+            <span class="material-symbols-outlined" style="font-size: 16px;">foundation</span>
+            Proyecto
+        </div>
+        <div class="info-card-value">{{ planilla.proyecto.nombre }}</div>
+    </div>
+    
+    <div class="info-card">
+        <div class="info-card-label">
+            <span class="material-symbols-outlined" style="font-size: 16px;">calendar_today</span>
+            Período
+        </div>
+        <div class="info-card-value">
+            {{ planilla.periodo_inicio|date:"d/m/Y" }} - {{ planilla.periodo_fin|date:"d/m/Y" }}
+        </div>
+    </div>
+    
+    <div class="info-card">
+        <div class="info-card-label">
+            <span class="material-symbols-outlined" style="font-size: 16px;">group</span>
+            Trabajadores
+        </div>
+        <div class="info-card-value large">{{ detalles.count }}</div>
+    </div>
+    
+    <div class="info-card">
+        <div class="info-card-label">
+            <span class="material-symbols-outlined" style="font-size: 16px;">currency_exchange</span>
+            Tipo de Cambio
+        </div>
+        <div class="info-card-value">C$ {{ planilla.tipo_cambio }}</div>
+    </div>
+</div>
+
+<div class="summary-box">
+    <div class="summary-grid">
+        <div class="summary-item">
+            <span class="summary-label">Total en Córdobas</span>
+            <span class="summary-value">C$ {{ planilla.total_cordobas|floatformat:2 }}</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">Total en Dólares</span>
+            <span class="summary-value">$ {{ planilla.total_dolares|floatformat:2 }}</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">INSS Laboral (6.25%)</span>
+            <span class="summary-value">C$ {{ planilla.total_inss_laboral|floatformat:2 }}</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">INSS Patronal (19%)</span>
+            <span class="summary-value">C$ {{ planilla.total_inss_patronal|floatformat:2 }}</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">INATEC (2%)</span>
+            <span class="summary-value">C$ {{ planilla.total_inatec|floatformat:2 }}</span>
+        </div>
+    </div>
+</div>
+
+{% for area, detalles_area in detalles_por_area.items %}
+<div class="table-container">
+    <div class="table-header">
+        <h2>{{ area }} ({{ totales_por_area|get_item:area|get_item:'cantidad' }} trabajadores)</h2>
+        <div style="font-size: 14px; color: #6b7280;">
+            Total: <strong style="color: #059669;">C$ {{ totales_por_area|get_item:area|get_item:'total_cordobas'|floatformat:2 }}</strong>
+        </div>
+    </div>
+    
+    <div class="table-wrapper">
+        <table class="detalle-table">
+            <thead>
+                <tr>
+                    <th>Trabajador</th>
+                    <th>Cargo</th>
+                    <th class="text-right">Días</th>
+                    <th class="text-right">H. Extras</th>
+                    <th class="text-right">H. Dom.</th>
+                    <th class="text-right">Salario Base</th>
+                    <th class="text-right">Bonos</th>
+                    <th class="text-right">Deducciones</th>
+                    <th class="text-right">Total C$</th>
+                    <th class="text-right">Total USD</th>
+                    {% if puede_editar %}
+                    <th class="text-right">Acciones</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for detalle in detalles_area %}
+                <tr>
+                    <td>{{ detalle.trabajador.nombre }} {{ detalle.trabajador.apellido }}</td>
+                    <td>{{ detalle.cargo }}</td>
+                    <td class="text-right">{{ detalle.dias_laborados }}</td>
+                    <td class="text-right">{{ detalle.horas_extras|floatformat:1 }}</td>
+                    <td class="text-right">{{ detalle.horas_dominicales|floatformat:1 }}</td>
+                    <td class="text-right">C$ {{ detalle.salario_dia_base|floatformat:2 }}</td>
+                    <td class="text-right">C$ {{ detalle.bonos|floatformat:2 }}</td>
+                    <td class="text-right">C$ {{ detalle.deducciones|floatformat:2 }}</td>
+                    <td class="text-right text-success">C$ {{ detalle.ingreso_total|floatformat:2 }}</td>
+                    <td class="text-right text-info">$ {{ detalle.ingreso_total_dolares|floatformat:2 }}</td>
+                    {% if puede_editar %}
+                    <td class="text-right">
+                        <button 
+                            class="btn btn-secondary btn-sm" 
+                            onclick="editarDetalle({{ detalle.id }}, '{{ detalle.trabajador.nombre|escapejs }} {{ detalle.trabajador.apellido|escapejs }}', '{{ detalle.bonos }}', '{{ detalle.deducciones }}', '{{ detalle.observaciones|default:''|escapejs }}')"
+                        >
+                            <span class="material-symbols-outlined" style="font-size: 16px;">edit</span>
+                        </button>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endfor %}
+
+<div id="modalEditarDetalle" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Editar Detalle</h3>
+            <button class="modal-close" onclick="cerrarModal()" type="button">&times;</button>
+        </div>
+        
+        <form method="post" id="formEditarDetalle" action="">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label>Trabajador</label>
+                <input type="text" id="nombreTrabajador" class="form-input" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label>Bonos (C$)</label>
+                <input type="number" name="bonos" id="inputBonos" class="form-input" step="0.01" min="0" value="0.00">
+            </div>
+            
+            <div class="form-group">
+                <label>Deducciones (C$)</label>
+                <input type="number" name="deducciones" id="inputDeducciones" class="form-input" step="0.01" min="0" value="0.00">
+            </div>
+            
+            <div class="form-group">
+                <label>Observaciones</label>
+                <textarea name="observaciones" id="inputObservaciones" class="form-textarea"></textarea>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<form method="post" id="formAprobarGerente" action="{% url 'planilla_aprobar_gerente' planilla.pk %}" style="display: none;">
+    {% csrf_token %}
+</form>
+
+<form method="post" id="formAprobarContador" action="{% url 'planilla_aprobar_contador' planilla.pk %}" style="display: none;">
+    {% csrf_token %}
+</form>
+
+<form method="post" id="formMarcarPagada" action="{% url 'planilla_marcar_pagada' planilla.pk %}" style="display: none;">
+    {% csrf_token %}
+</form>
+
+<form method="post" id="formEliminar" action="{% url 'planilla_eliminar' planilla.pk %}" style="display: none;">
+    {% csrf_token %}
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let detalleIdActual = null;
+
+function editarDetalle(id, nombre, bonos, deducciones, observaciones) {
+    detalleIdActual = id;
+    document.getElementById('nombreTrabajador').value = nombre;
+    
+    // --- CORRECCIÓN AQUÍ ---
+    // bonos y deducciones llegan como strings (ej: "150,50")
+    // Reemplazamos la coma por un punto para que el input type="number" lo acepte.
+    const bonos_limpio = String(bonos).replace(',', '.');
+    const deducciones_limpio = String(deducciones).replace(',', '.');
+
+    document.getElementById('inputBonos').value = bonos_limpio;
+    document.getElementById('inputDeducciones').value = deducciones_limpio;
+    // --- FIN DE LA CORRECCIÓN ---
+
+    document.getElementById('inputObservaciones').value = observaciones || '';
+    
+    // Actualizar la acción del formulario
+    document.getElementById('formEditarDetalle').action = '/planillas/detalle/' + id + '/editar/';
+    
+    // Mostrar modal
+    document.getElementById('modalEditarDetalle').classList.add('active');
+}
+
+function cerrarModal() {
+    document.getElementById('modalEditarDetalle').classList.remove('active');
+}
+
+function confirmarAprobarGerente() {
+    if (confirm('¿Estás seguro de que deseas aprobar esta planilla como gerente?\n\nDespués de aprobarla, el contador deberá hacer la aprobación final.')) {
+        document.getElementById('formAprobarGerente').submit();
+    }
+}
+
+function confirmarAprobarContador() {
+    if (confirm('¿Estás seguro de que deseas hacer la aprobación final de esta planilla?\n\nDespués de aprobarla, estará lista para pago.')) {
+        document.getElementById('formAprobarContador').submit();
+    }
+}
+
+function confirmarMarcarPagada() {
+    if (confirm('¿Estás seguro de que deseas marcar esta planilla como pagada?')) {
+        document.getElementById('formMarcarPagada').submit();
+    }
+}
+
+function confirmarEliminar() {
+    if (confirm('¿Estás seguro de que deseas eliminar esta planilla?\n\nEsta acción no se puede deshacer.')) {
+        document.getElementById('formEliminar').submit();
+    }
+}
+
+// Cerrar modal al hacer click fuera
+document.getElementById('modalEditarDetalle').addEventListener('click', function(e) {
+    if (e.target === this) {
+        cerrarModal();
+    }
+});
+
+// Cerrar modal con tecla ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        cerrarModal();
+    }
+});
+
+// Auto-cerrar mensajes
+setTimeout(function() {
+    const messages = document.querySelectorAll('.message');
+    messages.forEach(function(message) {
+        message.style.transition = 'opacity 0.5s';
+        message.style.opacity = '0';
+        setTimeout(function() {
+            message.remove();
+        }, 500);
+    });
+}, 5000);
+</script>
+{% endblock %}

@@ -13,6 +13,9 @@ from .views import (
     AsistenciaEditarView,
     AsistenciaReportesView,
     asistencias_exportar_csv,
+    AsistenciaValidarListView,
+    AsistenciaValidarView,
+    AsistenciaCorregirView,
 )
 
 urlpatterns = [
@@ -29,5 +32,12 @@ urlpatterns = [
     path('asistencias/reportes/', AsistenciaReportesView.as_view(), name='asistencias_reportes'),
     path('asistencias/exportar/', asistencias_exportar_csv, name='asistencias_exportar'),
     path('<int:pk>/agregar-nota/', AsistenciaAgregarNotaView.as_view(), name='asistencia_agregar_nota'),
-    path('trabajador/<int:trabajador_id>/historial/', AsistenciaHistorialView.as_view(), name='asistencia_historial')
+    path('trabajador/<int:trabajador_id>/historial/', AsistenciaHistorialView.as_view(), name='asistencia_historial'),
+
+    # Validación de asistencias
+    path('validar/', AsistenciaValidarListView.as_view(), name='asistencias_validar_lista'),
+    path('<int:pk>/validar/', AsistenciaValidarView.as_view(), name='asistencia_validar'),
+    path('<int:pk>/corregir/', AsistenciaCorregirView.as_view(), name='asistencia_corregir'),
+
+
 ]

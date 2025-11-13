@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.core.validators import MinValueValidator
 from datetime import datetime, timedelta, time
 from decimal import Decimal
+from apps.usuarios.models import Usuario
 
 
 class Asistencia(models.Model):
@@ -237,6 +238,68 @@ class Asistencia(models.Model):
         blank=True,
         verbose_name='Sincronizado En'
     )
+
+    # 1. VALIDACIÓN POR SUPERVISOR
+    validado = models.BooleanField(
+        default=False,
+        verbose_name='Validado',
+        help_text='Indica si el supervisor validó esta asistencia'
+    )
+    validado_por = models.ForeignKey(
+        Usuario,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='asistencias_validadas',
+        verbose_name='Validado Por'
+    )
+    validado_fecha = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Fecha de Validación'
+    )
+    observaciones_validacion = models.TextField(
+        blank=True,
+        verbose_name='Observaciones de Validación',
+        help_text='Comentarios del supervisor al validar'
+    )
+
+    # 2. CORRECCIÓN DE MARCACIONES
+    fue_corregida = models.BooleanField(
+        default=False,
+        verbose_name='Fue Corregida',
+        help_text='Indica si esta asistencia fue corregida por un supervisor'
+    )
+    corregida_por = models.ForeignKey(
+        Usuario,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='asistencias_corregidas',
+        verbose_name='Corregida Por'
+    )
+    corregida_fecha = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Fecha de Corrección'
+    )
+    motivo_correccion = models.TextField(
+        blank=True,
+        verbose_name='Motivo de Corrección',
+        help_text='Explica por qué se corrigió la marcación'
+    )
+    hora_entrada_original = models.TimeField(
+        null=True,
+        blank=True,
+        verbose_name='Hora Entrada Original',
+        help_text='Hora de entrada antes de la corrección'
+    )
+    hora_salida_original = models.TimeField(
+        null=True,
+        blank=True,
+        verbose_name='Hora Salida Original',
+        help_text='Hora de salida antes de la corrección'
+    )
     
     class Meta:
         db_table = 'asistencias'
@@ -251,8 +314,13 @@ class Asistencia(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.trabajador.nombre_completo} - {self.fecha} ({self.get_estado_display()})"
-    
+        #return f"{self.trabajador.nombre_completo} - {self.fecha} ({self.get_estado_display()})"
+        entrada = self.hora_entrada.strftime('%H:%M') if self.hora_entrada else 'Sin entrada'
+        salida = self.hora_salida.strftime('%H:%M') if self.hora_salida else 'Sin salida'
+        tarde = " (TARDE)" if self.llego_tarde else ""
+        return f"{self.trabajador.nombre_completo} - {self.proyecto.nombre} - {self.fecha} ({entrada}-{salida}){tarde}"
+
+
     def get_jornada_normal_horas(self):
         """
         Retorna la cantidad de horas normales según el día de la semana.
@@ -301,15 +369,52 @@ class Asistencia(models.Model):
         entrada_dt = datetime.combine(self.fecha, self.hora_entrada)
         salida_dt = datetime.combine(self.fecha, hora_salida_calculo)
         
-        # Si la salida es menor que la entrada, asumir día siguiente
-        if salida_dt <= entrada_dt:
+        # ============================================================
+        # 🔧 CORRECCIÓN: Detectar turno nocturno correctamente
+        # ============================================================
+        
+        # Calcular diferencia inicial en segundos
+        diferencia_segundos = (salida_dt - entrada_dt).total_seconds()
+        
+        # CASO 1: Si la diferencia es negativa, cruzó medianoche
+        if diferencia_segundos < 0:
             salida_dt += timedelta(days=1)
+            diferencia_segundos = (salida_dt - entrada_dt).total_seconds()
         
-        # Calcular total de horas trabajadas
-        diferencia = salida_dt - entrada_dt
-        total_horas = Decimal(str(diferencia.total_seconds() / 3600))
+        # CASO 2: Si la diferencia es muy pequeña (< 2 minutos), es error de marcación
+        elif diferencia_segundos < 120:
+            self.horas_normales = Decimal('0.00')
+            self.horas_extras = Decimal('0.00')
+            self.horas_nocturnas = Decimal('0.00')
+            self.horas_festivas = Decimal('0.00')
+            self.horas_totales = Decimal('0.00')
+            return
         
-        # Calcular horas normales y extras
+        # Calcular horas totales
+        total_horas = Decimal(str(diferencia_segundos / 3600))
+        
+        # ============================================================
+        # VALIDACIÓN: Si resultan más de 24h, es un error
+        # ============================================================
+        if total_horas > 24:
+            self.horas_normales = Decimal('0.00')
+            self.horas_extras = Decimal('0.00')
+            self.horas_nocturnas = Decimal('0.00')
+            self.horas_festivas = Decimal('0.00')
+            self.horas_totales = Decimal('0.00')
+            
+            nota_error = f"[ERROR AUTO] Turno de {float(total_horas):.1f}h detectado. Verificar fechas."
+            if self.observaciones:
+                if nota_error not in self.observaciones:
+                    self.observaciones += f"\n{nota_error}"
+            else:
+                self.observaciones = nota_error
+            
+            return
+        
+        # ============================================================
+        # CÁLCULO DE HORAS NORMALES Y EXTRAS
+        # ============================================================
         jornada_normal_decimal = Decimal(str(jornada_normal))
         
         if total_horas <= jornada_normal_decimal:
@@ -319,10 +424,34 @@ class Asistencia(models.Model):
             self.horas_normales = jornada_normal_decimal
             self.horas_extras = total_horas - jornada_normal_decimal
         
-        # Calcular horas nocturnas (18:00 - 06:00)
-        self.horas_nocturnas = self._calcular_horas_nocturnas(entrada_dt, salida_dt)
+        # ============================================================
+        # CÁLCULO DE HORAS NOCTURNAS (18:00 - 06:00)
+        # ============================================================
+        horas_nocturnas_calculadas = Decimal('0.00')
+        hora_actual = entrada_dt
         
-        # Calcular horas festivas si aplica
+        while hora_actual < salida_dt:
+            hora_del_dia = hora_actual.hour
+            
+            # Si está en horario nocturno
+            if hora_del_dia >= 18 or hora_del_dia < 6:
+                siguiente_hora = hora_actual + timedelta(hours=1)
+                siguiente_hora = siguiente_hora.replace(minute=0, second=0, microsecond=0)
+                
+                if siguiente_hora > salida_dt:
+                    siguiente_hora = salida_dt
+                
+                tiempo_nocturno = (siguiente_hora - hora_actual).total_seconds() / 3600
+                horas_nocturnas_calculadas += Decimal(str(tiempo_nocturno))
+            
+            hora_actual += timedelta(hours=1)
+            hora_actual = hora_actual.replace(minute=0, second=0, microsecond=0)
+        
+        self.horas_nocturnas = horas_nocturnas_calculadas
+        
+        # ============================================================
+        # HORAS FESTIVAS
+        # ============================================================
         if self.es_dia_festivo:
             self.horas_festivas = total_horas
         else:
@@ -337,29 +466,6 @@ class Asistencia(models.Model):
         self.horas_nocturnas = self.horas_nocturnas.quantize(Decimal('0.01'))
         self.horas_festivas = self.horas_festivas.quantize(Decimal('0.01'))
         self.horas_totales = self.horas_totales.quantize(Decimal('0.01'))
-
-    def _calcular_horas_nocturnas(self, entrada_dt, salida_dt):
-        """Calcula horas trabajadas entre 18:00 (6 PM) y 06:00 (6 AM)"""
-        horas_nocturnas = 0
-        hora_actual = entrada_dt
-        
-        while hora_actual < salida_dt:
-            hora_del_dia = hora_actual.hour
-            
-            if hora_del_dia >= 18 or hora_del_dia < 6:
-                siguiente_hora = hora_actual + timedelta(hours=1)
-                siguiente_hora = siguiente_hora.replace(minute=0, second=0, microsecond=0)
-                
-                if siguiente_hora > salida_dt:
-                    siguiente_hora = salida_dt
-                
-                tiempo_nocturno = (siguiente_hora - hora_actual).total_seconds() / 3600
-                horas_nocturnas += tiempo_nocturno
-            
-            hora_actual += timedelta(hours=1)
-            hora_actual = hora_actual.replace(minute=0, second=0, microsecond=0)
-        
-        return Decimal(str(horas_nocturnas))
 
     def verificar_llegada_tarde(self):
         """Verificar si el trabajador llegó tarde según horario del proyecto"""
@@ -424,6 +530,177 @@ class Asistencia(models.Model):
         self.estado = 'cerrado'
         self.save()
 
+    def validar(self, usuario, observaciones=''):
+        """
+        Valida la asistencia por parte del supervisor
+        
+        Args:
+            usuario: Usuario que valida (debe ser supervisor)
+            observaciones: Observaciones opcionales
+        
+        Returns:
+            bool: True si se validó exitosamente
+        
+        Raises:
+            ValueError: Si la asistencia ya está validada o no está cerrada
+        """
+        from django.utils import timezone
+        
+        # Validaciones
+        if self.validado:
+            raise ValueError('Esta asistencia ya fue validada')
+        
+        if self.estado != 'cerrado':
+            raise ValueError('Solo se pueden validar asistencias cerradas')
+        
+        if self.eliminado:
+            raise ValueError('No se puede validar una asistencia eliminada')
+        
+        # Verificar que el usuario es supervisor del proyecto
+        if not usuario.es_administrador() and self.proyecto.supervisor != usuario:
+            raise ValueError('Solo el supervisor del proyecto puede validar esta asistencia')
+        
+        # Validar
+        self.validado = True
+        self.validado_por = usuario
+        self.validado_fecha = timezone.now()
+        self.observaciones_validacion = observaciones
+        self.estado = 'validado'
+        self.editado_por = usuario
+        self.save()
+        
+        return True
+
+
+    def rechazar(self, usuario, motivo):
+        """
+        Rechaza la asistencia
+        
+        Args:
+            usuario: Usuario que rechaza (debe ser supervisor)
+            motivo: Motivo del rechazo (obligatorio)
+        
+        Returns:
+            bool: True si se rechazó exitosamente
+        
+        Raises:
+            ValueError: Si el motivo está vacío o la asistencia ya fue validada
+        """
+        from django.utils import timezone
+        
+        # Validaciones
+        if not motivo or motivo.strip() == '':
+            raise ValueError('Debe especificar un motivo para rechazar la asistencia')
+        
+        if self.validado:
+            raise ValueError('No se puede rechazar una asistencia ya validada')
+        
+        if self.eliminado:
+            raise ValueError('No se puede rechazar una asistencia eliminada')
+        
+        # Verificar permisos
+        if not usuario.es_administrador() and self.proyecto.supervisor != usuario:
+            raise ValueError('Solo el supervisor del proyecto puede rechazar esta asistencia')
+        
+        # Rechazar
+        self.estado = 'rechazado'
+        self.observaciones_validacion = f'[RECHAZADA] {motivo}'
+        self.editado_por = usuario
+        self.save()
+        
+        return True
+
+
+    def corregir(self, usuario, nueva_hora_entrada=None, nueva_hora_salida=None, motivo=''):
+        """
+        Corrige las marcaciones de entrada/salida
+        
+        Args:
+            usuario: Usuario que corrige (debe ser supervisor)
+            nueva_hora_entrada: Nueva hora de entrada (opcional)
+            nueva_hora_salida: Nueva hora de salida (opcional)
+            motivo: Motivo de la corrección (obligatorio)
+        
+        Returns:
+            bool: True si se corrigió exitosamente
+        
+        Raises:
+            ValueError: Si no hay cambios o el motivo está vacío
+        """
+        from django.utils import timezone
+        
+        # Validaciones
+        if not motivo or motivo.strip() == '':
+            raise ValueError('Debe especificar un motivo para la corrección')
+        
+        if not nueva_hora_entrada and not nueva_hora_salida:
+            raise ValueError('Debe especificar al menos una hora para corregir')
+        
+        if self.eliminado:
+            raise ValueError('No se puede corregir una asistencia eliminada')
+        
+        # Verificar permisos
+        if not usuario.es_administrador() and self.proyecto.supervisor != usuario:
+            raise ValueError('Solo el supervisor del proyecto puede corregir esta asistencia')
+        
+        # Guardar valores originales (solo la primera vez)
+        if not self.fue_corregida:
+            self.hora_entrada_original = self.hora_entrada
+            self.hora_salida_original = self.hora_salida
+        
+        # Aplicar correcciones
+        if nueva_hora_entrada:
+            self.hora_entrada = nueva_hora_entrada
+        
+        if nueva_hora_salida:
+            self.hora_salida = nueva_hora_salida
+        
+        # Si hay nueva hora de salida, recalcular horas
+        if nueva_hora_salida and self.hora_entrada:
+            self._calcular_horas()
+        
+        # Registrar corrección
+        self.fue_corregida = True
+        self.corregida_por = usuario
+        self.corregida_fecha = timezone.now()
+        
+        # Agregar al motivo si ya había uno previo
+        if self.motivo_correccion:
+            self.motivo_correccion += f'\n\n[{timezone.now().strftime("%Y-%m-%d %H:%M")}] {motivo}'
+        else:
+            self.motivo_correccion = motivo
+        
+        self.editado_por = usuario
+        self.save()
+        
+        return True
+
+
+    def puede_ser_validada(self):
+        """
+        Verifica si la asistencia puede ser validada
+        
+        Returns:
+            bool: True si puede ser validada
+        """
+        return (
+            self.estado == 'cerrado' and
+            not self.validado and
+            not self.eliminado
+        )
+
+
+    @property
+    def necesita_validacion(self):
+        """
+        Indica si la asistencia necesita validación
+        
+        Returns:
+            bool: True si necesita validación
+        """
+        return self.estado == 'cerrado' and not self.validado and not self.eliminado
+
+
     @property
     def duracion_jornada(self):
         """Retorna la duración de la jornada en formato legible"""
@@ -442,6 +719,7 @@ class Asistencia(models.Model):
         
         hoy = timezone.now().date()
         return self.fecha >= (hoy - timedelta(days=2))
+        #return True
 
     @property
     def motivo_no_editable(self):
@@ -468,28 +746,206 @@ class Asistencia(models.Model):
         """Verifica si la asistencia puede ser eliminada"""
         return not self.eliminado
 
-    def save(self, *args, **kwargs):
-        """Override del save para cálculos automáticos"""
-        # Copiar salarios del trabajador si no existen
-        if not self.pk and self.trabajador:
-            if not self.salario_dia:
-                self.salario_dia = self.trabajador.salario_normal or Decimal('0.00')
-            if not self.tarifa_hora_extra:
-                self.tarifa_hora_extra = self.trabajador.tarifa_hora_extra or Decimal('0.00')
-            if not self.salario_hora_festiva:
-                self.salario_hora_festiva = self.trabajador.salario_festivo or Decimal('0.00')
-            if not self.salario_hora_nocturna:
-                self.salario_hora_nocturna = self.trabajador.salario_nocturno or Decimal('0.00')
+    def validar_dia_laboral(self):
+        """
+        Valida si la fecha de asistencia es un día laboral del proyecto
         
-        # Verificar llegada tarde
-        if self.hora_entrada:
-            self.verificar_llegada_tarde()
+        Returns:
+            tuple: (es_valido, mensaje)
+        """
+        if not self.fecha or not self.proyecto:
+            return True, "Sin información para validar"
         
-        # Calcular horas y verificar salida temprana
+        es_laboral, mensaje = self.proyecto.es_dia_laboral(self.fecha)
+        
+        if not es_laboral:
+            return False, f"⚠️ {mensaje}. Los días laborales son: {self.proyecto.get_dias_laborales_nombres()}"
+        
+        return True, "Día laboral válido"
+
+
+    def get_comparacion_horario(self):
+        """
+        Retorna comparación entre horario esperado y real
+        
+        Returns:
+            dict: Información de comparación de horarios
+        """
+        if not self.proyecto:
+            return {}
+        
+        return {
+            'entrada_esperada': self.proyecto.hora_entrada_esperada,
+            'entrada_real': self.hora_entrada,
+            'salida_esperada': self.proyecto.hora_salida_esperada,
+            'salida_real': self.hora_salida,
+            'tolerancia_minutos': self.proyecto.minutos_tolerancia,
+            'llego_tarde': self.llego_tarde,
+            'minutos_tarde': self.minutos_tarde,
+            'horas_extras': self.horas_extras,
+            'dentro_tolerancia': self.minutos_tarde <= self.proyecto.minutos_tolerancia if self.llego_tarde else True,
+        }
+
+
+    def calcular_minutos_trabajados(self):
+        """
+        Calcula minutos totales trabajados
+        
+        Returns:
+            int: Minutos trabajados
+        """
+        if not self.hora_entrada or not self.hora_salida:
+            return 0
+        
+        from datetime import datetime, timedelta
+        
+        entrada = datetime.combine(datetime.today(), self.hora_entrada)
+        salida = datetime.combine(datetime.today(), self.hora_salida)
+        
+        if salida < entrada:
+            salida += timedelta(days=1)
+        
+        diferencia = salida - entrada
+        return int(diferencia.total_seconds() / 60)
+
+
+    def get_resumen_turno(self):
+        """
+        Retorna resumen completo del turno
+        
+        Returns:
+            dict: Resumen con todos los datos del turno
+        """
+        return {
+            'trabajador': self.trabajador.nombre_completo,
+            'proyecto': self.proyecto.nombre,
+            'fecha': self.fecha,
+            'es_dia_laboral': self.proyecto.es_dia_laboral(self.fecha)[0] if self.fecha else False,
+            'horario_proyecto': self.proyecto.get_horario_display(),
+            'entrada_real': self.hora_entrada.strftime('%H:%M') if self.hora_entrada else None,
+            'salida_real': self.hora_salida.strftime('%H:%M') if self.hora_salida else None,
+            'llego_tarde': self.llego_tarde,
+            'minutos_tarde': self.minutos_tarde,
+            'horas_trabajadas': self.horas_totales,
+            'horas_normales': self.horas_normales,
+            'horas_extras': self.horas_extras,
+            'duracion': self.duracion_jornada,
+            'estado': self.get_estado_display(),
+            'validado': self.validado,
+        }
+
+
+    @property
+    def alerta_dia_no_laboral(self):
+        """
+        Indica si la asistencia es en un día no laboral
+        
+        Returns:
+            bool: True si es día no laboral
+        """
+        if not self.fecha or not self.proyecto:
+            return False
+        
+        es_laboral, _ = self.proyecto.es_dia_laboral(self.fecha)
+        return not es_laboral
+
+
+    @property
+    def excede_horas_jornada(self):
+        """
+        Indica si las horas trabajadas exceden la jornada normal
+        
+        Returns:
+            bool: True si excede la jornada
+        """
+        if not self.horas_totales or not self.proyecto:
+            return False
+        
+        return self.horas_totales > float(self.proyecto.horas_jornada)
+
+
+    @property
+    def dentro_tolerancia_entrada(self):
+        """
+        Indica si la entrada está dentro de la tolerancia
+        
+        Returns:
+            bool: True si está dentro de tolerancia
+        """
+        if not self.llego_tarde:
+            return True
+        
+        return self.minutos_tarde <= self.proyecto.minutos_tolerancia
+
+
+    @property
+    def mensaje_horario(self):
+        """
+        Genera mensaje descriptivo del horario
+        
+        Returns:
+            str: Mensaje sobre el cumplimiento de horario
+        """
+        if not self.hora_entrada:
+            return "Sin registro de entrada"
+        
+        mensajes = []
+        
+        # Entrada
+        if self.llego_tarde:
+            if self.dentro_tolerancia_entrada:
+                mensajes.append(f"Llegó {self.minutos_tarde} min tarde (dentro de tolerancia)")
+            else:
+                mensajes.append(f"Llegó {self.minutos_tarde} min tarde")
+        else:
+            mensajes.append("Llegó puntual")
+        
+        # Salida
         if self.hora_salida:
-            self.verificar_salida_temprana()
+            if self.horas_extras > 0:
+                mensajes.append(f"Trabajó {self.horas_extras:.1f}h extras")
+            else:
+                mensajes.append("Salió en horario normal")
         
-        self.calcular_horas()
+        # Día no laboral
+        if self.alerta_dia_no_laboral:
+            mensajes.append("⚠️ Día no laboral")
+        
+        return " | ".join(mensajes)
+
+    def save(self, *args, **kwargs):
+        """
+        Método save mejorado con cálculos automáticos basados en horarios del proyecto
+        """
+        # ===== 1. CALCULAR LLEGADAS TARDE USANDO HORARIO DEL PROYECTO =====
+        if self.hora_entrada and self.proyecto:
+            minutos_tarde, llego_tarde = self.proyecto.calcular_llegada_tarde(self.hora_entrada)
+            self.minutos_tarde = minutos_tarde
+            self.llego_tarde = llego_tarde
+        
+        # ===== 2. CALCULAR HORAS TRABAJADAS =====
+        if self.hora_entrada and self.hora_salida:
+            # Calcular horas totales del turno
+            self.horas_totales = self.proyecto.calcular_horas_trabajadas(
+                self.hora_entrada,
+                self.hora_salida
+            )
+            
+            # Calcular horas normales (máximo la jornada esperada)
+            self.horas_normales = min(self.horas_totales, float(self.proyecto.horas_jornada))
+            
+            # Calcular horas extras usando horario del proyecto
+            self.horas_extras = self.proyecto.calcular_horas_extras(self.hora_salida)
+        
+        # ===== 3. CERRAR AUTOMÁTICAMENTE SI HAY SALIDA =====
+        if self.hora_salida and self.estado == 'abierto':
+            self.estado = 'cerrado'
+        
+        # ===== 4. CALCULAR DURACIÓN JORNADA =====
+        if self.horas_totales:
+            horas = int(self.horas_totales)
+            minutos = int((self.horas_totales - horas) * 60)
+            self.duracion_jornada = f"{horas}h {minutos}m"
         
         super().save(*args, **kwargs)
 

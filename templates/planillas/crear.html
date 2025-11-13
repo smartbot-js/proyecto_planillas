@@ -1,0 +1,749 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Generar Planilla - Sistema de Planillas{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Page Header */
+.page-header {
+    margin-bottom: 24px;
+}
+
+.page-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 4px 0;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 14px;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.back-link:hover {
+    color: #2563eb;
+}
+
+/* Django Messages */
+.messages {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 24px 0;
+}
+
+.message {
+    padding: 14px 18px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 14px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message .material-symbols-outlined {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.message.success {
+    background: #d1fae5;
+    border: 1px solid #10b981;
+    color: #065f46;
+}
+
+.message.error {
+    background: #fee2e2;
+    border: 1px solid #ef4444;
+    color: #991b1b;
+}
+
+.message.warning {
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    color: #92400e;
+}
+
+.message.info {
+    background: #dbeafe;
+    border: 1px solid #3b82f6;
+    color: #1e40af;
+}
+
+/* Form Card */
+.form-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.form-card h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.form-group label.required::after {
+    content: '*';
+    color: #ef4444;
+    margin-left: 2px;
+}
+
+.form-input,
+.form-select {
+    padding: 12px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.form-input:focus,
+.form-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-help {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.btn {
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+.btn-success {
+    background: #10b981;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* Info Cards */
+.info-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.info-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.info-card-label {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.info-card-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.info-card.warning {
+    background: #fef3c7;
+    border-color: #fbbf24;
+}
+
+.info-card.warning .info-card-value {
+    color: #92400e;
+}
+
+.info-card.success {
+    background: #d1fae5;
+    border-color: #10b981;
+}
+
+.info-card.success .info-card-value {
+    color: #065f46;
+}
+
+.info-card.info {
+    background: #dbeafe;
+    border-color: #3b82f6;
+}
+
+.info-card.info .info-card-value {
+    color: #1e40af;
+}
+
+/* Preview Table */
+.preview-table-container {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.preview-table-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f9fafb;
+}
+
+.preview-table-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.preview-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.preview-table thead {
+    background: #f9fafb;
+}
+
+.preview-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.preview-table td {
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #374151;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.preview-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+.preview-table tfoot {
+    background: #f9fafb;
+    font-weight: 600;
+}
+
+.preview-table tfoot td {
+    border-top: 2px solid #e2e8f0;
+    border-bottom: none;
+    padding: 16px;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-success {
+    color: #059669;
+    font-weight: 600;
+}
+
+.text-info {
+    color: #2563eb;
+    font-weight: 600;
+}
+
+/* Alert Boxes */
+.alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.alert-warning {
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    color: #92400e;
+}
+
+.alert-info {
+    background: #dbeafe;
+    border: 1px solid #3b82f6;
+    color: #1e40af;
+}
+
+.alert-success {
+    background: #d1fae5;
+    border: 1px solid #10b981;
+    color: #065f46;
+}
+
+.alert-error {
+    background: #fee2e2;
+    border: 1px solid #ef4444;
+    color: #991b1b;
+}
+
+.alert .material-symbols-outlined {
+    font-size: 20px;
+}
+
+/* Summary Box */
+.summary-box {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.summary-box h3 {
+    font-size: 16px;
+    margin: 0 0 16px 0;
+    opacity: 0.9;
+}
+
+.summary-totals {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.summary-total-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.summary-total-label {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+.summary-total-value {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .info-cards-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .summary-totals {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'planillas_lista' %}" class="back-link">
+    <span class="material-symbols-outlined" style="font-size: 18px;">arrow_back</span>
+    Volver a planillas
+</a>
+
+<div class="page-header">
+    <h1>📝 Generar Nueva Planilla</h1>
+    <p style="color: #6b7280; font-size: 14px; margin-top: 4px;">
+        Selecciona el proyecto y período para generar la planilla automáticamente
+    </p>
+</div>
+
+<!-- MENSAJES DE DJANGO -->
+{% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+    <li class="message {{ message.tags }}">
+        {% if message.tags == 'success' %}
+            <span class="material-symbols-outlined">check_circle</span>
+        {% elif message.tags == 'error' %}
+            <span class="material-symbols-outlined">error</span>
+        {% elif message.tags == 'warning' %}
+            <span class="material-symbols-outlined">warning</span>
+        {% else %}
+            <span class="material-symbols-outlined">info</span>
+        {% endif %}
+        <span>{{ message }}</span>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if not mostrar_preview %}
+<!-- FORMULARIO DE GENERACIÓN -->
+<form method="post" id="formGenerarPlanilla">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="preview">
+    
+    <div class="form-card">
+        <h2>
+            <span class="material-symbols-outlined" style="color: #3b82f6;">settings</span>
+            Configuración de la Planilla
+        </h2>
+        
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="required">Proyecto</label>
+                <select name="proyecto" class="form-select" required>
+                    <option value="">Selecciona un proyecto</option>
+                    {% for proyecto in proyectos %}
+                    <option value="{{ proyecto.id }}">{{ proyecto.nombre }}</option>
+                    {% endfor %}
+                </select>
+                <span class="form-help">Proyecto para el cual se generará la planilla</span>
+            </div>
+            
+            <div class="form-group">
+                <label class="required">Fecha de Inicio</label>
+                <input 
+                    type="date" 
+                    name="periodo_inicio" 
+                    class="form-input"
+                    value="{{ periodo_inicio_sugerido|date:'Y-m-d' }}"
+                    required
+                >
+                <span class="form-help">Se recomienda iniciar en jueves</span>
+            </div>
+            
+            <div class="form-group">
+                <label class="required">Fecha de Fin</label>
+                <input 
+                    type="date" 
+                    name="periodo_fin" 
+                    class="form-input"
+                    value="{{ periodo_fin_sugerido|date:'Y-m-d' }}"
+                    required
+                >
+                <span class="form-help">Se recomienda terminar en martes (13 días)</span>
+            </div>
+        </div>
+        
+        <div class="alert alert-info" style="margin-top: 20px;">
+            <span class="material-symbols-outlined">info</span>
+            <div>
+                <strong>Tipo de cambio actual:</strong> C$ {{ tipo_cambio.valor }}<br>
+                <small>Puedes actualizarlo desde la configuración si es necesario</small>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <a href="{% url 'planillas_lista' %}" class="btn btn-secondary">
+                Cancelar
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <span class="material-symbols-outlined">preview</span>
+                Ver Preview
+            </button>
+        </div>
+    </div>
+</form>
+
+{% else %}
+<!-- PREVIEW DE LA PLANILLA -->
+<form method="post" id="formConfirmarPlanilla">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="generar">
+    <input type="hidden" name="proyecto" value="{{ proyecto.id }}">
+    <input type="hidden" name="periodo_inicio" value="{{ periodo_inicio|date:'Y-m-d' }}">
+    <input type="hidden" name="periodo_fin" value="{{ periodo_fin|date:'Y-m-d' }}">
+    
+    <!-- Información del período -->
+    <div class="info-cards-grid">
+        <div class="info-card info">
+            <div class="info-card-label">Proyecto</div>
+            <div class="info-card-value">{{ proyecto.nombre }}</div>
+        </div>
+        
+        <div class="info-card {% if validacion.inicia_jueves %}success{% else %}warning{% endif %}">
+            <div class="info-card-label">Período</div>
+            <div class="info-card-value" style="font-size: 16px;">
+                {{ periodo_inicio|date:"d/m/Y" }} - {{ periodo_fin|date:"d/m/Y" }}
+            </div>
+        </div>
+        
+        <div class="info-card">
+            <div class="info-card-label">Días del Período</div>
+            <div class="info-card-value">{{ validacion.dias_periodo }}</div>
+        </div>
+        
+        <div class="info-card success">
+            <div class="info-card-label">Trabajadores</div>
+            <div class="info-card-value">{{ preview_detalles|length }}</div>
+        </div>
+        
+        <div class="info-card info">
+            <div class="info-card-label">Asistencias Validadas</div>
+            <div class="info-card-value">{{ resumen.asistencias_validadas }}</div>
+        </div>
+    </div>
+    
+    <!-- Resumen de totales -->
+    <div class="summary-box">
+        <h3>💰 Totales de la Planilla</h3>
+        <div class="summary-totals">
+            <div class="summary-total-item">
+                <span class="summary-total-label">Total en Córdobas</span>
+                <span class="summary-total-value">C$ {{ total_general_cordobas|floatformat:2 }}</span>
+            </div>
+            <div class="summary-total-item">
+                <span class="summary-total-label">Total en Dólares</span>
+                <span class="summary-total-value">$ {{ total_general_dolares|floatformat:2 }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabla de preview -->
+    <div class="preview-table-container">
+        <div class="preview-table-header">
+            <h2>
+                <span class="material-symbols-outlined" style="color: #3b82f6;">group</span>
+                Detalle por Trabajador
+            </h2>
+        </div>
+        
+        <div class="table-wrapper">
+            <table class="preview-table">
+                <thead>
+                    <tr>
+                        <th>Trabajador</th>
+                        <th>Puesto</th>
+                        <th class="text-right">Días</th>
+                        <th class="text-right">H. Extras</th>
+                        <th class="text-right">H. Dominicales</th>
+                        <th class="text-right">Salario Día</th>
+                        <th class="text-right">Total C$</th>
+                        <th class="text-right">Total USD</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detalle in preview_detalles %}
+                    <tr>
+                        <td>{{ detalle.trabajador.nombre_completo }}</td>
+                        <td>{{ detalle.trabajador.puesto_laboral }}</td>
+                        <td class="text-right">{{ detalle.dias }}</td>
+                        <td class="text-right">{{ detalle.horas_extras|floatformat:1 }}</td>
+                        <td class="text-right">{{ detalle.horas_dominicales|floatformat:1 }}</td>
+                        <td class="text-right">C$ {{ detalle.salario_dia|floatformat:2 }}</td>
+                        <td class="text-right text-success">C$ {{ detalle.ingreso_total|floatformat:2 }}</td>
+                        <td class="text-right text-info">$ {{ detalle.ingreso_total_dolares|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="6"><strong>TOTALES:</strong></td>
+                        <td class="text-right text-success">
+                            <strong>C$ {{ total_general_cordobas|floatformat:2 }}</strong>
+                        </td>
+                        <td class="text-right text-info">
+                            <strong>$ {{ total_general_dolares|floatformat:2 }}</strong>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    
+    <div class="alert alert-info">
+        <span class="material-symbols-outlined">info</span>
+        <div>
+            <strong>Nota importante:</strong> La planilla se generará en estado <strong>"Borrador"</strong>. 
+            Podrás editarla y agregar bonos, deducciones u otros conceptos antes de aprobarla.
+        </div>
+    </div>
+    
+    <div class="form-actions">
+        <a href="{% url 'planilla_crear' %}" class="btn btn-secondary">
+            <span class="material-symbols-outlined">arrow_back</span>
+            Volver al Formulario
+        </a>
+        <button type="submit" class="btn btn-success" id="btnGenerar">
+            <span class="material-symbols-outlined">check_circle</span>
+            Generar Planilla
+        </button>
+    </div>
+</form>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Validación del formulario
+const formGenerarPlanilla = document.getElementById('formGenerarPlanilla');
+if (formGenerarPlanilla) {
+    formGenerarPlanilla.addEventListener('submit', function(e) {
+        const proyecto = document.querySelector('select[name="proyecto"]').value;
+        const inicio = document.querySelector('input[name="periodo_inicio"]').value;
+        const fin = document.querySelector('input[name="periodo_fin"]').value;
+        
+        if (!proyecto || !inicio || !fin) {
+            e.preventDefault();
+            alert('Por favor completa todos los campos');
+            return false;
+        }
+        
+        // Validar que fecha fin sea posterior a fecha inicio
+        if (new Date(fin) <= new Date(inicio)) {
+            e.preventDefault();
+            alert('La fecha de fin debe ser posterior a la fecha de inicio');
+            return false;
+        }
+    });
+}
+
+// Confirmación antes de generar
+const formConfirmarPlanilla = document.getElementById('formConfirmarPlanilla');
+if (formConfirmarPlanilla) {
+    formConfirmarPlanilla.addEventListener('submit', function(e) {
+        const btnGenerar = document.getElementById('btnGenerar');
+        
+        if (!confirm('¿Estás seguro de que deseas generar esta planilla?\n\nSe creará en estado "Borrador" y podrás editarla después.')) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Deshabilitar botón para evitar doble click
+        btnGenerar.disabled = true;
+        btnGenerar.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span> Generando...';
+    });
+}
+
+// Auto-cerrar mensajes después de 5 segundos
+setTimeout(function() {
+    const messages = document.querySelectorAll('.message');
+    messages.forEach(function(message) {
+        message.style.transition = 'opacity 0.5s';
+        message.style.opacity = '0';
+        setTimeout(function() {
+            message.remove();
+        }, 500);
+    });
+}, 5000);
+</script>
+{% endblock %}

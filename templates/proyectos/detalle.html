@@ -169,6 +169,75 @@
                 </div>
             </div>
 
+            <!-- ✨ NUEVA SECCIÓN: HORARIOS Y DÍAS LABORALES -->
+            <div class="content-card">
+                <div class="card-header">
+                    <h3><span class="material-symbols-outlined">schedule</span> Horarios y Días Laborales</h3>
+                </div>
+                <div class="horarios-detalle-grid">
+                    <div class="horario-item">
+                        <div class="horario-icon">
+                            <span class="material-symbols-outlined">login</span>
+                        </div>
+                        <div class="horario-info">
+                            <span class="horario-label">Hora de Entrada</span>
+                            <span class="horario-value">{{ proyecto.hora_entrada_esperada|time:"H:i" }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="horario-item">
+                        <div class="horario-icon">
+                            <span class="material-symbols-outlined">logout</span>
+                        </div>
+                        <div class="horario-info">
+                            <span class="horario-label">Hora de Salida</span>
+                            <span class="horario-value">{{ proyecto.hora_salida_esperada|time:"H:i" }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="horario-item">
+                        <div class="horario-icon">
+                            <span class="material-symbols-outlined">timer</span>
+                        </div>
+                        <div class="horario-info">
+                            <span class="horario-label">Tolerancia</span>
+                            <span class="horario-value">{{ proyecto.minutos_tolerancia }} min</span>
+                        </div>
+                    </div>
+                    
+                    <div class="horario-item">
+                        <div class="horario-icon">
+                            <span class="material-symbols-outlined">access_time</span>
+                        </div>
+                        <div class="horario-info">
+                            <span class="horario-label">Jornada</span>
+                            <span class="horario-value">{{ proyecto.horas_jornada }} horas</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="dias-laborales-detalle">
+                    <span class="dias-label">Días laborales:</span>
+                    <div class="dias-badges">
+                        {% with dias=proyecto.get_dias_laborales_list %}
+                        <span class="dia-badge {% if 1 in dias %}activo{% endif %}">L</span>
+                        <span class="dia-badge {% if 2 in dias %}activo{% endif %}">M</span>
+                        <span class="dia-badge {% if 3 in dias %}activo{% endif %}">M</span>
+                        <span class="dia-badge {% if 4 in dias %}activo{% endif %}">J</span>
+                        <span class="dia-badge {% if 5 in dias %}activo{% endif %}">V</span>
+                        <span class="dia-badge {% if 6 in dias %}activo{% endif %}">S</span>
+                        <span class="dia-badge {% if 7 in dias %}activo{% endif %}">D</span>
+                        {% endwith %}
+                    </div>
+                </div>
+                
+                <div class="horario-resumen-detalle">
+                    <span class="material-symbols-outlined">info</span>
+                    <p>{{ proyecto.get_horario_display }} • {{ proyecto.get_dias_laborales_nombres }}</p>
+                </div>
+            </div>
+            <!-- FIN SECCIÓN HORARIOS -->
+
             <div class="content-card">
                 <div class="card-header">
                     <h3><span class="material-symbols-outlined">engineering</span> Personal y Equipo</h3>
@@ -962,6 +1031,122 @@ body {
 }
 .text-muted { 
     color: #9ca3af; 
+}
+/* ===== ESTILOS PARA HORARIOS EN DETALLE ===== */
+.horarios-detalle-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    padding: 24px;
+    padding-bottom: 16px;
+}
+
+.horario-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.horario-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.horario-icon .material-symbols-outlined {
+    color: white;
+    font-size: 22px;
+}
+
+.horario-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.horario-label {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.horario-value {
+    font-size: 16px;
+    color: #111827;
+    font-weight: 700;
+}
+
+.dias-laborales-detalle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    background: #f9fafb;
+    margin: 0 24px 16px 24px;
+    border-radius: 8px;
+}
+
+.dias-label {
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.dias-badges {
+    display: flex;
+    gap: 6px;
+}
+
+.dia-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    background: white;
+    border: 2px solid #e2e8f0;
+    color: #9ca3af;
+}
+
+.dia-badge.activo {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border-color: #1e40af;
+    color: white;
+}
+
+.horario-resumen-detalle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-top: 1px solid #e2e8f0;
+    border-radius: 0 0 12px 12px;
+}
+
+.horario-resumen-detalle .material-symbols-outlined {
+    color: #3b82f6;
+    font-size: 20px;
+}
+
+.horario-resumen-detalle p {
+    margin: 0;
+    font-size: 13px;
+    color: #1e40af;
+    font-weight: 500;
 }
 </style>
 {% endblock %}

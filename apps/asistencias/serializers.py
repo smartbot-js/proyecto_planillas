@@ -18,6 +18,20 @@ class AsistenciaSerializer(serializers.ModelSerializer):
     duracion_jornada = serializers.CharField(read_only=True)
     puede_editar = serializers.BooleanField(read_only=True)
     
+    # Campos de validación (agregar a la clase AsistenciaSerializer)
+    validado_por_nombre = serializers.CharField(
+        source='validado_por.nombre_completo',
+        read_only=True,
+        allow_null=True
+    )
+    corregida_por_nombre = serializers.CharField(
+        source='corregida_por.nombre_completo',
+        read_only=True,
+        allow_null=True
+    )
+    puede_ser_validada = serializers.BooleanField(read_only=True)
+    necesita_validacion = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = Asistencia
         fields = [
@@ -61,6 +75,20 @@ class AsistenciaSerializer(serializers.ModelSerializer):
             'creado_en',
             'modificado_en',
             'sincronizado_en',
+            'validado',
+            'validado_por',
+            'validado_por_nombre',
+            'validado_fecha',
+            'observaciones_validacion',
+            'fue_corregida',
+            'corregida_por',
+            'corregida_por_nombre',
+            'corregida_fecha',
+            'motivo_correccion',
+            'hora_entrada_original',
+            'hora_salida_original',
+            'puede_ser_validada',
+            'necesita_validacion',
         ]
         read_only_fields = [
             'horas_normales',
@@ -204,3 +232,198 @@ class ResumenDiarioSerializer(serializers.ModelSerializer):
             'observaciones',
         ]
         
+class ValidarAsistenciaSerializer(serializers.Serializer):
+    """
+    Serializer para validar una asistencia
+    
+    Campos:
+        observaciones: Observaciones opcionales del supervisor
+    """
+    observaciones = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=1000,
+        help_text='Observaciones opcionales al validar'
+    )
+    
+    def validate(self, data):
+        """
+        Validaciones adicionales
+        """
+        # Obtener la asistencia del contexto
+        asistencia = self.context.get('asistencia')
+        
+        if not asistencia:
+            raise serializers.ValidationError('Asistencia no encontrada en el contexto')
+        
+        if asistencia.validado:
+            raise serializers.ValidationError('Esta asistencia ya fue validada')
+        
+        if asistencia.estado != 'cerrado':
+            raise serializers.ValidationError('Solo se pueden validar asistencias cerradas')
+        
+        if asistencia.eliminado:
+            raise serializers.ValidationError('No se puede validar una asistencia eliminada')
+        
+        return data
+
+
+class RechazarAsistenciaSerializer(serializers.Serializer):
+    """
+    Serializer para rechazar una asistencia
+    
+    Campos:
+        motivo: Motivo del rechazo (obligatorio)
+    """
+    motivo = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        max_length=1000,
+        help_text='Motivo por el cual se rechaza la asistencia'
+    )
+    
+    def validate_motivo(self, value):
+        """
+        Valida que el motivo no esté vacío
+        """
+        if not value or value.strip() == '':
+            raise serializers.ValidationError('El motivo del rechazo es obligatorio')
+        
+        if len(value.strip()) < 10:
+            raise serializers.ValidationError('El motivo debe tener al menos 10 caracteres')
+        
+        return value.strip()
+    
+    def validate(self, data):
+        """
+        Validaciones adicionales
+        """
+        asistencia = self.context.get('asistencia')
+        
+        if not asistencia:
+            raise serializers.ValidationError('Asistencia no encontrada en el contexto')
+        
+        if asistencia.validado:
+            raise serializers.ValidationError('No se puede rechazar una asistencia ya validada')
+        
+        if asistencia.eliminado:
+            raise serializers.ValidationError('No se puede rechazar una asistencia eliminada')
+        
+        return data
+
+
+class CorregirAsistenciaSerializer(serializers.Serializer):
+    """
+    Serializer para corregir marcaciones de una asistencia
+    
+    Campos:
+        nueva_hora_entrada: Nueva hora de entrada (opcional)
+        nueva_hora_salida: Nueva hora de salida (opcional)
+        motivo_correccion: Motivo de la corrección (obligatorio)
+    """
+    nueva_hora_entrada = serializers.TimeField(
+        required=False,
+        allow_null=True,
+        help_text='Nueva hora de entrada (formato HH:MM:SS)'
+    )
+    nueva_hora_salida = serializers.TimeField(
+        required=False,
+        allow_null=True,
+        help_text='Nueva hora de salida (formato HH:MM:SS)'
+    )
+    motivo_correccion = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        max_length=1000,
+        help_text='Motivo de la corrección (obligatorio)'
+    )
+    
+    def validate_motivo_correccion(self, value):
+        """
+        Valida que el motivo no esté vacío
+        """
+        if not value or value.strip() == '':
+            raise serializers.ValidationError('El motivo de la corrección es obligatorio')
+        
+        if len(value.strip()) < 10:
+            raise serializers.ValidationError('El motivo debe tener al menos 10 caracteres')
+        
+        return value.strip()
+    
+    def validate(self, data):
+        """
+        Validaciones adicionales
+        """
+        asistencia = self.context.get('asistencia')
+        
+        if not asistencia:
+            raise serializers.ValidationError('Asistencia no encontrada en el contexto')
+        
+        # Al menos una hora debe ser proporcionada
+        if not data.get('nueva_hora_entrada') and not data.get('nueva_hora_salida'):
+            raise serializers.ValidationError(
+                'Debe especificar al menos una hora para corregir (entrada o salida)'
+            )
+        
+        # Validar lógica de horas
+        nueva_entrada = data.get('nueva_hora_entrada')
+        nueva_salida = data.get('nueva_hora_salida')
+        
+        # Si se proporcionan ambas, validar que salida sea después de entrada
+        if nueva_entrada and nueva_salida:
+            if nueva_salida <= nueva_entrada:
+                raise serializers.ValidationError(
+                    'La hora de salida debe ser posterior a la hora de entrada'
+                )
+        
+        # Si solo se proporciona salida, validar contra entrada actual
+        if nueva_salida and not nueva_entrada:
+            if asistencia.hora_entrada and nueva_salida <= asistencia.hora_entrada:
+                raise serializers.ValidationError(
+                    'La hora de salida debe ser posterior a la hora de entrada actual'
+                )
+        
+        if asistencia.eliminado:
+            raise serializers.ValidationError('No se puede corregir una asistencia eliminada')
+        
+        return data
+    
+# ========================================
+# SERIALIZER PARA LISTA DE PENDIENTES
+# ========================================
+
+class AsistenciaPendienteValidacionSerializer(serializers.ModelSerializer):
+    """
+    Serializer ligero para lista de asistencias pendientes de validación
+    """
+    trabajador_nombre = serializers.CharField(
+        source='trabajador.nombre_completo',
+        read_only=True
+    )
+    proyecto_nombre = serializers.CharField(
+        source='proyecto.nombre',
+        read_only=True
+    )
+    duracion_jornada = serializers.CharField(read_only=True)
+    
+    class Meta:
+        model = Asistencia
+        fields = [
+            'id',
+            'fecha',
+            'trabajador',
+            'trabajador_nombre',
+            'proyecto',
+            'proyecto_nombre',
+            'hora_entrada',
+            'hora_salida',
+            'horas_totales',
+            'horas_extras',
+            'estado',
+            'llego_tarde',
+            'minutos_tarde',
+            'duracion_jornada',
+            'observaciones',
+        ]
+        read_only_fields = fields
+

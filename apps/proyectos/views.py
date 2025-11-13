@@ -141,39 +141,45 @@ class ProyectoCreateView(LoginRequiredMixin, View):
             # Crear el proyecto con los datos del POST
             proyecto = Proyecto()
             
-            # Información básica
+            # Información básica (EXISTENTE - NO CAMBIAR)
             proyecto.nombre = request.POST.get('nombre')
             proyecto.descripcion = request.POST.get('descripcion', '')
             proyecto.estado = request.POST.get('estado')
             proyecto.tipo_proyecto = request.POST.get('tipo_proyecto')
             
-            # Ubicación
+            # Ubicación (EXISTENTE - NO CAMBIAR)
             proyecto.ubicacion = request.POST.get('ubicacion')
             proyecto.ubicacion_coordenadas = request.POST.get('ubicacion_coordenadas', '')
             proyecto.departamento = request.POST.get('departamento', '')
             proyecto.municipio = request.POST.get('municipio', '')
             
-            # Características
+            # Características (EXISTENTE - NO CAMBIAR)
             proyecto.tamano_proyecto = request.POST.get('tamano_proyecto', 0)
             proyecto.cantidad_unidades = request.POST.get('cantidad_unidades', 0)
             proyecto.tamano_promedio = request.POST.get('tamano_promedio', 0)
             
-            # Fechas
+            # Fechas (EXISTENTE - NO CAMBIAR)
             proyecto.fecha_inicio = request.POST.get('fecha_inicio')
             proyecto.fecha_fin_estimada = request.POST.get('fecha_fin_estimada') or None
+            proyecto.fecha_inicio_obra = request.POST.get('fecha_inicio_obra') or None
+            proyecto.fecha_entrega_estimada = request.POST.get('fecha_entrega_estimada') or None
+            proyecto.fecha_acta_inicio = request.POST.get('fecha_acta_inicio') or None
+            proyecto.fecha_acta_terminacion = request.POST.get('fecha_acta_terminacion') or None
+            proyecto.plazo_ejecucion_meses = request.POST.get('plazo_ejecucion_meses', 0)
             proyecto.fecha_avaluo = request.POST.get('fecha_avaluo') or None
             
-            # Personal
+            # Personal (EXISTENTE - NO CAMBIAR)
             supervisor_id = request.POST.get('supervisor')
-            proyecto.supervisor = Usuario.objects.get(id=supervisor_id)
+            if supervisor_id:
+                proyecto.supervisor = Usuario.objects.get(id=supervisor_id)
             proyecto.personal_asignado = request.POST.get('personal_asignado', 0)
             proyecto.contratistas_asignados = request.POST.get('contratistas_asignados', 0)
             
-            # Porcentajes
+            # Porcentajes (EXISTENTE - NO CAMBIAR)
             proyecto.porcentaje_avance_general = request.POST.get('porcentaje_avance_general', 0)
             proyecto.porcentaje_asignacion_planilla = request.POST.get('porcentaje_asignacion_planilla', 0)
             
-            # Presupuesto
+            # Presupuesto (EXISTENTE - NO CAMBIAR)
             proyecto.presupuesto_total = request.POST.get('presupuesto_total', 0)
             proyecto.presupuesto_mano_obra = request.POST.get('presupuesto_mano_obra', 0)
             proyecto.presupuesto_administrativo = request.POST.get('presupuesto_administrativo', 0)
@@ -182,7 +188,46 @@ class ProyectoCreateView(LoginRequiredMixin, View):
             proyecto.anticipo = request.POST.get('anticipo', 0)
             proyecto.valor_avaluo_acumulado = request.POST.get('valor_avaluo_acumulado', 0)
             
-            # Archivos
+            # ============================================================
+            # ✨ NUEVO: HORARIOS Y DÍAS LABORALES
+            # ============================================================
+            from datetime import time
+            
+            # Hora de entrada (default: 08:00)
+            hora_entrada_str = request.POST.get('hora_entrada_esperada', '08:00')
+            if hora_entrada_str:
+                try:
+                    hora_entrada = time.fromisoformat(hora_entrada_str)
+                    proyecto.hora_entrada_esperada = hora_entrada
+                except:
+                    proyecto.hora_entrada_esperada = time(8, 0)  # Default
+            
+            # Hora de salida (default: 17:00)
+            hora_salida_str = request.POST.get('hora_salida_esperada', '17:00')
+            if hora_salida_str:
+                try:
+                    hora_salida = time.fromisoformat(hora_salida_str)
+                    proyecto.hora_salida_esperada = hora_salida
+                except:
+                    proyecto.hora_salida_esperada = time(17, 0)  # Default
+            
+            # Minutos de tolerancia (default: 15)
+            proyecto.minutos_tolerancia = int(request.POST.get('minutos_tolerancia', 15))
+            
+            # Horas de jornada (default: 8.0)
+            proyecto.horas_jornada = float(request.POST.get('horas_jornada', 8.0))
+            
+            # Días laborales (checkboxes múltiples)
+            dias_laborales = request.POST.getlist('dias_laborales')
+            if dias_laborales:
+                # Convertir lista a string separado por comas
+                proyecto.dias_laborales = ','.join(dias_laborales)
+            else:
+                # Default: Lunes a Viernes
+                proyecto.dias_laborales = '1,2,3,4,5'
+            # ============================================================
+            
+            # Archivos (EXISTENTE - NO CAMBIAR)
             if 'archivo_contrato' in request.FILES:
                 proyecto.archivo_contrato = request.FILES['archivo_contrato']
             if 'archivo_avaluo' in request.FILES:
@@ -192,10 +237,10 @@ class ProyectoCreateView(LoginRequiredMixin, View):
             if 'imagen_proyecto' in request.FILES:
                 proyecto.imagen_proyecto = request.FILES['imagen_proyecto']
             
-            # Estado
+            # Estado (EXISTENTE - NO CAMBIAR)
             proyecto.activo = 'activo' in request.POST or request.POST.get('activo') == 'on'
             
-            # 🆕 AUDITORÍA: Registrar quién creó el proyecto
+            # Auditoría (EXISTENTE - NO CAMBIAR)
             proyecto.creado_por = request.user
             proyecto.modificado_por = request.user
             
@@ -203,7 +248,7 @@ class ProyectoCreateView(LoginRequiredMixin, View):
             
             messages.success(
                 request,
-                f'✅ Proyecto "{proyecto.nombre}" creado exitosamente.'
+                f'✅ Proyecto "{proyecto.nombre}" creado exitosamente con horario {proyecto.get_horario_display()}.'
             )
             return redirect('proyectos_lista')
             
@@ -255,7 +300,7 @@ class ProyectoEditarView(LoginRequiredMixin, View):
         """Procesa el formulario de edición"""
         proyecto = get_object_or_404(Proyecto, pk=pk, eliminado=False)
         
-        # Verificar permisos
+        # Verificar permisos (EXISTENTE - NO CAMBIAR)
         if not proyecto.puede_ser_editado_por(request.user):
             messages.error(
                 request,
@@ -264,39 +309,44 @@ class ProyectoEditarView(LoginRequiredMixin, View):
             return redirect('proyecto_detalle', pk=pk)
         
         try:
-            # Actualizar campos
+            # Actualizar campos básicos (EXISTENTE - NO CAMBIAR)
             proyecto.nombre = request.POST.get('nombre')
             proyecto.descripcion = request.POST.get('descripcion', '')
             proyecto.estado = request.POST.get('estado')
             proyecto.tipo_proyecto = request.POST.get('tipo_proyecto')
             
-            # Ubicación
+            # Ubicación (EXISTENTE - NO CAMBIAR)
             proyecto.ubicacion = request.POST.get('ubicacion')
             proyecto.ubicacion_coordenadas = request.POST.get('ubicacion_coordenadas', '')
             proyecto.departamento = request.POST.get('departamento', '')
             proyecto.municipio = request.POST.get('municipio', '')
             
-            # Características
+            # Características (EXISTENTE - NO CAMBIAR)
             proyecto.tamano_proyecto = request.POST.get('tamano_proyecto', 0)
             proyecto.cantidad_unidades = request.POST.get('cantidad_unidades', 0)
             proyecto.tamano_promedio = request.POST.get('tamano_promedio', 0)
             
-            # Fechas
+            # Fechas (EXISTENTE - NO CAMBIAR)
             proyecto.fecha_inicio = request.POST.get('fecha_inicio')
             proyecto.fecha_fin_estimada = request.POST.get('fecha_fin_estimada') or None
+            proyecto.fecha_inicio_obra = request.POST.get('fecha_inicio_obra') or None
+            proyecto.fecha_entrega_estimada = request.POST.get('fecha_entrega_estimada') or None
+            proyecto.fecha_acta_inicio = request.POST.get('fecha_acta_inicio') or None
+            proyecto.fecha_acta_terminacion = request.POST.get('fecha_acta_terminacion') or None
+            proyecto.plazo_ejecucion_meses = request.POST.get('plazo_ejecucion_meses', 0)
             proyecto.fecha_avaluo = request.POST.get('fecha_avaluo') or None
             
-            # Personal
+            # Personal (EXISTENTE - NO CAMBIAR)
             supervisor_id = request.POST.get('supervisor')
             proyecto.supervisor = Usuario.objects.get(id=supervisor_id)
             proyecto.personal_asignado = request.POST.get('personal_asignado', 0)
             proyecto.contratistas_asignados = request.POST.get('contratistas_asignados', 0)
             
-            # Porcentajes
+            # Porcentajes (EXISTENTE - NO CAMBIAR)
             proyecto.porcentaje_avance_general = request.POST.get('porcentaje_avance_general', 0)
             proyecto.porcentaje_asignacion_planilla = request.POST.get('porcentaje_asignacion_planilla', 0)
             
-            # Presupuesto
+            # Presupuesto (EXISTENTE - NO CAMBIAR)
             proyecto.presupuesto_total = request.POST.get('presupuesto_total', 0)
             proyecto.presupuesto_mano_obra = request.POST.get('presupuesto_mano_obra', 0)
             proyecto.presupuesto_administrativo = request.POST.get('presupuesto_administrativo', 0)
@@ -305,7 +355,44 @@ class ProyectoEditarView(LoginRequiredMixin, View):
             proyecto.anticipo = request.POST.get('anticipo', 0)
             proyecto.valor_avaluo_acumulado = request.POST.get('valor_avaluo_acumulado', 0)
             
-            # Archivos (solo si se suben nuevos)
+            # ============================================================
+            # ✨ NUEVO: ACTUALIZAR HORARIOS Y DÍAS LABORALES
+            # ============================================================
+            from datetime import time
+            
+            # Hora de entrada
+            hora_entrada_str = request.POST.get('hora_entrada_esperada')
+            if hora_entrada_str:
+                try:
+                    proyecto.hora_entrada_esperada = time.fromisoformat(hora_entrada_str)
+                except:
+                    pass  # Mantener valor actual
+            
+            # Hora de salida
+            hora_salida_str = request.POST.get('hora_salida_esperada')
+            if hora_salida_str:
+                try:
+                    proyecto.hora_salida_esperada = time.fromisoformat(hora_salida_str)
+                except:
+                    pass  # Mantener valor actual
+            
+            # Minutos de tolerancia
+            minutos_tolerancia = request.POST.get('minutos_tolerancia')
+            if minutos_tolerancia:
+                proyecto.minutos_tolerancia = int(minutos_tolerancia)
+            
+            # Horas de jornada
+            horas_jornada = request.POST.get('horas_jornada')
+            if horas_jornada:
+                proyecto.horas_jornada = float(horas_jornada)
+            
+            # Días laborales
+            dias_laborales = request.POST.getlist('dias_laborales')
+            if dias_laborales:
+                proyecto.dias_laborales = ','.join(dias_laborales)
+            # ============================================================
+            
+            # Archivos (EXISTENTE - NO CAMBIAR)
             if 'archivo_contrato' in request.FILES:
                 proyecto.archivo_contrato = request.FILES['archivo_contrato']
             if 'archivo_avaluo' in request.FILES:
@@ -315,10 +402,10 @@ class ProyectoEditarView(LoginRequiredMixin, View):
             if 'imagen_proyecto' in request.FILES:
                 proyecto.imagen_proyecto = request.FILES['imagen_proyecto']
             
-            # Estado
+            # Estado (EXISTENTE - NO CAMBIAR)
             proyecto.activo = 'activo' in request.POST or request.POST.get('activo') == 'on'
             
-            # 🆕 AUDITORÍA: Registrar quién modificó el proyecto
+            # Auditoría (EXISTENTE - NO CAMBIAR)
             proyecto.modificado_por = request.user
             
             proyecto.save()
@@ -345,6 +432,7 @@ class ProyectoEditarView(LoginRequiredMixin, View):
                 'supervisores': supervisores,
             }
             return render(request, self.template_name, context)
+
 
 
 class ProyectoEliminarView(LoginRequiredMixin, View):
