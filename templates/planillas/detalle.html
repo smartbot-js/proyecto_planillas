@@ -547,6 +547,14 @@
                 Eliminar
             </button>
             {% endif %}
+            <a href="{% url 'planilla_exportar_excel' planilla.pk %}" class="btn btn-success">
+                <span class="material-symbols-outlined">download</span>
+                Exportar a Excel
+            </a>
+            <a href="{% url 'planilla_exportar_pdf' planilla.pk %}" class="btn btn-danger">
+                <span class="material-symbols-outlined">picture_as_pdf</span>
+                Exportar a PDF
+            </a>
         </div>
     </div>
 </div>

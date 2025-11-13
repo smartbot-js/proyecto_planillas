@@ -17,6 +17,8 @@ from .views import (
     PlanillaAprobarContadorView,
     PlanillaMarcarPagadaView,
     PlanillaEliminarView,
+    PlanillaExportarExcelView,
+    PlanillaExportarPDFView,
 )
 
 # Router para el ViewSet (API) - para futuro
@@ -52,7 +54,11 @@ urlpatterns = [
     
     # Eliminar planilla
     path('planillas/<int:pk>/eliminar/', PlanillaEliminarView.as_view(), name='planilla_eliminar'),
-    
+
+    # Exportar Planillas    
+    path('planillas/<int:pk>/exportar-excel/', PlanillaExportarExcelView.as_view(), name='planilla_exportar_excel'),
+    path('planillas/<int:pk>/exportar-pdf/', PlanillaExportarPDFView.as_view(), name='planilla_exportar_pdf'),
+
     # Acciones (próximamente)
     # path('planillas/<int:pk>/aprobar-gerente/', ..., name='planilla_aprobar_gerente'),
     # path('planillas/<int:pk>/aprobar-contador/', ..., name='planilla_aprobar_contador'),
