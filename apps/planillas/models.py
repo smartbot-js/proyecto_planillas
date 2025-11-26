@@ -766,6 +766,10 @@ class DetallePlanilla(models.Model):
         return f"{self.trabajador.nombre_completo} - {self.planilla.codigo}"
     
     def save(self, *args, **kwargs):
+        # Asignar tipo de cambio actual si no tiene
+        #if not self.tipo_cambio or self.tipo_cambio == Decimal('36.6000'):
+        #    from apps.core.utils import get_tipo_cambio_actual
+        #    self.tipo_cambio = get_tipo_cambio_actual()
         # Calcular valores automáticos
         self.calcular_valores()
         super().save(*args, **kwargs)

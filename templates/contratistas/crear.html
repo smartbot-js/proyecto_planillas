@@ -1,0 +1,554 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Agregar Contratista - Sistema de Planillas{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Mismo estilo que el resto del sistema */
+.page-header {
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.page-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.form-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.form-section {
+    margin-bottom: 32px;
+}
+
+.form-section:last-child {
+    margin-bottom: 0;
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 16px 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-title .material-symbols-outlined {
+    color: #3b82f6;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.required {
+    color: #ef4444;
+}
+
+.form-control {
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-control.error {
+    border-color: #ef4444;
+}
+
+.form-help {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.form-error {
+    font-size: 12px;
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.errorlist {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.errorlist li {
+    font-size: 12px;
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.form-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-check-input {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.form-check-label {
+    font-size: 14px;
+    color: #374151;
+    cursor: pointer;
+}
+
+.file-upload {
+    position: relative;
+}
+
+.file-preview {
+    margin-top: 12px;
+    max-width: 300px;
+}
+
+.file-preview img {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding-top: 24px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+}
+
+.btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+.alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.alert-success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+}
+
+.alert-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="page-header">
+    <h1>
+        <span class="material-symbols-outlined">person_add</span>
+        Agregar Contratista
+    </h1>
+</div>
+
+<!-- Mensajes -->
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        <span class="material-symbols-outlined">
+            {% if message.tags == 'success' %}check_circle{% else %}error{% endif %}
+        </span>
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Formulario -->
+<form method="POST" enctype="multipart/form-data" id="contratistaForm">
+    {% csrf_token %}
+    
+    <!-- Sección: Información Personal -->
+    <div class="form-card">
+        <div class="form-section">
+            <h2 class="section-title">
+                <span class="material-symbols-outlined">badge</span>
+                Información Personal
+            </h2>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">
+                        Nombre <span class="required">*</span>
+                    </label>
+                    {{ form.nombre }}
+                    {% if form.nombre.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.nombre.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        Apellido <span class="required">*</span>
+                    </label>
+                    {{ form.apellido }}
+                    {% if form.apellido.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.apellido.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        Número de Cédula <span class="required">*</span>
+                    </label>
+                    {{ form.numero_cedula }}
+                    <span class="form-help">{{ form.numero_cedula.help_text }}</span>
+                    {% if form.numero_cedula.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.numero_cedula.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group full-width">
+                    <label class="form-label">
+                        Foto de Cédula
+                    </label>
+                    {{ form.foto_cedula }}
+                    {% if form.foto_cedula.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.foto_cedula.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    <div class="file-preview" id="fotoPreview" style="display: none;">
+                        <img id="previewImg" src="" alt="Vista previa">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sección: Contacto -->
+    <div class="form-card">
+        <div class="form-section">
+            <h2 class="section-title">
+                <span class="material-symbols-outlined">contact_phone</span>
+                Información de Contacto
+            </h2>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">
+                        Teléfono <span class="required">*</span>
+                    </label>
+                    {{ form.telefono }}
+                    {% if form.telefono.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.telefono.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        Correo Electrónico
+                    </label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.email.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        Departamento <span class="required">*</span>
+                    </label>
+                    {{ form.departamento }}
+                    {% if form.departamento.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.departamento.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        Municipio <span class="required">*</span>
+                    </label>
+                    {{ form.municipio }}
+                    {% if form.municipio.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.municipio.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group full-width">
+                    <label class="form-label">
+                        Dirección <span class="required">*</span>
+                    </label>
+                    {{ form.direccion }}
+                    {% if form.direccion.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.direccion.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sección: Datos Bancarios -->
+    <div class="form-card">
+        <div class="form-section">
+            <h2 class="section-title">
+                <span class="material-symbols-outlined">account_balance</span>
+                Datos Bancarios
+            </h2>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">
+                        Banco
+                    </label>
+                    {{ form.banco }}
+                    {% if form.banco.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.banco.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        Número de Cuenta
+                    </label>
+                    {{ form.numero_cuenta }}
+                    {% if form.numero_cuenta.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.numero_cuenta.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        Tipo de Cuenta
+                    </label>
+                    {{ form.tipo_cuenta }}
+                    {% if form.tipo_cuenta.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.tipo_cuenta.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        Moneda
+                    </label>
+                    {{ form.moneda_cuenta }}
+                    {% if form.moneda_cuenta.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.moneda_cuenta.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sección: Estado -->
+    <div class="form-card">
+        <div class="form-section">
+            <h2 class="section-title">
+                <span class="material-symbols-outlined">toggle_on</span>
+                Estado
+            </h2>
+            
+            <div class="form-check">
+                {{ form.activo }}
+                <label class="form-check-label" for="{{ form.activo.id_for_label }}">
+                    {{ form.activo.label }}
+                </label>
+            </div>
+            {% if form.activo.errors %}
+                <ul class="errorlist">
+                    {% for error in form.activo.errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Acciones -->
+    <div class="form-card">
+        <div class="form-actions">
+            <a href="{% url 'contratistas_lista' %}" class="btn btn-secondary">
+                <span class="material-symbols-outlined">close</span>
+                Cancelar
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <span class="material-symbols-outlined">save</span>
+                Guardar Contratista
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Preview de la foto
+document.getElementById('{{ form.foto_cedula.id_for_label }}').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('previewImg').src = e.target.result;
+            document.getElementById('fotoPreview').style.display = 'block';
+        }
+        reader.readAsDataURL(file);
+    }
+});
+
+// Validación del formulario
+document.getElementById('contratistaForm').addEventListener('submit', function(e) {
+    let valid = true;
+    const requiredFields = ['{{ form.nombre.id_for_label }}', '{{ form.apellido.id_for_label }}', '{{ form.numero_cedula.id_for_label }}', '{{ form.telefono.id_for_label }}'];
+    
+    requiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (!field.value.trim()) {
+            field.classList.add('error');
+            valid = false;
+        } else {
+            field.classList.remove('error');
+        }
+    });
+    
+    if (!valid) {
+        e.preventDefault();
+        alert('Por favor completa todos los campos obligatorios');
+    }
+});
+</script>
+{% endblock %}

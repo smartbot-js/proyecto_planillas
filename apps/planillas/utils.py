@@ -102,10 +102,11 @@ def generar_planilla_desde_asistencias(proyecto, periodo_inicio, periodo_fin, us
         # ============================================================
         # 5. CALCULAR DÍAS LABORADOS
         # ============================================================
-        dias_laborados = asistencias_trabajador.filter(
-            estado='cerrado'  # Solo turnos cerrados
-        ).count()
-        
+        # dias_laborados = asistencias_trabajador.filter(
+        #     estado='cerrado'  # Solo turnos cerrados
+        # ).count()
+        # Contar TODAS las asistencias validadas (abiertas o cerradas)
+        dias_laborados = asistencias_trabajador.count()
         # ============================================================
         # 6. CALCULAR HORAS
         # ============================================================

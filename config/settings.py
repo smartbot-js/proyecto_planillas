@@ -51,6 +51,8 @@ INSTALLED_APPS = [
     'apps.trabajadores',
     'apps.asistencias',
     'apps.planillas',
+    'apps.contratistas',
+    'apps.core',
 ]
 
 MIDDLEWARE = [
@@ -78,6 +80,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.media',
                 'django.template.context_processors.static',
+                'apps.core.context_processors.configuracion_global',
             ],
         },
     },

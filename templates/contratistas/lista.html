@@ -1,0 +1,776 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Contratistas - Sistema de Planillas{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Estilos específicos para la lista de contratistas - MISMO ESTILO QUE PLANILLAS */
+.page-header {
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.page-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-header h1 .material-symbols-outlined {
+    font-size: 32px;
+}
+
+.page-actions {
+    display: flex;
+    gap: 12px;
+}
+
+/* Stats Cards */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.2s;
+}
+
+.stat-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.stat-icon.blue { background: #dbeafe; color: #3b82f6; }
+.stat-icon.yellow { background: #fef3c7; color: #f59e0b; }
+.stat-icon.green { background: #d1fae5; color: #10b981; }
+.stat-icon.purple { background: #e0e7ff; color: #6366f1; }
+
+.stat-content h3 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 4px 0;
+}
+
+.stat-content p {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 0;
+}
+
+/* Currency Selector */
+.currency-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.currency-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.currency-toggle {
+    display: flex;
+    background: #f3f4f6;
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.currency-toggle button {
+    padding: 8px 20px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.currency-toggle button.active {
+    background: white;
+    color: #3b82f6;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.exchange-rate {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.exchange-rate label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.exchange-rate input {
+    width: 110px;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.exchange-rate input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Filters */
+.filters-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.filter-input,
+.filter-select {
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn {
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+}
+
+.btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+.btn-success {
+    background: #10b981;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #059669;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+/* Table */
+.table-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.table-header {
+    padding: 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.table-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+}
+
+.table-count {
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 400;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.contratistas-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.contratistas-table thead {
+    background: #f9fafb;
+}
+
+.contratistas-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.contratistas-table td {
+    padding: 16px;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 14px;
+    color: #374151;
+}
+
+.contratistas-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+.contratista-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.contratista-nombre {
+    font-weight: 600;
+    color: #111827;
+}
+
+.contratista-cedula {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    display: inline-block;
+}
+
+.badge-info { background: #dbeafe; color: #1e40af; }
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-warning { background: #fef3c7; color: #92400e; }
+
+.progress-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.progress-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827;
+    min-width: 45px;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #10b981);
+    transition: width 0.3s;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #6b7280;
+}
+
+.btn-icon:hover {
+    background: #f9fafb;
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+.btn-icon .material-symbols-outlined {
+    font-size: 18px;
+}
+
+/* Pagination */
+.pagination {
+    padding: 20px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.pagination-info {
+    padding: 8px 16px;
+    background: #f9fafb;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+}
+
+/* Empty State */
+.empty-state {
+    padding: 60px 20px;
+    text-align: center;
+}
+
+.empty-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 16px;
+    background: #f3f4f6;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.empty-icon .material-symbols-outlined {
+    font-size: 40px;
+    color: #9ca3af;
+}
+
+.empty-state h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 8px 0;
+}
+
+.empty-state p {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0 0 24px 0;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="page-header">
+    <h1>
+        <span class="material-symbols-outlined">engineering</span>
+        Contratistas
+    </h1>
+    <div class="page-actions">
+        <button class="btn btn-secondary" onclick="alert('Carga masiva próximamente')">
+            <span class="material-symbols-outlined">upload_file</span>
+            Carga Masiva
+        </button>
+        <button class="btn btn-success" onclick="alert('Exportar próximamente')">
+            <span class="material-symbols-outlined">download</span>
+            Exportar Excel
+        </button>
+        <button class="btn btn-primary" onclick="location.href='{% url 'contratistas_crear' %}'">
+            <span class="material-symbols-outlined">add</span>
+            Agregar Contratista
+        </button>
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <span class="material-symbols-outlined">engineering</span>
+        </div>
+        <div class="stat-content">
+            <h3>{{ stats.total_contratistas }}</h3>
+            <p>Total Contratistas</p>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon purple">
+            <span class="material-symbols-outlined">description</span>
+        </div>
+        <div class="stat-content">
+            <h3>{{ stats.total_contratos }}</h3>
+            <p>Contratos Activos</p>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon green">
+            <span class="material-symbols-outlined">payments</span>
+        </div>
+        <div class="stat-content">
+            <h3>
+                {% if moneda == 'dolares' %}
+                    $ {{ stats.total_pagado_dolares|floatformat:2 }}
+                {% else %}
+                    C$ {{ stats.total_pagado_cordobas|floatformat:2 }}
+                {% endif %}
+            </h3>
+            <p>Total Pagado ({{ stats.total_pagos }} pagos)</p>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon yellow">
+            <span class="material-symbols-outlined">schedule</span>
+        </div>
+        <div class="stat-content">
+            <h3>
+                {% if moneda == 'dolares' %}
+                    $ {{ stats.pendiente_dolares|floatformat:2 }}
+                {% else %}
+                    C$ {{ stats.pendiente_cordobas|floatformat:2 }}
+                {% endif %}
+            </h3>
+            <p>Pendiente ({{ stats.porcentaje_avance|floatformat:1 }}% avance)</p>
+        </div>
+    </div>
+</div>
+
+<!-- Selector de Moneda -->
+<div class="currency-card">
+    <span class="currency-label">Ver montos en:</span>
+    <div class="currency-toggle">
+        <button class="{% if moneda == 'cordobas' %}active{% endif %}" onclick="cambiarMoneda('cordobas')">
+            C$ Córdobas
+        </button>
+        <button class="{% if moneda == 'dolares' %}active{% endif %}" onclick="cambiarMoneda('dolares')">
+            $ Dólares
+        </button>
+    </div>
+    <div class="exchange-rate">
+        <label>Tipo de Cambio:</label>
+        <input 
+            type="number" 
+            id="tipo_cambio" 
+            value="{{ tipo_cambio }}" 
+            placeholder="{{ tipo_cambio_global }}"
+            title="Tipo de cambio global: {{ tipo_cambio_global }}"
+            step="0.0001"
+        >
+        <small style="color: #6b7280; font-size: 12px;">
+            TC Global: C$ {{ tipo_cambio_global }}
+        </small>
+        <span style="color: #6b7280;">C$/USD</span>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="filters-card">
+    <form method="GET" id="filtrosForm">
+        <input type="hidden" name="moneda" value="{{ moneda }}">
+        <input type="hidden" name="tipo_cambio" value="{{ tipo_cambio }}">
+        
+        <div class="filters-grid">
+            <div class="filter-group">
+                <label>Buscar por Cédula o Nombre</label>
+                <input type="text" 
+                       name="buscar" 
+                       class="filter-input" 
+                       placeholder="Ej: 0011234567890A"
+                       value="{{ buscar }}">
+            </div>
+            
+            <div class="filter-group">
+                <label>Proyecto</label>
+                <select name="proyecto" class="filter-select">
+                    <option value="">Todos los proyectos</option>
+                    {% for proyecto in proyectos %}
+                    <option value="{{ proyecto.id }}" {% if proyecto_seleccionado == proyecto.id|stringformat:"s" %}selected{% endif %}>
+                        {{ proyecto.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label>Forma de Pago</label>
+                <select name="forma_pago" class="filter-select">
+                    <option value="">Todas</option>
+                    {% for codigo, nombre in formas_pago %}
+                    <option value="{{ codigo }}" {% if forma_pago_seleccionada == codigo %}selected{% endif %}>
+                        {{ nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label>Estado</label>
+                <select name="estado" class="filter-select">
+                    <option value="">Todos</option>
+                    {% for codigo, nombre in estados_contrato %}
+                    <option value="{{ codigo }}" {% if estado_seleccionado == codigo %}selected{% endif %}>
+                        {{ nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <span class="material-symbols-outlined">search</span>
+                Filtrar
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="limpiarFiltros()">
+                <span class="material-symbols-outlined">clear</span>
+                Limpiar
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Tabla -->
+<div class="table-card">
+    <div class="table-header">
+        <h2>
+            Listado de Contratistas 
+            <span class="table-count">({{ page_obj.paginator.count }} registros)</span>
+        </h2>
+    </div>
+    
+    {% if contratistas %}
+    <div class="table-responsive">
+        <table class="contratistas-table">
+            <thead>
+                <tr>
+                    <th>Contratista</th>
+                    <th>Teléfono</th>
+                    <th>Contratos</th>
+                    <th>Valor Contratos</th>
+                    <th>Total Pagado</th>
+                    <th>Pendiente</th>
+                    <th>Avance</th>
+                    <th style="text-align: center;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for contratista in contratistas %}
+                <tr>
+                    <td>
+                        <div class="contratista-info">
+                            <span class="contratista-nombre">{{ contratista.nombre_completo }}</span>
+                            <span class="contratista-cedula">{{ contratista.numero_cedula }}</span>
+                        </div>
+                    </td>
+                    <td>{{ contratista.telefono }}</td>
+                    <td>
+                        <span class="badge badge-info">{{ contratista.total_contratos_count }}</span>
+                    </td>
+                    <td style="font-weight: 600;">
+                        {% if moneda == 'dolares' %}
+                            $ {{ contratista.valor_contratos_display|floatformat:2 }}
+                        {% else %}
+                            C$ {{ contratista.valor_contratos_display|floatformat:2 }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if moneda == 'dolares' %}
+                            $ {{ contratista.total_pagado_display|floatformat:2 }}
+                        {% else %}
+                            C$ {{ contratista.total_pagado_display|floatformat:2 }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if moneda == 'dolares' %}
+                            $ {{ contratista.pendiente_display|floatformat:2 }}
+                        {% else %}
+                            C$ {{ contratista.pendiente_display|floatformat:2 }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="progress-wrapper">
+                            <span class="progress-text">{{ contratista.avance|floatformat:1 }}%</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ contratista.avance }}%"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="action-buttons" style="justify-content: center;">
+                            <button class="btn-icon" title="Ver Detalle" onclick="alert('Ver próximamente')">
+                                <span class="material-symbols-outlined">visibility</span>
+                            </button>
+                            <button class="btn-icon" title="Editar" onclick="location.href='{% url 'contratistas_editar' contratista.pk %}'">
+                                <span class="material-symbols-outlined">edit</span>
+                            </button>
+                            <button class="btn-icon" title="Estado de Cuenta" onclick="alert('Estado cuenta próximamente')">
+                                <span class="material-symbols-outlined">account_balance</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Paginación -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+           class="btn btn-secondary btn-sm">Primera</a>
+        <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+           class="btn btn-secondary btn-sm">Anterior</a>
+        {% endif %}
+        
+        <span class="pagination-info">
+            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+        </span>
+        
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+           class="btn btn-secondary btn-sm">Siguiente</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+           class="btn btn-secondary btn-sm">Última</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <!-- Empty State -->
+    <div class="empty-state">
+        <div class="empty-icon">
+            <span class="material-symbols-outlined">engineering</span>
+        </div>
+        <h3>No hay contratistas registrados</h3>
+        <p>Comienza agregando tu primer contratista al sistema</p>
+        <button class="btn btn-primary" onclick="location.href='{% url 'contratistas_crear' %}'">
+            <span class="material-symbols-outlined">add</span>
+            Agregar Contratista
+        </button>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function cambiarMoneda(moneda) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('moneda', moneda);
+    window.location.href = url.toString();
+}
+
+function actualizarTipoCambio() {
+    const tipoCambio = document.getElementById('tipoCambio').value;
+    const url = new URL(window.location.href);
+    url.searchParams.set('tipo_cambio', tipoCambio);
+    window.location.href = url.toString();
+}
+
+function limpiarFiltros() {
+    window.location.href = '{% url "contratistas_lista" %}';
+}
+</script>
+{% endblock %}

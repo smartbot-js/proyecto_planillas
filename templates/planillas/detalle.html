@@ -633,39 +633,57 @@
         <table class="detalle-table">
             <thead>
                 <tr>
+                    <th style="width: 40px;">N°</th>
                     <th>Trabajador</th>
+                    <th>Cédula</th>
                     <th>Cargo</th>
-                    <th class="text-right">Días</th>
-                    <th class="text-right">H. Extras</th>
-                    <th class="text-right">H. Dom.</th>
-                    <th class="text-right">Salario Base</th>
-                    <th class="text-right">Bonos</th>
-                    <th class="text-right">Deducciones</th>
+                    <th class="text-right">Días Lab.</th>
+                    <th class="text-right">Días Fer.</th>
+                    <th class="text-right">H.E.</th>
+                    <th class="text-right">Sal. Base</th>
+                    <th class="text-right">Valor 7mo</th>
+                    <th class="text-right">Base+7mo</th>
+                    <th class="text-right">Valor Hora</th>
+                    <th class="text-right">Sal. Dev.</th>
+                    <th class="text-right">Sal. H.E.</th>
+                    <th class="text-right">Sal. Fer.</th>
+                    <th class="text-right">Bono</th>
+                    <th class="text-right">Comb.</th>
+                    <th class="text-right">Otros</th>
                     <th class="text-right">Total C$</th>
                     <th class="text-right">Total USD</th>
                     {% if puede_editar %}
-                    <th class="text-right">Acciones</th>
+                    <th class="text-center">Acciones</th>
                     {% endif %}
                 </tr>
             </thead>
             <tbody>
                 {% for detalle in detalles_area %}
                 <tr>
+                    <td class="text-center">{{ forloop.counter }}</td>
                     <td>{{ detalle.trabajador.nombre }} {{ detalle.trabajador.apellido }}</td>
+                    <td>{{ detalle.trabajador.numero_cedula }}</td>
                     <td>{{ detalle.cargo }}</td>
                     <td class="text-right">{{ detalle.dias_laborados }}</td>
+                    <td class="text-right">{{ detalle.dias_feriados }}</td>
                     <td class="text-right">{{ detalle.horas_extras|floatformat:1 }}</td>
-                    <td class="text-right">{{ detalle.horas_dominicales|floatformat:1 }}</td>
                     <td class="text-right">C$ {{ detalle.salario_dia_base|floatformat:2 }}</td>
+                    <td class="text-right">C$ {{ detalle.valor_septimo_dia|floatformat:2 }}</td>
+                    <td class="text-right">C$ {{ detalle.salario_diario_con_septimo|floatformat:2 }}</td>
+                    <td class="text-right">C$ {{ detalle.valor_hora_base|floatformat:2 }}</td>
+                    <td class="text-right">C$ {{ detalle.salario_devengado|floatformat:2 }}</td>
+                    <td class="text-right">C$ {{ detalle.salario_horas_extras|floatformat:2 }}</td>
+                    <td class="text-right">C$ {{ detalle.salario_dias_feriados|floatformat:2 }}</td>
                     <td class="text-right">C$ {{ detalle.bonos|floatformat:2 }}</td>
-                    <td class="text-right">C$ {{ detalle.deducciones|floatformat:2 }}</td>
-                    <td class="text-right text-success">C$ {{ detalle.ingreso_total|floatformat:2 }}</td>
+                    <td class="text-right">C$ {{ detalle.combustible|floatformat:2 }}</td>
+                    <td class="text-right">C$ {{ detalle.otros_gastos|floatformat:2 }}</td>
+                    <td class="text-right text-success"><strong>C$ {{ detalle.ingreso_total|floatformat:2 }}</strong></td>
                     <td class="text-right text-info">$ {{ detalle.ingreso_total_dolares|floatformat:2 }}</td>
                     {% if puede_editar %}
-                    <td class="text-right">
+                    <td class="text-center">
                         <button 
                             class="btn btn-secondary btn-sm" 
-                            onclick="editarDetalle({{ detalle.id }}, '{{ detalle.trabajador.nombre|escapejs }} {{ detalle.trabajador.apellido|escapejs }}', '{{ detalle.bonos }}', '{{ detalle.deducciones }}', '{{ detalle.observaciones|default:''|escapejs }}')"
+                            onclick="editarDetalle({{ detalle.id }}, '{{ detalle.trabajador.nombre|escapejs }} {{ detalle.trabajador.apellido|escapejs }}', '{{ detalle.bonos }}', '{{ detalle.combustible }}', '{{ detalle.otros_gastos }}', '{{ detalle.salario_dias_feriados }}', '{{ detalle.observaciones|default:''|escapejs }}')"
                         >
                             <span class="material-symbols-outlined" style="font-size: 16px;">edit</span>
                         </button>
@@ -700,8 +718,18 @@
             </div>
             
             <div class="form-group">
-                <label>Deducciones (C$)</label>
-                <input type="number" name="deducciones" id="inputDeducciones" class="form-input" step="0.01" min="0" value="0.00">
+                <label>Combustible (C$)</label>
+                <input type="number" name="combustible" id="inputCombustible" class="form-input" step="0.01" min="0" value="0.00">
+            </div>
+            
+            <div class="form-group">
+                <label>Otros Gastos (C$)</label>
+                <input type="number" name="otros_gastos" id="inputOtros" class="form-input" step="0.01" min="0" value="0.00">
+            </div>
+            
+            <div class="form-group">
+                <label>Salario Días Feriados (C$)</label>
+                <input type="number" name="salario_dias_feriados" id="inputFeriados" class="form-input" step="0.01" min="0" value="0.00">
             </div>
             
             <div class="form-group">
@@ -739,27 +767,27 @@
 <script>
 let detalleIdActual = null;
 
-function editarDetalle(id, nombre, bonos, deducciones, observaciones) {
+function editarDetalle(id, nombre, bonos, combustible, otros, feriados, observaciones) {
     detalleIdActual = id;
     document.getElementById('nombreTrabajador').value = nombre;
     
-    // --- CORRECCIÓN AQUÍ ---
-    // bonos y deducciones llegan como strings (ej: "150,50")
-    // Reemplazamos la coma por un punto para que el input type="number" lo acepte.
+    // Limpiar valores (reemplazar coma por punto)
     const bonos_limpio = String(bonos).replace(',', '.');
-    const deducciones_limpio = String(deducciones).replace(',', '.');
+    const combustible_limpio = String(combustible).replace(',', '.');
+    const otros_limpio = String(otros).replace(',', '.');
+    const feriados_limpio = String(feriados).replace(',', '.');
 
     document.getElementById('inputBonos').value = bonos_limpio;
-    document.getElementById('inputDeducciones').value = deducciones_limpio;
-    // --- FIN DE LA CORRECCIÓN ---
-
+    document.getElementById('inputCombustible').value = combustible_limpio;
+    document.getElementById('inputOtros').value = otros_limpio;
+    document.getElementById('inputFeriados').value = feriados_limpio;
     document.getElementById('inputObservaciones').value = observaciones || '';
     
     // Actualizar la acción del formulario
     document.getElementById('formEditarDetalle').action = '/planillas/detalle/' + id + '/editar/';
     
     // Mostrar modal
-    document.getElementById('modalEditarDetalle').classList.add('active');
+    document.getElementById('modalEditarDetalle').style.display = 'block';
 }
 
 function cerrarModal() {

@@ -48,7 +48,10 @@
                     <span class="material-symbols-outlined">receipt_long</span>
                     <span>Planillas</span>
                 </a>
-                
+                <a href="{% url 'contratistas_lista' %}" class="nav-item {% if 'contratistas' in request.path %}active{% endif %}">
+                    <span class="material-symbols-outlined">engineering</span>
+                    <span>Contratistas</span>
+                </a>
                 <a href="#" class="nav-item" title="Pagos (Próximamente)"> <span class="material-symbols-outlined">payments</span>
                     <span>Pagos</span>
                 </a>

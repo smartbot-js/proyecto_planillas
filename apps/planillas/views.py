@@ -36,6 +36,7 @@ from .utils import (
 from apps.proyectos.models import Proyecto
 from apps.usuarios.models import Usuario
 from apps.asistencias.models import Asistencia
+from apps.core.utils import get_tipo_cambio_actual
 
 
 
@@ -169,7 +170,8 @@ class PlanillaCreateView(LoginRequiredMixin, View):
     
     def post(self, request):
         """Procesa la generación de la planilla"""
-        
+
+        Planilla.tipo_cambio = get_tipo_cambio_actual()
         action = request.POST.get('action')
         
         print(f"DEBUG: Action recibida: {action}")
@@ -372,7 +374,83 @@ class PlanillaCreateView(LoginRequiredMixin, View):
             
             print(f"DEBUG: Generando planilla para {proyecto.nombre}")
             
-            # Generar planilla
+            # ============================================================
+            # ✅ VALIDACIÓN 1: Verificar si ya existe planilla
+            # ============================================================
+            planilla_existente = Planilla.objects.filter(
+                proyecto=proyecto,
+                periodo_inicio=periodo_inicio,
+                periodo_fin=periodo_fin,
+                eliminado=False
+            ).first()
+            
+            if planilla_existente:
+                messages.warning(
+                    request,
+                    f'⚠️ Ya existe una planilla para este proyecto y período: {planilla_existente.codigo}. '
+                    f'Estado: {planilla_existente.get_estado_display()}. '
+                    f'Si deseas crear una nueva, primero elimina la planilla existente.'
+                )
+                return redirect('planilla_detalle', pk=planilla_existente.pk)
+            
+            # ============================================================
+            # ✅ VALIDACIÓN 2: Verificar que haya asistencias
+            # ============================================================
+            from apps.asistencias.models import Asistencia
+            
+            total_asistencias = Asistencia.objects.filter(
+                proyecto=proyecto,
+                fecha__gte=periodo_inicio,
+                fecha__lte=periodo_fin
+            ).count()
+            
+            asistencias_validadas = Asistencia.objects.filter(
+                proyecto=proyecto,
+                fecha__gte=periodo_inicio,
+                fecha__lte=periodo_fin,
+                validado=True
+            ).count()
+            
+            if total_asistencias == 0:
+                messages.error(
+                    request,
+                    f'❌ No hay ninguna asistencia registrada para el proyecto "{proyecto.nombre}" '
+                    f'en el período del {periodo_inicio.strftime("%d/%m/%Y")} al {periodo_fin.strftime("%d/%m/%Y")}. '
+                    f'Por favor, verifica las fechas o registra asistencias primero.'
+                )
+                return redirect('planilla_crear')
+            
+            if asistencias_validadas == 0:
+                messages.error(
+                    request,
+                    f'❌ Hay {total_asistencias} asistencia(s) registrada(s) pero ninguna está validada. '
+                    f'Por favor, valida las asistencias antes de generar la planilla.'
+                )
+                # Opcional: Redirigir a asistencias
+                # return redirect('asistencias_lista')
+                return redirect('planilla_crear')
+            
+            # ============================================================
+            # ✅ VALIDACIÓN 3: Verificar que las asistencias tengan datos
+            # ============================================================
+            asistencias_sin_horas = Asistencia.objects.filter(
+                proyecto=proyecto,
+                fecha__gte=periodo_inicio,
+                fecha__lte=periodo_fin,
+                validado=True,
+                horas_normales=0
+            ).count()
+            
+            if asistencias_sin_horas > 0:
+                messages.warning(
+                    request,
+                    f'⚠️ Advertencia: Hay {asistencias_sin_horas} asistencia(s) validada(s) sin horas registradas. '
+                    f'Esto puede generar montos en cero para algunos trabajadores.'
+                )
+            
+            # ============================================================
+            # GENERAR PLANILLA
+            # ============================================================
             planilla, detalles, errores = generar_planilla_desde_asistencias(
                 proyecto=proyecto,
                 periodo_inicio=periodo_inicio,
@@ -380,26 +458,57 @@ class PlanillaCreateView(LoginRequiredMixin, View):
                 usuario=request.user
             )
             
+            # Mostrar errores si los hay
             if errores:
                 for error in errores:
                     messages.error(request, error)
                 return redirect('planilla_crear')
             
+            # Verificar si se generó correctamente
             if planilla:
-                messages.success(
-                    request,
-                    f'✅ Planilla {planilla.codigo} generada exitosamente con {len(detalles)} trabajadores'
-                )
-                return redirect('planillas_lista')
+                if len(detalles) == 0:
+                    messages.warning(
+                        request,
+                        f'⚠️ La planilla {planilla.codigo} se creó pero no tiene trabajadores. '
+                        f'Verifica que las asistencias tengan datos válidos.'
+                    )
+                else:
+                    messages.success(
+                        request,
+                        f'✅ Planilla {planilla.codigo} generada exitosamente con {len(detalles)} trabajador(es). '
+                        f'Total: C$ {planilla.total_cordobas:,.2f}'
+                    )
+                return redirect('planilla_detalle', pk=planilla.pk)
             else:
-                messages.error(request, 'No se pudo generar la planilla')
+                messages.error(request, '❌ No se pudo generar la planilla. Revisa los errores anteriores.')
                 return redirect('planilla_crear')
                 
         except Exception as e:
             print(f"ERROR en generar_planilla: {str(e)}")
             print(f"Traceback: {traceback.format_exc()}")
-            messages.error(request, f'Error al generar planilla: {str(e)}')
+            
+            # Mensaje de error más descriptivo
+            error_msg = str(e)
+            
+            if 'UNIQUE constraint failed' in error_msg:
+                messages.error(
+                    request,
+                    '❌ Ya existe una planilla para este proyecto y período. '
+                    'Por favor, elimina la planilla existente o cambia las fechas.'
+                )
+            elif 'No hay asistencias' in error_msg:
+                messages.error(
+                    request,
+                    f'❌ {error_msg}'
+                )
+            else:
+                messages.error(
+                    request,
+                    f'❌ Error al generar planilla: {error_msg}'
+                )
+            
             return redirect('planilla_crear')
+
 
 class PlanillaDetalleView(LoginRequiredMixin, View):
     """Vista para ver el detalle completo de una planilla"""
@@ -487,7 +596,7 @@ class PlanillaEditarDetalleView(LoginRequiredMixin, View):
     """Vista para editar bonos y deducciones de un detalle de planilla"""
     
     def post(self, request, pk):
-        """Actualiza los bonos y deducciones de un detalle"""
+        """Actualiza los bonos, combustible, otros gastos y feriados de un detalle"""
         
         # Obtener objetos principales primero
         detalle = get_object_or_404(DetallePlanilla, pk=pk)
@@ -501,37 +610,42 @@ class PlanillaEditarDetalleView(LoginRequiredMixin, View):
             
             # 2. Obtener datos del formulario
             bonos_str = request.POST.get('bonos', '0')
-            deducciones_str = request.POST.get('deducciones', '0')
+            combustible_str = request.POST.get('combustible', '0')
+            otros_str = request.POST.get('otros_gastos', '0')
+            feriados_str = request.POST.get('salario_dias_feriados', '0')
             observaciones = request.POST.get('observaciones', '')
 
             # 3. Limpieza de datos (para aceptar '.' o ',')
-            # Reemplaza comas por puntos y maneja strings vacíos
             bonos_clean = bonos_str.strip().replace(',', '.') if bonos_str else '0'
-            deducciones_clean = deducciones_str.strip().replace(',', '.') if deducciones_str else '0'
+            combustible_clean = combustible_str.strip().replace(',', '.') if combustible_str else '0'
+            otros_clean = otros_str.strip().replace(',', '.') if otros_str else '0'
+            feriados_clean = feriados_str.strip().replace(',', '.') if feriados_str else '0'
             
             # 4. Asignar valores al detalle
             detalle.bonos = Decimal(bonos_clean)
-            detalle.deducciones = Decimal(deducciones_clean) # Asumiendo que ya añadiste este campo al modelo
+            detalle.combustible = Decimal(combustible_clean)
+            detalle.otros_gastos = Decimal(otros_clean)
+            detalle.salario_dias_feriados = Decimal(feriados_clean)
             detalle.observaciones = observaciones
             
             # 5. Guardar y recalcular
-            # El método .save() de DetallePlanilla (que modificaste)
+            # El método .save() de DetallePlanilla
             # se encargará de llamar a calcular_valores()
             # y planilla.calcular_totales()
             detalle.save()
             
-            # 6. Mensaje de éxito (SOLO si todo salió bien)
+            # 6. Mensaje de éxito
             messages.success(
                 request,
                 f'✅ Detalle actualizado para {detalle.trabajador.nombre} {detalle.trabajador.apellido}'
             )
             
         except Exception as e:
-            # Informar cualquier error (ej. '150.abc' no es un decimal válido)
             messages.error(request, f'Error al actualizar: {str(e)}')
         
         # 7. Redirigir de vuelta a la planilla
         return redirect('planilla_detalle', pk=planilla.pk)
+
 
 class PlanillaAprobarGerenteView(LoginRequiredMixin, View):
     """Vista para aprobar planilla como gerente"""
@@ -679,304 +793,313 @@ class PlanillaEliminarView(LoginRequiredMixin, View):
 
 class PlanillaExportarExcelView(LoginRequiredMixin, View):
     """Vista para exportar planilla a Excel"""
-    
     def get(self, request, pk):
-        """Genera y descarga el archivo Excel de la planilla"""
-        
-        # Obtener la planilla
-        planilla = get_object_or_404(
-            Planilla.objects.select_related('proyecto', 'generada_por'),
-            pk=pk,
-            eliminado=False
-        )
-        
-        # Obtener detalles agrupados por área
-        detalles = DetallePlanilla.objects.filter(
-            planilla=planilla
-        ).select_related('trabajador').order_by('area', 'trabajador__nombre', 'trabajador__apellido')
-        
-        # Crear el libro de Excel
-        wb = Workbook()
-        ws = wb.active
-        ws.title = f"Planilla {planilla.codigo}"
-        
-        # ============================================================
-        # 1. ENCABEZADO
-        # ============================================================
-        
-        # Logo y nombre de la empresa (fila 1-2)
-        ws.merge_cells('A1:L1')
-        cell_titulo = ws['A1']
-        cell_titulo.value = "SISTEMA DE PLANILLAS"
-        cell_titulo.font = Font(name='Arial', size=16, bold=True, color='FFFFFF')
-        cell_titulo.fill = PatternFill(start_color='1F4788', end_color='1F4788', fill_type='solid')
-        cell_titulo.alignment = Alignment(horizontal='center', vertical='center')
-        ws.row_dimensions[1].height = 30
-        
-        # Información de la planilla (fila 3-6)
-        ws.merge_cells('A3:L3')
-        cell_codigo = ws['A3']
-        cell_codigo.value = f"PLANILLA DE PAGO - {planilla.codigo}"
-        cell_codigo.font = Font(name='Arial', size=14, bold=True)
-        cell_codigo.alignment = Alignment(horizontal='center')
-        
-        # Datos del proyecto
-        row = 5
-        info_data = [
-            ('Proyecto:', planilla.proyecto.nombre),
-            ('Período:', f"{planilla.periodo_inicio.strftime('%d/%m/%Y')} - {planilla.periodo_fin.strftime('%d/%m/%Y')}"),
-            ('Estado:', planilla.get_estado_display()),
-            ('Tipo de Cambio:', f"C$ {planilla.tipo_cambio}"),
-            ('Fecha de Generación:', planilla.fecha_generacion.strftime('%d/%m/%Y %H:%M')),
-        ]
-        
-        for label, value in info_data:
-            ws[f'A{row}'] = label
-            ws[f'A{row}'].font = Font(name='Arial', size=10, bold=True)
-            ws[f'B{row}'] = value
-            ws[f'B{row}'].font = Font(name='Arial', size=10)
-            ws.merge_cells(f'B{row}:D{row}')
-            row += 1
-        
-        # ============================================================
-        # 2. ENCABEZADOS DE TABLA
-        # ============================================================
-        
-        row += 2  # Espacio
-        header_row = row
-        
-        headers = [
-            'Trabajador',
-            'Cargo',
-            'Días',
-            'H. Extras',
-            'H. Dom.',
-            'Salario Base',
-            'Bonos',
-            'Deducciones',
-            'Total C$',
-            'INSS Lab.',
-            'INSS Pat.',
-            'INATEC'
-        ]
-        
-        for col_num, header in enumerate(headers, 1):
-            cell = ws.cell(row=header_row, column=col_num)
-            cell.value = header
-            cell.font = Font(name='Arial', size=10, bold=True, color='FFFFFF')
-            cell.fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
-            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-            cell.border = Border(
-                left=Side(style='thin'),
-                right=Side(style='thin'),
-                top=Side(style='thin'),
-                bottom=Side(style='thin')
-            )
-        
-        ws.row_dimensions[header_row].height = 30
-        
-        # ============================================================
-        # 3. DATOS POR ÁREA
-        # ============================================================
-        
-        row = header_row + 1
-        
-        # Agrupar por área
-        detalles_por_area = {}
-        for detalle in detalles:
-            area = detalle.get_area_display()
-            if area not in detalles_por_area:
-                detalles_por_area[area] = []
-            detalles_por_area[area].append(detalle)
-        
-        # Estilos para las celdas de datos
-        border_thin = Border(
-            left=Side(style='thin', color='CCCCCC'),
-            right=Side(style='thin', color='CCCCCC'),
-            top=Side(style='thin', color='CCCCCC'),
-            bottom=Side(style='thin', color='CCCCCC')
-        )
-        
-        # Recorrer cada área
-        for area, detalles_area in detalles_por_area.items():
-            # Header del área
-            ws.merge_cells(f'A{row}:L{row}')
-            cell_area = ws[f'A{row}']
-            cell_area.value = f"📋 {area.upper()} ({len(detalles_area)} trabajadores)"
-            cell_area.font = Font(name='Arial', size=11, bold=True, color='FFFFFF')
-            cell_area.fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
-            cell_area.alignment = Alignment(horizontal='left', vertical='center')
-            ws.row_dimensions[row].height = 25
-            row += 1
+            """Genera y descarga el archivo Excel de la planilla"""
             
-            # Datos de cada trabajador
-            for detalle in detalles_area:
-                data_row = [
-                    f"{detalle.trabajador.nombre} {detalle.trabajador.apellido}",
-                    detalle.cargo,
-                    detalle.dias_laborados,
-                    float(detalle.horas_extras),
-                    float(detalle.horas_dominicales),
-                    float(detalle.salario_dia_base),
-                    float(detalle.bonos),
-                    float(detalle.deducciones),
-                    float(detalle.ingreso_total),
-                    float(detalle.inss_laboral),
-                    float(detalle.inss_patronal),
-                    float(detalle.inatec),
-                ]
-                
-                for col_num, value in enumerate(data_row, 1):
-                    cell = ws.cell(row=row, column=col_num)
-                    cell.value = value
-                    cell.border = border_thin
-                    cell.font = Font(name='Arial', size=9)
-                    
-                    # Alineación
-                    if col_num <= 2:  # Texto
-                        cell.alignment = Alignment(horizontal='left', vertical='center')
-                    else:  # Números
-                        cell.alignment = Alignment(horizontal='right', vertical='center')
-                    
-                    # Formato de moneda para columnas de dinero
-                    if col_num >= 6:
-                        cell.number_format = '#,##0.00'
-                
+            # Obtener la planilla
+            planilla = get_object_or_404(
+                Planilla.objects.select_related('proyecto', 'generada_por'),
+                pk=pk,
+                eliminado=False
+            )
+            
+            # Obtener detalles agrupados por área
+            detalles = DetallePlanilla.objects.filter(
+                planilla=planilla
+            ).select_related('trabajador').order_by('area', 'trabajador__nombre', 'trabajador__apellido')
+            
+            # Crear el libro de Excel
+            wb = Workbook()
+            ws = wb.active
+            ws.title = f"Planilla {planilla.codigo}"
+            
+            # ============================================================
+            # 1. ENCABEZADO
+            # ============================================================
+            
+            # Logo y nombre de la empresa (fila 1-2)
+            ws.merge_cells('A1:R1')  # ← CAMBIADO DE L A R
+            cell_titulo = ws['A1']
+            cell_titulo.value = "SISTEMA DE PLANILLAS"
+            cell_titulo.font = Font(name='Arial', size=16, bold=True, color='FFFFFF')
+            cell_titulo.fill = PatternFill(start_color='1F4788', end_color='1F4788', fill_type='solid')
+            cell_titulo.alignment = Alignment(horizontal='center', vertical='center')
+            ws.row_dimensions[1].height = 30
+            
+            # Información de la planilla (fila 3-6)
+            ws.merge_cells('A3:R3')  # ← CAMBIADO DE L A R
+            cell_codigo = ws['A3']
+            cell_codigo.value = f"PLANILLA DE PAGO - {planilla.codigo}"
+            cell_codigo.font = Font(name='Arial', size=14, bold=True)
+            cell_codigo.alignment = Alignment(horizontal='center')
+            
+            # Datos del proyecto
+            row = 5
+            info_data = [
+                ('Proyecto:', planilla.proyecto.nombre),
+                ('Período:', f"{planilla.periodo_inicio.strftime('%d/%m/%Y')} - {planilla.periodo_fin.strftime('%d/%m/%Y')}"),
+                ('Estado:', planilla.get_estado_display()),
+                ('Tipo de Cambio:', f"C$ {planilla.tipo_cambio}"),
+                ('Fecha de Generación:', planilla.fecha_generacion.strftime('%d/%m/%Y %H:%M')),
+            ]
+            
+            for label, value in info_data:
+                ws[f'A{row}'] = label
+                ws[f'A{row}'].font = Font(name='Arial', size=10, bold=True)
+                ws[f'B{row}'] = value
+                ws[f'B{row}'].font = Font(name='Arial', size=10)
+                ws.merge_cells(f'B{row}:D{row}')
                 row += 1
             
-            # Subtotal del área
-            total_area = sum(d.ingreso_total for d in detalles_area)
-            ws.merge_cells(f'A{row}:H{row}')
-            cell_subtotal = ws[f'A{row}']
-            cell_subtotal.value = f"SUBTOTAL {area.upper()}"
-            cell_subtotal.font = Font(name='Arial', size=10, bold=True)
-            cell_subtotal.fill = PatternFill(start_color='E7E6E6', end_color='E7E6E6', fill_type='solid')
-            cell_subtotal.alignment = Alignment(horizontal='right', vertical='center')
+            # ============================================================
+            # 2. ENCABEZADOS DE TABLA
+            # ============================================================
             
-            cell_total = ws.cell(row=row, column=9)
-            cell_total.value = float(total_area)
-            cell_total.font = Font(name='Arial', size=10, bold=True)
-            cell_total.fill = PatternFill(start_color='E7E6E6', end_color='E7E6E6', fill_type='solid')
-            cell_total.alignment = Alignment(horizontal='right', vertical='center')
-            cell_total.number_format = '#,##0.00'
+            row += 2  # Espacio
+            header_row = row
             
-            row += 2  # Espacio entre áreas
-        
-        # ============================================================
-        # 4. TOTALES GENERALES
-        # ============================================================
-        
-        row += 1
-        
-        # Fila de totales
-        ws.merge_cells(f'A{row}:H{row}')
-        cell_total_label = ws[f'A{row}']
-        cell_total_label.value = "TOTAL GENERAL"
-        cell_total_label.font = Font(name='Arial', size=12, bold=True, color='FFFFFF')
-        cell_total_label.fill = PatternFill(start_color='1F4788', end_color='1F4788', fill_type='solid')
-        cell_total_label.alignment = Alignment(horizontal='right', vertical='center')
-        
-        cell_total_valor = ws.cell(row=row, column=9)
-        cell_total_valor.value = float(planilla.total_cordobas)
-        cell_total_valor.font = Font(name='Arial', size=12, bold=True, color='FFFFFF')
-        cell_total_valor.fill = PatternFill(start_color='1F4788', end_color='1F4788', fill_type='solid')
-        cell_total_valor.alignment = Alignment(horizontal='right', vertical='center')
-        cell_total_valor.number_format = '#,##0.00'
-        
-        ws.row_dimensions[row].height = 25
-        
-        # ============================================================
-        # 5. RESUMEN DE CONTRIBUCIONES
-        # ============================================================
-        
-        row += 3
-        
-        ws[f'A{row}'] = "RESUMEN DE CONTRIBUCIONES"
-        ws[f'A{row}'].font = Font(name='Arial', size=12, bold=True)
-        ws.merge_cells(f'A{row}:L{row}')
-        
-        row += 1
-        
-        contribuciones = [
-            ('Total en Córdobas:', float(planilla.total_cordobas), 'C$'),
-            ('Total en Dólares:', float(planilla.total_dolares), '$'),
-            ('INSS Laboral (6.25%):', float(planilla.total_inss_laboral), 'C$'),
-            ('INSS Patronal (19%):', float(planilla.total_inss_patronal), 'C$'),
-            ('INATEC (2%):', float(planilla.total_inatec), 'C$'),
-        ]
-        
-        for label, value, moneda in contribuciones:
-            ws[f'A{row}'] = label
-            ws[f'A{row}'].font = Font(name='Arial', size=10, bold=True)
-            ws[f'B{row}'] = f"{moneda} {value:,.2f}"
-            ws[f'B{row}'].font = Font(name='Arial', size=10)
-            ws[f'B{row}'].number_format = '#,##0.00'
-            ws.merge_cells(f'B{row}:D{row}')
+            # ⭐ HEADERS CORREGIDOS
+            headers = [
+                'N°',                    # 1
+                'Trabajador',            # 2
+                'Cédula',                # 3
+                'Cargo',                 # 4
+                'Días Lab.',             # 5
+                'Días Fer.',             # 6
+                'H. Extras',             # 7
+                'Salario Base',          # 8
+                'Valor 7mo',             # 9
+                'Base + 7mo',            # 10
+                'Valor Hora',            # 11
+                'Salario Dev.',          # 12
+                'Sal. H.E.',             # 13
+                'Sal. Feriado',          # 14
+                'Bono',                  # 15
+                'Combustible',           # 16
+                'Otros',                 # 17
+                'TOTAL C$',              # 18
+            ]
+            
+            for col_num, header in enumerate(headers, 1):
+                cell = ws.cell(row=header_row, column=col_num)
+                cell.value = header
+                cell.font = Font(name='Arial', size=10, bold=True, color='FFFFFF')
+                cell.fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
+                cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+                cell.border = Border(
+                    left=Side(style='thin'),
+                    right=Side(style='thin'),
+                    top=Side(style='thin'),
+                    bottom=Side(style='thin')
+                )
+            
+            ws.row_dimensions[header_row].height = 30
+            
+            # ============================================================
+            # 3. DATOS POR ÁREA
+            # ============================================================
+            
+            row = header_row + 1
+            
+            # Agrupar por área
+            detalles_por_area = {}
+            for detalle in detalles:
+                area = detalle.get_area_display()
+                if area not in detalles_por_area:
+                    detalles_por_area[area] = []
+                detalles_por_area[area].append(detalle)
+            
+            # Estilos para las celdas de datos
+            border_thin = Border(
+                left=Side(style='thin', color='CCCCCC'),
+                right=Side(style='thin', color='CCCCCC'),
+                top=Side(style='thin', color='CCCCCC'),
+                bottom=Side(style='thin', color='CCCCCC')
+            )
+            
+            # Recorrer cada área
+            numero_trabajador = 1  # ⭐ NUEVO CONTADOR
+            for area, detalles_area in detalles_por_area.items():
+                # Header del área
+                ws.merge_cells(f'A{row}:R{row}')  # ⭐ CAMBIADO DE L A R
+                cell_area = ws[f'A{row}']
+                cell_area.value = f"📋 {area.upper()} ({len(detalles_area)} trabajadores)"
+                cell_area.font = Font(name='Arial', size=11, bold=True, color='FFFFFF')
+                cell_area.fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
+                cell_area.alignment = Alignment(horizontal='left', vertical='center')
+                ws.row_dimensions[row].height = 25
+                row += 1
+                
+                # Datos de cada trabajador
+                for detalle in detalles_area:
+                    # ⭐ DATA_ROW CORREGIDO
+                    data_row = [
+                        numero_trabajador,                                           # 1
+                        f"{detalle.trabajador.nombre} {detalle.trabajador.apellido}",  # 2
+                        detalle.trabajador.numero_cedula,                            # 3
+                        detalle.cargo,                                               # 4
+                        detalle.dias_laborados,                                      # 5
+                        detalle.dias_feriados,                                       # 6
+                        float(detalle.horas_extras),                                 # 7
+                        float(detalle.salario_dia_base),                             # 8
+                        float(detalle.valor_septimo_dia),                            # 9
+                        float(detalle.salario_diario_con_septimo),                   # 10
+                        float(detalle.valor_hora_base),                              # 11
+                        float(detalle.salario_devengado),                            # 12
+                        float(detalle.salario_horas_extras),                         # 13
+                        float(detalle.salario_dias_feriados),                        # 14
+                        float(detalle.bonos),                                        # 15
+                        float(detalle.combustible),                                  # 16
+                        float(detalle.otros_gastos),                                 # 17
+                        float(detalle.ingreso_total),                                # 18
+                    ]
+                    
+                    numero_trabajador += 1  # ⭐ INCREMENTAR CONTADOR
+                    
+                    for col_num, value in enumerate(data_row, 1):
+                        cell = ws.cell(row=row, column=col_num)
+                        cell.value = value
+                        cell.border = border_thin
+                        cell.font = Font(name='Arial', size=9)
+                        
+                        # Alineación
+                        if col_num in [2, 3, 4]:  # Texto
+                            cell.alignment = Alignment(horizontal='left', vertical='center')
+                        else:  # Números
+                            cell.alignment = Alignment(horizontal='right', vertical='center')
+                        
+                        # Formato de moneda para columnas de dinero
+                        if col_num >= 8:
+                            cell.number_format = '#,##0.00'
+                    
+                    row += 1
+                
+                # Subtotal del área
+                total_area = sum(d.ingreso_total for d in detalles_area)
+                ws.merge_cells(f'A{row}:Q{row}')  # ⭐ CAMBIADO DE H A Q
+                cell_subtotal = ws[f'A{row}']
+                cell_subtotal.value = f"SUBTOTAL {area.upper()}"
+                cell_subtotal.font = Font(name='Arial', size=10, bold=True)
+                cell_subtotal.fill = PatternFill(start_color='E7E6E6', end_color='E7E6E6', fill_type='solid')
+                cell_subtotal.alignment = Alignment(horizontal='right', vertical='center')
+                
+                cell_total = ws.cell(row=row, column=18)  # ⭐ CAMBIADO DE 9 A 18
+                cell_total.value = float(total_area)
+                cell_total.font = Font(name='Arial', size=10, bold=True)
+                cell_total.fill = PatternFill(start_color='E7E6E6', end_color='E7E6E6', fill_type='solid')
+                cell_total.alignment = Alignment(horizontal='right', vertical='center')
+                cell_total.number_format = '#,##0.00'
+                
+                row += 2  # Espacio entre áreas
+            
+            # ============================================================
+            # 4. TOTALES GENERALES
+            # ============================================================
+            
             row += 1
-        
-        # ============================================================
-        # 6. FIRMAS
-        # ============================================================
-        
-        row += 3
-        
-        firmas = [
-            ('Generado por:', planilla.generada_por.get_full_name() if planilla.generada_por else ''),
-            ('Aprobado por Gerente:', planilla.aprobada_gerente_por.get_full_name() if planilla.aprobada_gerente_por else ''),
-            ('Aprobado por Contador:', planilla.aprobada_contador_por.get_full_name() if planilla.aprobada_contador_por else ''),
-        ]
-        
-        col_firma = 1
-        for label, nombre in firmas:
-            ws.cell(row=row, column=col_firma).value = label
-            ws.cell(row=row, column=col_firma).font = Font(name='Arial', size=9, bold=True)
-            ws.cell(row=row+1, column=col_firma).value = nombre
-            ws.cell(row=row+1, column=col_firma).font = Font(name='Arial', size=9)
-            ws.cell(row=row+2, column=col_firma).value = "________________________"
-            ws.cell(row=row+2, column=col_firma).alignment = Alignment(horizontal='center')
-            col_firma += 4
-        
-        # ============================================================
-        # 7. AJUSTAR ANCHOS DE COLUMNAS
-        # ============================================================
-        
-        column_widths = {
-            'A': 25,  # Trabajador
-            'B': 20,  # Cargo
-            'C': 8,   # Días
-            'D': 10,  # H. Extras
-            'E': 10,  # H. Dom.
-            'F': 12,  # Salario Base
-            'G': 10,  # Bonos
-            'H': 12,  # Deducciones
-            'I': 12,  # Total C$
-            'J': 12,  # INSS Lab.
-            'K': 12,  # INSS Pat.
-            'L': 10,  # INATEC
-        }
-        
-        for col, width in column_widths.items():
-            ws.column_dimensions[col].width = width
-        
-        # ============================================================
-        # 8. GENERAR ARCHIVO Y ENVIAR
-        # ============================================================
-        
-        # Crear archivo en memoria
-        output = io.BytesIO()
-        wb.save(output)
-        output.seek(0)
-        
-        # Crear respuesta HTTP
-        response = HttpResponse(
-            output.read(),
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-        
-        filename = f"Planilla_{planilla.codigo}_{planilla.proyecto.nombre.replace(' ', '_')}.xlsx"
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        
-        return response
+            
+            # Fila de totales
+            ws.merge_cells(f'A{row}:Q{row}')  # ⭐ CAMBIADO DE H A Q
+            cell_total_label = ws[f'A{row}']
+            cell_total_label.value = "TOTAL GENERAL"
+            cell_total_label.font = Font(name='Arial', size=12, bold=True, color='FFFFFF')
+            cell_total_label.fill = PatternFill(start_color='1F4788', end_color='1F4788', fill_type='solid')
+            cell_total_label.alignment = Alignment(horizontal='right', vertical='center')
+            
+            cell_total_valor = ws.cell(row=row, column=18)  # ⭐ CAMBIADO DE 9 A 18
+            cell_total_valor.value = float(planilla.total_cordobas)
+            cell_total_valor.font = Font(name='Arial', size=12, bold=True, color='FFFFFF')
+            cell_total_valor.fill = PatternFill(start_color='1F4788', end_color='1F4788', fill_type='solid')
+            cell_total_valor.alignment = Alignment(horizontal='right', vertical='center')
+            cell_total_valor.number_format = '#,##0.00'
+            
+            ws.row_dimensions[row].height = 25
+            
+            row += 2
+            
+            # Total en dólares
+            ws.merge_cells(f'A{row}:Q{row}')
+            cell_total_usd_label = ws[f'A{row}']
+            cell_total_usd_label.value = f"TOTAL EN DÓLARES (TC: C$ {planilla.tipo_cambio})"
+            cell_total_usd_label.font = Font(name='Arial', size=11, bold=True)
+            cell_total_usd_label.alignment = Alignment(horizontal='right', vertical='center')
+            
+            cell_total_usd = ws.cell(row=row, column=18)
+            cell_total_usd.value = float(planilla.total_dolares)
+            cell_total_usd.font = Font(name='Arial', size=11, bold=True)
+            cell_total_usd.alignment = Alignment(horizontal='right', vertical='center')
+            cell_total_usd.number_format = '$#,##0.00'
+            
+            # ============================================================
+            # 5. FIRMAS
+            # ============================================================
+            
+            row += 3
+            
+            firmas = [
+                ('Generado por:', planilla.generada_por.get_full_name() if planilla.generada_por else ''),
+                ('Aprobado por Gerente:', planilla.aprobada_gerente_por.get_full_name() if planilla.aprobada_gerente_por else ''),
+                ('Aprobado por Contador:', planilla.aprobada_contador_por.get_full_name() if planilla.aprobada_contador_por else ''),
+            ]
+            
+            col_firma = 1
+            for label, nombre in firmas:
+                ws.cell(row=row, column=col_firma).value = label
+                ws.cell(row=row, column=col_firma).font = Font(name='Arial', size=9, bold=True)
+                ws.cell(row=row+1, column=col_firma).value = nombre
+                ws.cell(row=row+1, column=col_firma).font = Font(name='Arial', size=9)
+                ws.cell(row=row+2, column=col_firma).value = "________________________"
+                ws.cell(row=row+2, column=col_firma).alignment = Alignment(horizontal='center')
+                col_firma += 6
+            
+            # ============================================================
+            # 6. AJUSTAR ANCHOS DE COLUMNAS
+            # ============================================================
+            
+            column_widths = {
+                1: 6,   # N°
+                2: 28,  # Trabajador
+                3: 18,  # Cédula
+                4: 18,  # Cargo
+                5: 10,  # Días Lab.
+                6: 10,  # Días Fer.
+                7: 10,  # H. Extras
+                8: 13,  # Salario Base
+                9: 12,  # Valor 7mo
+                10: 13, # Base + 7mo
+                11: 11, # Valor Hora
+                12: 13, # Salario Dev.
+                13: 11, # Sal. H.E.
+                14: 13, # Sal. Feriado
+                15: 11, # Bono
+                16: 13, # Combustible
+                17: 11, # Otros
+                18: 15, # TOTAL
+            }
+            
+            for col_num, width in column_widths.items():
+                ws.column_dimensions[get_column_letter(col_num)].width = width
+            
+            # ============================================================
+            # 7. GENERAR ARCHIVO Y ENVIAR
+            # ============================================================
+            
+            # Crear archivo en memoria
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+            
+            # Crear respuesta HTTP
+            response = HttpResponse(
+                output.read(),
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            
+            filename = f"Planilla_{planilla.codigo}_{planilla.proyecto.nombre.replace(' ', '_')}.xlsx"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            return response
+
 
 class PlanillaExportarPDFView(LoginRequiredMixin, View):
     """Vista para exportar planilla a PDF"""
@@ -999,14 +1122,16 @@ class PlanillaExportarPDFView(LoginRequiredMixin, View):
         # Crear el buffer para el PDF
         buffer = io.BytesIO()
         
-        # Crear el documento PDF (tamaño carta, horizontal para más espacio)
+        # Crear el documento PDF (tamaño carta horizontal para más espacio)
+        from reportlab.lib.pagesizes import landscape, letter as portrait_letter
+        
         doc = SimpleDocTemplate(
             buffer,
-            pagesize=letter,
-            rightMargin=30,
-            leftMargin=30,
-            topMargin=30,
-            bottomMargin=30,
+            pagesize=landscape(portrait_letter),  # Horizontal para más columnas
+            rightMargin=20,
+            leftMargin=20,
+            topMargin=20,
+            bottomMargin=20,
         )
         
         # Container para los elementos del PDF
@@ -1019,9 +1144,9 @@ class PlanillaExportarPDFView(LoginRequiredMixin, View):
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
-            fontSize=18,
+            fontSize=16,
             textColor=colors.HexColor('#1F4788'),
-            spaceAfter=30,
+            spaceAfter=20,
             alignment=TA_CENTER,
             fontName='Helvetica-Bold'
         )
@@ -1030,19 +1155,11 @@ class PlanillaExportarPDFView(LoginRequiredMixin, View):
         subtitle_style = ParagraphStyle(
             'CustomSubtitle',
             parent=styles['Heading2'],
-            fontSize=14,
+            fontSize=12,
             textColor=colors.HexColor('#1F4788'),
-            spaceAfter=12,
+            spaceAfter=10,
             alignment=TA_CENTER,
             fontName='Helvetica-Bold'
-        )
-        
-        # Estilo para texto normal
-        normal_style = ParagraphStyle(
-            'CustomNormal',
-            parent=styles['Normal'],
-            fontSize=9,
-            spaceAfter=6,
         )
         
         # ============================================================
@@ -1057,7 +1174,7 @@ class PlanillaExportarPDFView(LoginRequiredMixin, View):
         subtitle = Paragraph(f"PLANILLA DE PAGO - {planilla.codigo}", subtitle_style)
         elements.append(subtitle)
         
-        elements.append(Spacer(1, 0.2 * inch))
+        elements.append(Spacer(1, 0.15 * inch))
         
         # ============================================================
         # 2. INFORMACIÓN DEL PROYECTO
@@ -1075,17 +1192,17 @@ class PlanillaExportarPDFView(LoginRequiredMixin, View):
         info_table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
             ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
             ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 3),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
         ]))
         
         elements.append(info_table)
-        elements.append(Spacer(1, 0.3 * inch))
+        elements.append(Spacer(1, 0.2 * inch))
         
         # ============================================================
         # 3. TABLA DE TRABAJADORES POR ÁREA
@@ -1099,20 +1216,30 @@ class PlanillaExportarPDFView(LoginRequiredMixin, View):
                 detalles_por_area[area] = []
             detalles_por_area[area].append(detalle)
         
-        # Headers de la tabla
+        # ⭐ HEADERS CORREGIDOS (18 columnas)
         headers = [
-            'Trabajador',
-            'Cargo',
-            'Días',
-            'H.Ext',
-            'H.Dom',
-            'Sal.Base',
-            'Bonos',
-            'Deduc.',
-            'Total C$'
+            'N°',              # 1
+            'Trabajador',      # 2
+            'Cédula',          # 3
+            'Cargo',           # 4
+            'D.Lab',           # 5
+            'D.Fer',           # 6
+            'H.E.',            # 7
+            'Sal.Base',        # 8
+            'Valor 7mo',       # 9
+            'Base+7mo',        # 10
+            'V.Hora',          # 11
+            'Sal.Dev.',        # 12
+            'Sal.H.E.',        # 13
+            'Sal.Fer.',        # 14
+            'Bono',            # 15
+            'Comb.',           # 16
+            'Otros',           # 17
+            'Total C$'         # 18
         ]
         
         # Recorrer cada área
+        numero_trabajador = 1
         for area, detalles_area in detalles_por_area.items():
             # Título del área
             area_title = Paragraph(
@@ -1120,12 +1247,12 @@ class PlanillaExportarPDFView(LoginRequiredMixin, View):
                 ParagraphStyle(
                     'AreaTitle',
                     parent=styles['Heading3'],
-                    fontSize=11,
+                    fontSize=10,
                     textColor=colors.white,
                     backColor=colors.HexColor('#4472C4'),
-                    spaceAfter=6,
-                    spaceBefore=6,
-                    leftIndent=6,
+                    spaceAfter=4,
+                    spaceBefore=4,
+                    leftIndent=4,
                     fontName='Helvetica-Bold'
                 )
             )
@@ -1135,36 +1262,61 @@ class PlanillaExportarPDFView(LoginRequiredMixin, View):
             table_data = [headers]
             
             for detalle in detalles_area:
+                # ⭐ DATA ROW CORREGIDO (18 columnas)
                 row = [
-                    f"{detalle.trabajador.nombre} {detalle.trabajador.apellido}",
-                    detalle.cargo[:20],  # Truncar si es muy largo
-                    str(detalle.dias_laborados),
-                    f"{float(detalle.horas_extras):.1f}",
-                    f"{float(detalle.horas_dominicales):.1f}",
-                    f"{float(detalle.salario_dia_base):,.2f}",
-                    f"{float(detalle.bonos):,.2f}",
-                    f"{float(detalle.deducciones):,.2f}",
-                    f"{float(detalle.ingreso_total):,.2f}",
+                    str(numero_trabajador),                                    # 1
+                    f"{detalle.trabajador.nombre} {detalle.trabajador.apellido}"[:25],  # 2
+                    detalle.trabajador.numero_cedula or '-',                   # 3
+                    detalle.cargo[:15],                                        # 4
+                    str(detalle.dias_laborados),                              # 5
+                    str(detalle.dias_feriados),                               # 6
+                    f"{float(detalle.horas_extras):.1f}",                     # 7
+                    f"{float(detalle.salario_dia_base):,.0f}",                # 8
+                    f"{float(detalle.valor_septimo_dia):,.0f}",               # 9
+                    f"{float(detalle.salario_diario_con_septimo):,.0f}",      # 10
+                    f"{float(detalle.valor_hora_base):,.0f}",                 # 11
+                    f"{float(detalle.salario_devengado):,.0f}",               # 12
+                    f"{float(detalle.salario_horas_extras):,.0f}",            # 13
+                    f"{float(detalle.salario_dias_feriados):,.0f}",           # 14
+                    f"{float(detalle.bonos):,.0f}",                           # 15
+                    f"{float(detalle.combustible):,.0f}",                     # 16
+                    f"{float(detalle.otros_gastos):,.0f}",                    # 17
+                    f"{float(detalle.ingreso_total):,.2f}",                   # 18
                 ]
                 table_data.append(row)
+                numero_trabajador += 1
             
             # Subtotal del área
             total_area = sum(d.ingreso_total for d in detalles_area)
             subtotal_row = [
+                '',  # N°
                 'SUBTOTAL',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
+                '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
                 f"{float(total_area):,.2f}"
             ]
             table_data.append(subtotal_row)
             
-            # Crear tabla
-            col_widths = [1.8*inch, 1.2*inch, 0.4*inch, 0.4*inch, 0.4*inch, 0.7*inch, 0.6*inch, 0.6*inch, 0.8*inch]
+            # ⭐ ANCHOS DE COLUMNA AJUSTADOS (18 columnas)
+            col_widths = [
+                0.25*inch,  # N°
+                1.2*inch,   # Trabajador
+                0.7*inch,   # Cédula
+                0.8*inch,   # Cargo
+                0.35*inch,  # D.Lab
+                0.35*inch,  # D.Fer
+                0.35*inch,  # H.E.
+                0.5*inch,   # Sal.Base
+                0.5*inch,   # Valor 7mo
+                0.5*inch,   # Base+7mo
+                0.45*inch,  # V.Hora
+                0.5*inch,   # Sal.Dev.
+                0.5*inch,   # Sal.H.E.
+                0.5*inch,   # Sal.Fer.
+                0.45*inch,  # Bono
+                0.45*inch,  # Comb.
+                0.45*inch,  # Otros
+                0.7*inch,   # Total C$
+            ]
             
             area_table = Table(table_data, colWidths=col_widths)
             area_table.setStyle(TableStyle([
@@ -1172,116 +1324,91 @@ class PlanillaExportarPDFView(LoginRequiredMixin, View):
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#366092')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 8),
+                ('FONTSIZE', (0, 0), (-1, 0), 6),
                 ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
                 
-                # Datos
+                # Datos - Alineación izquierda para texto
                 ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -2), 8),
-                ('ALIGN', (0, 1), (1, -2), 'LEFT'),
-                ('ALIGN', (2, 1), (-1, -2), 'RIGHT'),
+                ('FONTSIZE', (0, 1), (-1, -2), 6),
+                ('ALIGN', (0, 1), (0, -2), 'CENTER'),  # N°
+                ('ALIGN', (1, 1), (3, -2), 'LEFT'),    # Trabajador, Cédula, Cargo
+                ('ALIGN', (4, 1), (-1, -2), 'RIGHT'),  # Todo lo demás
                 
                 # Subtotal
                 ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#E7E6E6')),
                 ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, -1), (-1, -1), 9),
-                ('ALIGN', (0, -1), (0, -1), 'RIGHT'),
+                ('FONTSIZE', (0, -1), (-1, -1), 7),
+                ('ALIGN', (1, -1), (1, -1), 'RIGHT'),
                 ('ALIGN', (-1, -1), (-1, -1), 'RIGHT'),
                 
                 # Bordes
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 
-                # Padding
-                ('LEFTPADDING', (0, 0), (-1, -1), 4),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-                ('TOPPADDING', (0, 0), (-1, -1), 3),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                # Padding reducido para más columnas
+                ('LEFTPADDING', (0, 0), (-1, -1), 2),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+                ('TOPPADDING', (0, 0), (-1, -1), 2),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
             ]))
             
             elements.append(area_table)
-            elements.append(Spacer(1, 0.2 * inch))
+            elements.append(Spacer(1, 0.15 * inch))
         
         # ============================================================
-        # 4. TOTAL GENERAL
+        # 4. TOTALES GENERALES
         # ============================================================
         
         total_data = [
-            ['TOTAL GENERAL', f"C$ {float(planilla.total_cordobas):,.2f}"]
+            ['TOTAL GENERAL:', f"C$ {float(planilla.total_cordobas):,.2f}"],
+            ['Total en Dólares:', f"$ {float(planilla.total_dolares):,.2f}"],
         ]
         
-        total_table = Table(total_data, colWidths=[5.5*inch, 1.4*inch])
+        total_table = Table(total_data, colWidths=[2*inch, 2*inch])
         total_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#1F4788')),
             ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 12),
+            ('FONTSIZE', (0, 0), (-1, -1), 11),
             ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
             ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 10),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ]))
-        
-        elements.append(total_table)
-        elements.append(Spacer(1, 0.3 * inch))
-        
-        # ============================================================
-        # 5. RESUMEN DE CONTRIBUCIONES
-        # ============================================================
-        
-        contribuciones_title = Paragraph("<b>RESUMEN DE CONTRIBUCIONES</b>", subtitle_style)
-        elements.append(contribuciones_title)
-        
-        contribuciones_data = [
-            ['Total en Córdobas:', f"C$ {float(planilla.total_cordobas):,.2f}"],
-            ['Total en Dólares:', f"$ {float(planilla.total_dolares):,.2f}"],
-            ['INSS Laboral (6.25%):', f"C$ {float(planilla.total_inss_laboral):,.2f}"],
-            ['INSS Patronal (19%):', f"C$ {float(planilla.total_inss_patronal):,.2f}"],
-            ['INATEC (2%):', f"C$ {float(planilla.total_inatec):,.2f}"],
-        ]
-        
-        contrib_table = Table(contribuciones_data, colWidths=[3*inch, 2*inch])
-        contrib_table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('LEFTPADDING', (0, 0), (-1, -1), 6),
             ('RIGHTPADDING', (0, 0), (-1, -1), 6),
             ('TOPPADDING', (0, 0), (-1, -1), 4),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
         ]))
         
-        elements.append(contrib_table)
-        elements.append(Spacer(1, 0.4 * inch))
+        elements.append(total_table)
+        elements.append(Spacer(1, 0.2 * inch))
         
         # ============================================================
-        # 6. FIRMAS
+        # 5. FIRMAS
         # ============================================================
         
         firmas_data = [
-            ['Generado por:', 'Aprobado por Gerente:', 'Aprobado por Contador:'],
             [
-                planilla.generada_por.get_full_name() if planilla.generada_por else '',
-                planilla.aprobada_gerente_por.get_full_name() if planilla.aprobada_gerente_por else '',
-                planilla.aprobada_contador_por.get_full_name() if planilla.aprobada_contador_por else ''
+                Paragraph('<b>Generado por:</b>', styles['Normal']),
+                Paragraph('<b>Aprobado Gerente:</b>', styles['Normal']),
+                Paragraph('<b>Aprobado Contador:</b>', styles['Normal']),
             ],
-            ['_' * 25, '_' * 25, '_' * 25],
+            [
+                Paragraph(planilla.generada_por.get_full_name() if planilla.generada_por else '', styles['Normal']),
+                Paragraph(planilla.aprobada_gerente_por.get_full_name() if planilla.aprobada_gerente_por else '', styles['Normal']),
+                Paragraph(planilla.aprobada_contador_por.get_full_name() if planilla.aprobada_contador_por else '', styles['Normal']),
+            ],
+            [
+                '____________________',
+                '____________________',
+                '____________________',
+            ],
         ]
         
-        firmas_table = Table(firmas_data, colWidths=[2.3*inch, 2.3*inch, 2.3*inch])
+        firmas_table = Table(firmas_data, colWidths=[2.5*inch, 2.5*inch, 2.5*inch])
         firmas_table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTNAME', (0, 1), (-1, 1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('TOPPADDING', (0, 0), (-1, -1), 4),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
         ]))
@@ -1289,21 +1416,20 @@ class PlanillaExportarPDFView(LoginRequiredMixin, View):
         elements.append(firmas_table)
         
         # ============================================================
-        # 7. GENERAR PDF
+        # 6. CONSTRUIR PDF
         # ============================================================
         
-        # Construir el PDF
         doc.build(elements)
         
-        # Obtener el valor del buffer
-        pdf = buffer.getvalue()
-        buffer.close()
+        # ============================================================
+        # 7. RETORNAR RESPUESTA
+        # ============================================================
         
-        # Crear respuesta HTTP
-        response = HttpResponse(content_type='application/pdf')
+        buffer.seek(0)
+        response = HttpResponse(buffer.read(), content_type='application/pdf')
+        
         filename = f"Planilla_{planilla.codigo}_{planilla.proyecto.nombre.replace(' ', '_')}.pdf"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        response.write(pdf)
         
         return response
 
