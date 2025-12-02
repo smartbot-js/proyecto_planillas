@@ -117,6 +117,12 @@ class Proyecto(models.Model):
     personal_asignado = models.IntegerField(default=0, verbose_name='Personal Asignado')
     contratistas_asignados = models.IntegerField(default=0, verbose_name='Contratistas Asignados')
     
+    contratistas = models.ManyToManyField(
+        'contratistas.Contratista',
+        related_name='proyectos_asignados',
+        blank=True,
+        verbose_name='Contratistas Asignados'
+    )
     # Porcentajes
     porcentaje_avance_general = models.DecimalField(
         max_digits=5,

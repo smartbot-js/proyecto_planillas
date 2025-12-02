@@ -211,3 +211,30 @@ class ContratistaForm(forms.ModelForm):
                 pass
         
         return contratista
+    
+
+class ContratoProyectoForm(forms.ModelForm):
+    """Formulario para crear y editar contratos de proyectos"""
+    
+    class Meta:
+        model = ContratoProyecto
+        fields = [
+            'contratista', 'descripcion', 'actividades',
+            'valor_contrato', 'fecha_inicio', 'fecha_fin', 'estado',
+        ]
+        widgets = {
+            'contratista': forms.Select(attrs={'class': 'form-select', 'required': True}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 4}),
+            'actividades': forms.TextInput(attrs={'class': 'form-input'}),
+            'valor_contrato': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.01'}),
+            'fecha_inicio': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
+            'fecha_fin': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
+            'estado': forms.Select(attrs={'class': 'form-select'}),
+        }
+    
+    def __init__(self, *args, proyecto=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if proyecto:
+            self.fields['contratista'].queryset = proyecto.contratistas.filter(
+                eliminado=False, activo=True
+            )

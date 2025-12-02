@@ -5,6 +5,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.db.models import Q
 from django.utils import timezone
+from decimal import Decimal
+import json
+
+from apps.contratistas.models import Contratista, AvaluoContratista, ContratoProyecto
 
 from .models import Proyecto
 from apps.usuarios.models import Usuario
@@ -110,6 +114,11 @@ class ProyectoDetalleView(LoginRequiredMixin, DetailView):
             estado='cerrado' # Contar solo los que marcaron salida
         ).count()
         
+        # GREGAR: Contratistas asignados
+        context['contratistas_asignados'] = proyecto.contratistas.filter(
+            eliminado=False,
+            activo=True
+        ).order_by('apellido', 'nombre')
         # -----------------------------------------------
 
         # Información adicional
@@ -130,8 +139,25 @@ class ProyectoCreateView(LoginRequiredMixin, View):
             rol__in=['administrador', 'supervisor']
         ).order_by('nombre_completo')
         
+        # ✅ AGREGAR ESTO:
+        from apps.contratistas.models import Contratista
+        contratistas_disponibles = Contratista.objects.filter(
+            eliminado=False,
+            activo=True
+        ).order_by('apellido', 'nombre')
+        
+        # Lista de trabajadores disponibles (sin proyecto asignado o activos)
+        trabajadores_disponibles = Trabajador.objects.filter(
+            eliminado=False,
+            estado='activo'
+        ).filter(
+            Q(proyecto_asignado__isnull=True) | Q(proyecto_asignado__isnull=False)
+        ).order_by('apellido', 'nombre')
+
         context = {
             'supervisores': supervisores,
+            'contratistas_disponibles': contratistas_disponibles,
+            'trabajadores_disponibles': trabajadores_disponibles,
         }
         return render(request, self.template_name, context)
         
@@ -246,6 +272,127 @@ class ProyectoCreateView(LoginRequiredMixin, View):
             
             proyecto.save()
             
+            # 1. Procesar contratistas seleccionados
+            contratistas_ids = request.POST.get('contratistas_ids', '')
+            if contratistas_ids:
+                try:
+                    from apps.contratistas.models import Contratista
+                    ids_list = [int(id.strip()) for id in contratistas_ids.split(',') if id.strip()]
+                    
+                    # ✅ NUEVO: Asignar contratistas al proyecto usando ManyToMany
+                    contratistas = Contratista.objects.filter(id__in=ids_list)
+                    proyecto.contratistas.set(contratistas)
+                    
+                    # Actualizar el contador
+                    proyecto.contratistas_asignados = len(ids_list)
+                    proyecto.save()
+                except Exception as e:
+                    print(f"Error al procesar contratistas: {e}")
+
+            # 2. Procesar avalúos cargados
+            avaluos_data = request.POST.get('avaluos_data', '[]')
+            if avaluos_data and avaluos_data != '[]':
+                try:
+                    from apps.contratistas.models import AvaluoContratista, ContratoProyecto, Contratista
+                    from apps.core.utils import get_tipo_cambio_actual
+                    
+                    avaluos_list = json.loads(avaluos_data)
+                    
+                    for avaluo_data in avaluos_list:
+                        contratista_id = avaluo_data.get('contratista_id')
+                        
+                        if not contratista_id:
+                            continue
+                        
+                        try:
+                            contratista = Contratista.objects.get(id=contratista_id)
+                            
+                            # Buscar o crear un contrato para este contratista en este proyecto
+                            contrato, created = ContratoProyecto.objects.get_or_create(
+                                contratista=contratista,
+                                proyecto=proyecto,
+                                defaults={
+                                    'descripcion': f'Contrato {contratista.nombre_completo} - {proyecto.nombre}',
+                                    'actividades': avaluo_data.get('descripcion', 'Actividades del proyecto'),
+                                    'valor_contrato': Decimal('0.00'),  # Se debe definir el valor del contrato
+                                    'fecha_inicio': proyecto.fecha_inicio,
+                                    'estado': 'en_proceso',
+                                    'creado_por': request.user
+                                }
+                            )
+                            
+                            # Crear el avalúo solo si hay datos completos
+                            periodo_inicio = avaluo_data.get('periodo_inicio')
+                            periodo_fin = avaluo_data.get('periodo_fin')
+                            porcentaje = avaluo_data.get('porcentaje_avance', 0)
+                            
+                            if periodo_inicio and periodo_fin and porcentaje:
+                                AvaluoContratista.objects.create(
+                                    contrato=contrato,
+                                    periodo_inicio=periodo_inicio,
+                                    periodo_fin=periodo_fin,
+                                    porcentaje_avance=Decimal(str(porcentaje)),
+                                    concepto=avaluo_data.get('descripcion', 'Avalúo de trabajo realizado'),
+                                    monto_cordobas=Decimal('0.00'),  # Se calculará después según % y valor del contrato
+                                    tipo_cambio=get_tipo_cambio_actual(),
+                                    ingresado_por=request.user,
+                                    estado='pendiente'
+                                )
+                                
+                        except Contratista.DoesNotExist:
+                            print(f"Contratista {contratista_id} no existe")
+                            continue
+                        except Exception as e:
+                            print(f"Error al crear avalúo: {e}")
+                            continue
+                            
+                except json.JSONDecodeError:
+                    print("Error: JSON de avalúos inválido")
+                except Exception as e:
+                    print(f"Error al procesar avalúos: {e}")
+            
+            # 3. Procesar trabajadores asignados
+            trabajadores_ids = request.POST.get('trabajadores_ids', '')
+            if trabajadores_ids:
+                try:
+                    # Convertir string "1,2,3" a lista de enteros
+                    ids_list = [int(id.strip()) for id in trabajadores_ids.split(',') if id.strip()]
+                    
+                    # Asignar proyecto a cada trabajador
+                    trabajadores_a_asignar = Trabajador.objects.filter(id__in=ids_list)
+                    
+                    for trabajador in trabajadores_a_asignar:
+                        # Si estaba en otro proyecto, crear historial de salida
+                        if trabajador.proyecto_asignado and trabajador.proyecto_asignado != proyecto:
+                            HistorialProyecto.objects.filter(
+                                trabajador=trabajador,
+                                proyecto=trabajador.proyecto_asignado,
+                                fecha_salida__isnull=True
+                            ).update(
+                                fecha_salida=timezone.now().date(),
+                                motivo=f'Transferido a {proyecto.nombre} por {request.user.nombre_completo}'
+                            )
+                        
+                        # Asignar nuevo proyecto
+                        trabajador.proyecto_asignado = proyecto
+                        trabajador.save()
+                        
+                        # Crear historial de entrada
+                        HistorialProyecto.objects.create(
+                            trabajador=trabajador,
+                            proyecto=proyecto,
+                            fecha_asignacion=timezone.now().date(),
+                            motivo=f'Asignado al crear proyecto por {request.user.nombre_completo}',
+                            creado_por=request.user
+                        )
+                    
+                    # Actualizar el campo personal_asignado
+                    proyecto.personal_asignado = len(ids_list)
+                    proyecto.save()
+                    
+                except Exception as e:
+                    print(f"Error al procesar trabajadores: {e}")
+
             messages.success(
                 request,
                 f'✅ Proyecto "{proyecto.nombre}" creado exitosamente con horario {proyecto.get_horario_display()}.'
@@ -288,11 +435,32 @@ class ProyectoEditarView(LoginRequiredMixin, View):
         supervisores = Usuario.objects.filter(
             activo=True,
             rol__in=['administrador', 'supervisor']
-        ).order_by('nombre_completo') 
-        
+        ).order_by('nombre_completo')
+
+        # AGREGAR: Contratistas y avalúos
+
+        # Obtener contratistas asignados al proyecto (desde la relación ManyToMany)
+        contratistas_asignados = proyecto.contratistas.filter(
+            eliminado=False,
+            activo=True
+        ).order_by('apellido', 'nombre')
+
+        # ✅ Obtener contratos del proyecto
+        contratistas_proyecto = ContratoProyecto.objects.filter(
+            proyecto=proyecto
+        ).select_related('contratista').order_by('contratista__apellido')
+
+        # Obtener avalúos existentes
+        avaluos_existentes = AvaluoContratista.objects.filter(
+            contrato__proyecto=proyecto
+        ).select_related('contrato__contratista').order_by('-fecha_ingreso')
+
         context = {
             'proyecto': proyecto,
             'supervisores': supervisores,
+            'contratistas_asignados': contratistas_asignados,  # ✅ CAMBIAR
+            'contratistas_proyecto': contratistas_proyecto,
+            'avaluos_existentes': avaluos_existentes,
         }
         return render(request, self.template_name, context)
     
@@ -402,6 +570,59 @@ class ProyectoEditarView(LoginRequiredMixin, View):
             if 'imagen_proyecto' in request.FILES:
                 proyecto.imagen_proyecto = request.FILES['imagen_proyecto']
             
+            avaluos_data = request.POST.get('avaluos_data', '[]')
+            if avaluos_data and avaluos_data != '[]':
+                try:
+                    avaluos_list = json.loads(avaluos_data)
+                    
+                    for avaluo_data in avaluos_list:
+                        contratista_id = avaluo_data.get('contratista_id')
+                        
+                        if not contratista_id:
+                            continue
+                        
+                        try:
+                            # Buscar el contrato existente
+                            contrato = ContratoProyecto.objects.get(
+                                contratista_id=contratista_id,
+                                proyecto=proyecto
+                            )
+                            
+                            # Crear el avalúo
+                            periodo_inicio = avaluo_data.get('periodo_inicio')
+                            periodo_fin = avaluo_data.get('periodo_fin')
+                            porcentaje = avaluo_data.get('porcentaje_avance', 0)
+                            
+                            if periodo_inicio and periodo_fin and porcentaje:
+                                avaluo = AvaluoContratista.objects.create(
+                                    contrato=contrato,
+                                    periodo_inicio=periodo_inicio,
+                                    periodo_fin=periodo_fin,
+                                    porcentaje_avance=Decimal(str(porcentaje)),
+                                    concepto=avaluo_data.get('descripcion', 'Avalúo de avance'),
+                                    monto_cordobas=Decimal('0.00'),
+                                    ingresado_por=request.user,
+                                    estado='pendiente'
+                                )
+                                
+                                # ✅ NUEVO: Procesar archivo si existe
+                                archivo_key = f"avaluo_archivo_{avaluo_data.get('index', '')}"
+                                if archivo_key in request.FILES:
+                                    avaluo.archivo_soporte = request.FILES[archivo_key]
+                                    avaluo.save()
+                                
+                        except ContratoProyecto.DoesNotExist:
+                            print(f"Contrato no encontrado para contratista {contratista_id}")
+                            continue
+                        except Exception as e:
+                            print(f"Error al crear avalúo: {e}")
+                            continue
+                            
+                except json.JSONDecodeError:
+                    print("Error: JSON de avalúos inválido")
+                except Exception as e:
+                    print(f"Error al procesar avalúos: {e}")
+
             # Estado (EXISTENTE - NO CAMBIAR)
             proyecto.activo = 'activo' in request.POST or request.POST.get('activo') == 'on'
             
@@ -717,3 +938,77 @@ class ProyectoViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         """Registrar auditoría al actualizar"""
         serializer.save(modificado_por=self.request.user)
+
+# ============================================================
+# VISTA AJAX PARA CREAR CONTRATISTA DESDE FORMULARIO DE PROYECTO
+# ============================================================
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+import json
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ContratistaCrearAjaxView(LoginRequiredMixin, View):
+    """
+    Vista AJAX para crear un contratista rápidamente desde el modal
+    del formulario de crear proyecto.
+    """
+    
+    def post(self, request):
+        try:
+            # El JavaScript envía JSON en el body
+            data = json.loads(request.body)
+            
+            # Validar campos requeridos
+            campos_requeridos = ['nombre', 'apellido', 'numero_cedula', 'direccion']
+            for campo in campos_requeridos:
+                if not data.get(campo):
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'El campo {campo} es requerido'
+                    }, status=400)
+            
+            # Verificar que la cédula no exista
+            if Contratista.objects.filter(numero_cedula=data.get('numero_cedula')).exists():
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Ya existe un contratista con esa cédula'
+                }, status=400)
+            
+            # Crear el contratista
+            contratista = Contratista.objects.create(
+                nombre=data.get('nombre'),
+                apellido=data.get('apellido'),
+                numero_cedula=data.get('numero_cedula'),
+                telefono=data.get('telefono', ''),
+                direccion=data.get('direccion'),
+                departamento=data.get('departamento', ''),
+                municipio=data.get('municipio', ''),
+                banco=data.get('banco', ''),
+                numero_cuenta=data.get('numero_cuenta', ''),
+                tipo_cuenta=data.get('tipo_cuenta', ''),
+                moneda_cuenta=data.get('moneda_cuenta', 'cordobas'),
+                creado_por=request.user
+            )
+            
+            # Retornar los datos del contratista creado
+            return JsonResponse({
+                'success': True,
+                'contratista': {
+                    'id': contratista.id,
+                    'nombre_completo': contratista.nombre_completo,
+                    'cedula': contratista.numero_cedula
+                }
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Formato JSON inválido'
+            }, status=400)
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=500)
+        

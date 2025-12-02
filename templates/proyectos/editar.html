@@ -298,7 +298,7 @@
         <div class="accordion-header" onclick="toggleAccordion(this)">
             <div class="accordion-title">
                 <span class="material-symbols-outlined">folder</span>
-                <h3>Documentos del Proyecto</h3>
+                <h3>Documentos del Proyecto y Avalúos</h3>
             </div>
             <span class="material-symbols-outlined accordion-icon">expand_more</span>
         </div>
@@ -349,6 +349,69 @@
                     <small class="form-text">PDF, Excel (máx. 10MB). Cargar uno nuevo reemplazará el actual.</small>
                 </div>
             </div>
+                    <!-- SEPARADOR -->
+        <hr style="margin: 32px 0; border: none; border-top: 2px solid #e2e8f0;">
+        
+        <!-- ✅ SECCIÓN DE AVALÚOS (NUEVA) -->
+        <div>
+            <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #111827; display: flex; align-items: center; gap: 8px;">
+                <span class="material-symbols-outlined" style="color: #3b82f6;">assignment</span>
+                Avalúos de Contratistas
+            </h4>
+            
+            <!-- Input hidden para enviar datos -->
+            <input type="hidden" name="avaluos_data" id="avaluos_data" value="">
+            
+            <!-- Botón para agregar nuevo avalúo -->
+            <button type="button" class="btn btn-primary" onclick="agregarAvaluo()" style="margin-bottom: 20px;">
+                <span class="material-symbols-outlined">add</span>
+                Agregar Nuevo Avalúo
+            </button>
+            
+            <!-- Avalúos existentes -->
+            {% if avaluos_existentes %}
+            <div style="margin-bottom: 24px;">
+                <h5 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: #6b7280;">
+                    Avalúos Registrados ({{ avaluos_existentes.count }})
+                </h5>
+                <div class="avaluos-existentes-grid">
+                    {% for avaluo in avaluos_existentes %}
+                    <div class="avaluo-existente-card">
+                        <div class="avaluo-existente-header">
+                            <span class="avaluo-codigo">{{ avaluo.codigo }}</span>
+                            <span class="avaluo-estado estado-{{ avaluo.estado }}">
+                                {{ avaluo.get_estado_display }}
+                            </span>
+                        </div>
+                        <div class="avaluo-existente-body">
+                            <p><strong>{{ avaluo.contrato.contratista.nombre_completo }}</strong></p>
+                            <p style="font-size: 13px; color: #6b7280;">
+                                Período: {{ avaluo.periodo_inicio|date:"d/m/Y" }} - {{ avaluo.periodo_fin|date:"d/m/Y" }}
+                            </p>
+                            <p style="font-size: 13px; color: #6b7280;">
+                                Avance: {{ avaluo.porcentaje_avance }}%
+                            </p>
+                            <p style="font-size: 14px; font-weight: 600; color: #111827; margin-top: 8px;">
+                                C$ {{ avaluo.monto_cordobas|floatformat:2 }}
+                            </p>
+                            {% if avaluo.archivo_soporte %}
+                            <a href="{{ avaluo.archivo_soporte.url }}" target="_blank" style="font-size: 12px; color: #3b82f6; text-decoration: none; display: flex; align-items: center; gap: 4px; margin-top: 8px;">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">description</span>
+                                Ver archivo soporte
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Contenedor para nuevos avalúos -->
+            <div id="avaluos-container">
+                <!-- Aquí se agregarán los nuevos avalúos dinámicamente -->
+            </div>
+        </div>
         </div>
     </div>
     
@@ -780,11 +843,261 @@
     color: #1e293b;
     margin: 0;
 }
+/* ===== ESTILOS PARA AVALÚOS ===== */
+.avaluos-existentes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.avaluo-existente-card {
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.2s;
+}
+
+.avaluo-existente-card:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.avaluo-existente-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.avaluo-codigo {
+    font-size: 12px;
+    font-weight: 700;
+    color: #3b82f6;
+}
+
+.avaluo-estado {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.avaluo-estado.estado-pendiente {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.avaluo-estado.estado-aprobado_gerente {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.avaluo-estado.estado-aprobado_contador {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.avaluo-estado.estado-pagado {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.avaluo-estado.estado-rechazado {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.avaluo-existente-body p {
+    margin: 4px 0;
+}
+
+/* Nuevos avalúos dinámicos */
+.avaluo-item {
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    position: relative;
+}
+
+.avaluo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.avaluo-numero {
+    font-size: 14px;
+    font-weight: 700;
+    color: #3b82f6;
+}
+
+.avaluo-delete {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+}
+
+.avaluo-delete:hover {
+    background: #fecaca;
+}
+
+.avaluo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 768px) {
+    .avaluo-grid {
+        grid-template-columns: 1fr;
+    }
+    .avaluos-existentes-grid {
+        grid-template-columns: 1fr;
+    }
+}
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// ==========================================
+// FUNCIONES PARA AVALÚOS
+// ==========================================
+let avaluoCounter = 0;
+
+function agregarAvaluo() {
+    avaluoCounter++;
+    const container = document.getElementById('avaluos-container');
+    
+    // Obtener contratistas asignados al proyecto
+    const contratistasOptions = `
+        <option value="">Seleccionar contratista...</option>
+        {% for contratista in contratistas_asignados %}
+        <option value="{{ contratista.id }}">
+            {{ contratista.nombre_completo }}
+        </option>
+        {% endfor %}
+    `;
+    
+    const avaluoHTML = `
+        <div class="avaluo-item" id="avaluo-${avaluoCounter}">
+            <div class="avaluo-header">
+                <span class="avaluo-numero">Nuevo Avalúo #${avaluoCounter}</span>
+                <button type="button" class="avaluo-delete" onclick="eliminarAvaluo(${avaluoCounter})">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
+                    Eliminar
+                </button>
+            </div>
+            
+            <div class="avaluo-grid">
+                <div class="form-group">
+                    <label>Contratista <span style="color: #ef4444;">*</span></label>
+                    <select class="form-control avaluo-contratista" data-avaluo="${avaluoCounter}">
+                        ${contratistasOptions}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Período <span style="color: #ef4444;">*</span></label>
+                    <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center;">
+                        <input type="date" class="form-control avaluo-periodo-inicio" data-avaluo="${avaluoCounter}">
+                        <span style="color: #6b7280; font-size: 13px;">al</span>
+                        <input type="date" class="form-control avaluo-periodo-fin" data-avaluo="${avaluoCounter}">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="avaluo-grid">
+                <div class="form-group">
+                    <label>% Avance <span style="color: #ef4444;">*</span></label>
+                    <input type="number" 
+                           class="form-control avaluo-porcentaje" 
+                           data-avaluo="${avaluoCounter}"
+                           min="0" 
+                           max="100" 
+                           step="0.01" 
+                           placeholder="Ej: 30.00">
+                </div>
+                
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <textarea class="form-control avaluo-descripcion" 
+                              data-avaluo="${avaluoCounter}" 
+                              placeholder="Descripción del trabajo realizado..."
+                              rows="1"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Archivo Soporte</label>
+                    <input type="file" 
+                        class="form-control avaluo-archivo" 
+                        data-avaluo="${avaluoCounter}" 
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        name="avaluo_archivo_${avaluoCounter}">
+                    <small class="form-text" style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+                        PDF, JPG o PNG (máx. 10MB)
+                    </small>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', avaluoHTML);
+}
+
+function eliminarAvaluo(index) {
+    if (confirm('¿Deseas eliminar este avalúo?')) {
+        document.getElementById(`avaluo-${index}`).remove();
+        actualizarInputHiddenAvaluos();
+    }
+}
+
+function actualizarInputHiddenAvaluos() {
+    const avaluosData = [];
+    
+    document.querySelectorAll('.avaluo-item').forEach(item => {
+        const contratista = item.querySelector('.avaluo-contratista').value;
+        const periodoInicio = item.querySelector('.avaluo-periodo-inicio').value;
+        const periodoFin = item.querySelector('.avaluo-periodo-fin').value;
+        const porcentaje = item.querySelector('.avaluo-porcentaje').value;
+        const descripcion = item.querySelector('.avaluo-descripcion').value;
+        
+        if (contratista && periodoInicio && periodoFin && porcentaje) {
+            avaluosData.push({
+                contratista_id: contratista,
+                periodo_inicio: periodoInicio,
+                periodo_fin: periodoFin,
+                porcentaje_avance: porcentaje,
+                descripcion: descripcion
+            });
+        }
+    });
+    
+    document.getElementById('avaluos_data').value = JSON.stringify(avaluosData);
+}
+
+// Actualizar hidden input antes de enviar el formulario
+document.getElementById('formProyecto').addEventListener('submit', function(e) {
+    actualizarInputHiddenAvaluos();
+});
+
 function toggleAccordion(header) {
     const content = header.nextElementSibling;
     const isActive = header.classList.contains('active');

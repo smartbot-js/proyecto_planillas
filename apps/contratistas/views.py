@@ -1,27 +1,33 @@
 """
-Vistas del módulo de Contratistas
+Vistas del módulo de Contratistas - MEJORADO FASE 1
 apps/contratistas/views.py
 """
-from django.views.generic import ListView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q, Sum, Count
-from decimal import Decimal
-from .models import Contratista, ContratoProyecto, PagoContratista
-from apps.proyectos.models import Proyecto
-from django.views.generic import CreateView, UpdateView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.contrib import messages
-from .models import Contratista
-from .forms import ContratistaForm
+from decimal import Decimal
+from datetime import datetime
+import decimal  # Para manejar excepciones de Decimal
+
+from .models import Contratista, ContratoProyecto, AvaluoContratista, PlanillaContratista, DetallePlanillaContratista
+from apps.proyectos.models import Proyecto
+from .forms import ContratistaForm, ContratoProyectoForm
 from apps.core.utils import get_tipo_cambio_actual
+
+from django.http import JsonResponse
+from django.views import View
+from django.shortcuts import get_object_or_404,redirect
+
+PagoContratista = AvaluoContratista
 
 class ContratistaListView(LoginRequiredMixin, ListView):
     """Vista de lista de contratistas con filtros avanzados"""
     model = Contratista
     template_name = 'contratistas/lista.html'
     context_object_name = 'contratistas'
-    paginate_by = 20
+    paginate_by = 50  # ✅ CAMBIADO: De 20 a 50 items por página
     
     def get_queryset(self):
         queryset = Contratista.objects.filter(eliminado=False).select_related('creado_por')
@@ -60,17 +66,52 @@ class ContratistaListView(LoginRequiredMixin, ListView):
                 contratos__eliminado=False
             ).distinct()
         
+        # ✅ NUEVO: Filtro por rango de fechas de contrato
+        fecha_desde = self.request.GET.get('fecha_desde', '').strip()
+        fecha_hasta = self.request.GET.get('fecha_hasta', '').strip()
+        
+        if fecha_desde:
+            try:
+                fecha_desde_obj = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
+                queryset = queryset.filter(
+                    contratos__fecha_inicio__gte=fecha_desde_obj,
+                    contratos__eliminado=False
+                ).distinct()
+            except ValueError:
+                pass  # Ignorar si la fecha no es válida
+        
+        if fecha_hasta:
+            try:
+                fecha_hasta_obj = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
+                queryset = queryset.filter(
+                    contratos__fecha_inicio__lte=fecha_hasta_obj,
+                    contratos__eliminado=False
+                ).distinct()
+            except ValueError:
+                pass  # Ignorar si la fecha no es válida
+        
         return queryset.order_by('apellido', 'nombre')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
         # Tipo de cambio desde configuración global
-        from apps.core.utils import get_tipo_cambio_actual
         tipo_cambio_global = get_tipo_cambio_actual()
         
         # Permitir override manual si el usuario lo cambia
-        tipo_cambio = Decimal(self.request.GET.get('tipo_cambio', str(tipo_cambio_global)))
+        # Manejar tipo_cambio vacío o inválido
+        tipo_cambio_param = self.request.GET.get('tipo_cambio', '').strip()
+        if tipo_cambio_param:
+            try:
+                tipo_cambio = Decimal(tipo_cambio_param)
+                # Validar que sea mayor que 0
+                if tipo_cambio <= 0:
+                    tipo_cambio = tipo_cambio_global
+            except (ValueError, decimal.InvalidOperation):
+                tipo_cambio = tipo_cambio_global
+        else:
+            tipo_cambio = tipo_cambio_global
+        
         moneda = self.request.GET.get('moneda', 'cordobas')  # cordobas o dolares
         
         context['tipo_cambio'] = tipo_cambio
@@ -87,6 +128,8 @@ class ContratistaListView(LoginRequiredMixin, ListView):
         context['proyecto_seleccionado'] = self.request.GET.get('proyecto', '')
         context['forma_pago_seleccionada'] = self.request.GET.get('forma_pago', '')
         context['estado_seleccionado'] = self.request.GET.get('estado', '')
+        context['fecha_desde'] = self.request.GET.get('fecha_desde', '')  # ✅ NUEVO
+        context['fecha_hasta'] = self.request.GET.get('fecha_hasta', '')  # ✅ NUEVO
         
         # Calcular estadísticas generales
         contratistas_activos = Contratista.objects.filter(eliminado=False, activo=True)
@@ -158,16 +201,25 @@ class ContratistaListView(LoginRequiredMixin, ListView):
             # Avance
             avance = (total_pagado / valor_contratos_contratista * 100) if valor_contratos_contratista > 0 else 0
             
+            # Cantidad de pagos realizados
+            cantidad_pagos = PagoContratista.objects.filter(
+                contrato__contratista=contratista,
+                contrato__eliminado=False,
+                eliminado=False,
+                estado='aprobado'
+            ).count()
+            
             # Agregar al objeto
             contratista.total_contratos_count = contratos.count()
             contratista.valor_contratos = valor_contratos_contratista
             contratista.total_pagado_valor = total_pagado
             contratista.pendiente = pendiente
             contratista.avance = avance
+            contratista.cantidad_pagos = cantidad_pagos  # ✅ NUEVO
             
             # Convertir a dólares si es necesario
             if moneda == 'dolares':
-                contratista.valor_contratos_display = total_pagado / tipo_cambio if tipo_cambio > 0 else Decimal('0.00')
+                contratista.valor_contratos_display = valor_contratos_contratista / tipo_cambio if tipo_cambio > 0 else Decimal('0.00')
                 contratista.total_pagado_display = total_pagado / tipo_cambio if tipo_cambio > 0 else Decimal('0.00')
                 contratista.pendiente_display = pendiente / tipo_cambio if tipo_cambio > 0 else Decimal('0.00')
             else:
@@ -176,6 +228,7 @@ class ContratistaListView(LoginRequiredMixin, ListView):
                 contratista.pendiente_display = pendiente
         
         return context
+
 
 class ContratistaCreateView(LoginRequiredMixin, CreateView):
     """Vista para crear un nuevo contratista"""
@@ -219,7 +272,6 @@ class ContratistaUpdateView(LoginRequiredMixin, UpdateView):
             self.request,
             f'✅ Contratista {form.instance.nombre_completo} actualizado exitosamente.'
         )
-        
         return super().form_valid(form)
     
     def form_invalid(self, form):
@@ -228,4 +280,293 @@ class ContratistaUpdateView(LoginRequiredMixin, UpdateView):
             '❌ Error al actualizar el contratista. Por favor revisa los campos.'
         )
         return super().form_invalid(form)
+    
 
+class ContratistaDetalleAPIView(LoginRequiredMixin, View):
+    """
+    API para obtener el detalle completo de un contratista
+    Retorna JSON con toda la información
+    """
+    
+    def get(self, request, pk):
+        try:
+            # Obtener contratista
+            contratista = get_object_or_404(Contratista, pk=pk, eliminado=False)
+            
+            # Obtener tipo de cambio
+            tipo_cambio = get_tipo_cambio_actual()
+            
+            # Datos básicos del contratista
+            data = {
+                'id': contratista.id,
+                'nombre_completo': contratista.nombre_completo,
+                'nombre': contratista.nombre,
+                'apellido': contratista.apellido,
+                'numero_cedula': contratista.numero_cedula,
+                'telefono': contratista.telefono or '-',
+                'direccion': contratista.direccion or '-',
+                'departamento': contratista.departamento or '-',
+                'municipio': contratista.municipio or '-',
+                'foto_cedula_url': contratista.foto_cedula.url if contratista.foto_cedula else None,
+                
+                # Datos bancarios
+                'banco': contratista.banco or '-',
+                'numero_cuenta': contratista.numero_cuenta or '-',
+                'tipo_cuenta': contratista.get_tipo_cuenta_display() if contratista.tipo_cuenta else '-',
+                'moneda_cuenta': contratista.get_moneda_cuenta_display() if contratista.moneda_cuenta else '-',
+                
+                # Metadata
+                'activo': contratista.activo,
+                'fecha_creacion': contratista.creado_en.strftime('%d/%m/%Y %H:%M'),
+                
+                # Contratos
+                'contratos': [],
+                
+                # Resumen financiero
+                'total_contratos': 0,
+                'valor_total_contratos': Decimal('0.00'),
+                'total_pagado': Decimal('0.00'),
+                'total_pendiente': Decimal('0.00'),
+                'porcentaje_avance': 0,
+                'cantidad_pagos': 0,
+            }
+            
+            # Obtener contratos del contratista
+            contratos = ContratoProyecto.objects.filter(
+                contratista=contratista,
+                eliminado=False
+            ).select_related('proyecto').order_by('-fecha_inicio')
+            
+            data['total_contratos'] = contratos.count()
+            
+            contratos_list = []
+            total_valor = Decimal('0.00')
+            total_pagado = Decimal('0.00')
+            
+            for contrato in contratos:
+                # Pagos del contrato
+                pagos = PagoContratista.objects.filter(
+                    contrato=contrato,
+                    eliminado=False,
+                    estado='aprobado'
+                ).order_by('-fecha_pago')
+                
+                pagado_contrato = pagos.aggregate(
+                    total=Sum('monto_cordobas')
+                )['total'] or Decimal('0.00')
+                
+                pendiente_contrato = contrato.valor_contrato - pagado_contrato
+                avance_contrato = (pagado_contrato / contrato.valor_contrato * 100) if contrato.valor_contrato > 0 else 0
+                
+                # Lista de pagos del contrato
+                pagos_list = []
+                for pago in pagos:
+                    pagos_list.append({
+                        'id': pago.id,
+                        'codigo': pago.codigo,
+                        'fecha': pago.fecha_pago.strftime('%d/%m/%Y'),
+                        'concepto': pago.concepto,
+                        'monto_cordobas': float(pago.monto_cordobas),
+                        'monto_dolares': float(pago.monto_dolares),
+                        'forma_pago': pago.get_forma_pago_display(),
+                        'estado': pago.get_estado_display(),
+                        'archivo_soporte': pago.archivo_soporte.url if pago.archivo_soporte else None,
+                    })
+                
+                contratos_list.append({
+                    'id': contrato.id,
+                    'codigo': contrato.codigo,
+                    'proyecto': {
+                        'id': contrato.proyecto.id,
+                        'nombre': contrato.proyecto.nombre,
+                        'descripcion': contrato.proyecto.descripcion or '-',
+                    },
+                    'actividades': contrato.actividades,
+                    'unidad_medida': contrato.unidad_medida or '-',
+                    'valor_contrato': float(contrato.valor_contrato),
+                    'fecha_inicio': contrato.fecha_inicio.strftime('%d/%m/%Y'),
+                    'fecha_fin': contrato.fecha_fin.strftime('%d/%m/%Y') if contrato.fecha_fin else '-',
+                    'estado': contrato.get_estado_display(),
+                    'descripcion': contrato.descripcion or '-',
+                    'total_pagado': float(pagado_contrato),
+                    'pendiente': float(pendiente_contrato),
+                    'porcentaje_avance': round(avance_contrato, 2),
+                    'cantidad_pagos': pagos.count(),
+                    'pagos': pagos_list,
+                })
+                
+                total_valor += contrato.valor_contrato
+                total_pagado += pagado_contrato
+            
+            data['contratos'] = contratos_list
+            data['valor_total_contratos'] = float(total_valor)
+            data['total_pagado'] = float(total_pagado)
+            data['total_pendiente'] = float(total_valor - total_pagado)
+            data['porcentaje_avance'] = round((total_pagado / total_valor * 100) if total_valor > 0 else 0, 2)
+            
+            # Cantidad total de pagos
+            data['cantidad_pagos'] = sum(c['cantidad_pagos'] for c in contratos_list)
+            
+            # Tipo de cambio para conversiones
+            data['tipo_cambio'] = float(tipo_cambio)
+            
+            return JsonResponse(data)
+            
+        except Exception as e:
+            return JsonResponse({
+                'error': str(e)
+            }, status=500)
+
+
+class ContratistaEstadoCuentaAPIView(LoginRequiredMixin, View):
+    """
+    API para obtener el estado de cuenta de un contratista
+    Muestra movimientos cronológicos con saldo acumulado
+    """
+    
+    def get(self, request, pk):
+        try:
+            contratista = get_object_or_404(Contratista, pk=pk, eliminado=False)
+            tipo_cambio = get_tipo_cambio_actual()
+            
+            # Obtener todos los contratos y pagos
+            contratos = ContratoProyecto.objects.filter(
+                contratista=contratista,
+                eliminado=False
+            ).select_related('proyecto').order_by('fecha_inicio')
+            
+            movimientos = []
+            saldo_acumulado = Decimal('0.00')
+            
+            for contrato in contratos:
+                # Agregar contrato como movimiento inicial
+                saldo_acumulado += contrato.valor_contrato
+                
+                movimientos.append({
+                    'fecha': contrato.fecha_inicio.strftime('%d/%m/%Y'),
+                    'tipo': 'contrato',
+                    'descripcion': f'Contrato {contrato.codigo} - {contrato.proyecto.nombre}',
+                    'proyecto': contrato.proyecto.nombre,
+                    'debe': float(contrato.valor_contrato),
+                    'haber': 0,
+                    'saldo': float(saldo_acumulado),
+                })
+                
+                # Agregar pagos del contrato
+                pagos = PagoContratista.objects.filter(
+                    contrato=contrato,
+                    eliminado=False,
+                    estado='aprobado'
+                ).order_by('fecha_pago')
+                
+                for pago in pagos:
+                    saldo_acumulado -= pago.monto_cordobas
+                    
+                    movimientos.append({
+                        'fecha': pago.fecha_pago.strftime('%d/%m/%Y'),
+                        'tipo': 'pago',
+                        'descripcion': f'Pago {pago.codigo} - {pago.concepto}',
+                        'proyecto': contrato.proyecto.nombre,
+                        'debe': 0,
+                        'haber': float(pago.monto_cordobas),
+                        'saldo': float(saldo_acumulado),
+                        'forma_pago': pago.get_forma_pago_display(),
+                    })
+            
+            # Ordenar por fecha
+            movimientos.sort(key=lambda x: x['fecha'])
+            
+            # Calcular totales
+            total_debe = sum(m['debe'] for m in movimientos)
+            total_haber = sum(m['haber'] for m in movimientos)
+            
+            data = {
+                'contratista': {
+                    'nombre': contratista.nombre_completo,
+                    'cedula': contratista.numero_cedula,
+                },
+                'movimientos': movimientos,
+                'totales': {
+                    'debe': total_debe,
+                    'haber': total_haber,
+                    'saldo': total_debe - total_haber,
+                },
+                'tipo_cambio': float(tipo_cambio),
+            }
+            
+            return JsonResponse(data)
+            
+        except Exception as e:
+            return JsonResponse({
+                'error': str(e)
+            }, status=500)
+        
+
+class ContratoCreateView(LoginRequiredMixin, CreateView):
+    model = ContratoProyecto
+    form_class = ContratoProyectoForm
+    template_name = 'contratistas/contrato_form.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        self.proyecto = get_object_or_404(Proyecto, pk=self.kwargs['proyecto_id'], eliminado=False)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['proyecto'] = self.proyecto
+        return kwargs
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['proyecto'] = self.proyecto
+        context['titulo'] = 'Crear Contrato'
+        context['boton'] = 'Crear Contrato'
+        return context
+    
+    def form_valid(self, form):
+        form.instance.proyecto = self.proyecto
+        form.instance.creado_por = self.request.user
+        messages.success(self.request, f'✅ Contrato creado exitosamente')
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse('proyecto_detalle', kwargs={'pk': self.proyecto.id})
+
+class ContratoUpdateView(LoginRequiredMixin, UpdateView):
+    model = ContratoProyecto
+    form_class = ContratoProyectoForm
+    template_name = 'contratistas/contrato_form.html'
+    
+    def get_queryset(self):
+        return ContratoProyecto.objects.filter(eliminado=False)
+    
+    def dispatch(self, request, *args, **kwargs):
+        self.proyecto = self.get_object().proyecto
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['proyecto'] = self.proyecto
+        return kwargs
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['proyecto'] = self.proyecto
+        context['titulo'] = 'Editar Contrato'
+        context['boton'] = 'Guardar Cambios'
+        return context
+    
+    def get_success_url(self):
+        return reverse('proyecto_detalle', kwargs={'pk': self.proyecto.id})
+
+class ContratoDeleteView(LoginRequiredMixin, DeleteView):
+    model = ContratoProyecto
+    
+    def post(self, request, *args, **kwargs):
+        contrato = self.get_object()
+        proyecto_id = contrato.proyecto.id
+        contrato.eliminado = True
+        contrato.save()
+        messages.success(request, f'✅ Contrato eliminado')
+        return redirect('proyecto_detalle', pk=proyecto_id)
+    

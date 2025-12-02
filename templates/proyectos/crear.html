@@ -48,7 +48,6 @@
     }
     .form-main {
         padding: 32px; overflow-y: auto;
-        /* [CORRECCIÓN] Se ajusta el max-height para que quepan header y footer */
         max-height: calc(90vh - 81px - 101px); 
     }
     .form-section {
@@ -140,6 +139,8 @@
     .btn-primary:hover { background: #2563eb; }
     .btn-secondary { background: white; color: #374151; border: 2px solid #e2e8f0; }
     .btn-secondary:hover { background: #f9fafb; }
+    .btn-outline { background: white; color: #3b82f6; border: 2px solid #3b82f6; }
+    .btn-outline:hover { background: #eff6ff; }
     .btn-sm { padding: 8px 16px; font-size: 13px; }
     .btn .material-symbols-outlined { font-size: 18px; }
 
@@ -149,12 +150,112 @@
     .alert .material-symbols-outlined { font-size: 24px; }
     .alert ul { margin: 8px 0 0 0; padding-left: 20px; }
 
+    /* ===== ESTILOS PARA CONTRATISTAS ===== */
+    .contratista-card {
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+        transition: all 0.2s;
+    }
+    .contratista-card:hover {
+        border-color: #3b82f6;
+        background: #f8fafc;
+    }
+    .contratista-checkbox {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+    .contratista-info {
+        flex: 1;
+    }
+    .contratista-nombre {
+        font-size: 14px;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 2px;
+    }
+    .contratista-cedula {
+        font-size: 12px;
+        color: #6b7280;
+    }
+    .contratista-selected {
+        background: #dbeafe;
+        border: 2px solid #3b82f6;
+        padding: 8px 12px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin: 4px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+    .contratista-selected .remove-btn {
+        background: transparent;
+        border: none;
+        color: #ef4444;
+        cursor: pointer;
+        padding: 2px;
+        display: flex;
+        align-items: center;
+    }
+
+    /* ===== ESTILOS PARA AVALÚOS ===== */
+    .avaluo-item {
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+        position: relative;
+    }
+    .avaluo-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .avaluo-numero {
+        font-size: 14px;
+        font-weight: 700;
+        color: #3b82f6;
+    }
+    .avaluo-delete {
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+        color: #dc2626;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .avaluo-delete:hover {
+        background: #fecaca;
+    }
+    .avaluo-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
     /* Responsive */
     @media (max-width: 1024px) {
         .modal-body { grid-template-columns: 1fr; }
         .form-sidebar { border-left: none; border-top: 2px solid #e2e8f0; max-height: 300px; }
         .form-grid.cols-2, .form-grid.cols-3 { grid-template-columns: 1fr; }
         .radio-info-cards { grid-template-columns: 1fr; }
+        .avaluo-grid { grid-template-columns: 1fr; }
     }
 
     /* ===== ESTILOS HORARIOS ===== */
@@ -175,149 +276,324 @@
         flex-shrink: 0;
     }
     
-    .horarios-info-banner strong {
-        display: block;
-        color: #1e3a8a;
-        font-size: 14px;
-        margin-bottom: 4px;
+    .horarios-info-content {
+        flex: 1;
     }
     
-    .horarios-info-banner p {
-        color: #1e40af;
+    .horarios-info-content strong {
+        display: block;
+        font-size: 14px;
+        font-weight: 700;
+        color: #1e3a8a;
+        margin-bottom: 6px;
+    }
+    
+    .horarios-info-content p {
         font-size: 13px;
+        color: #1e40af;
+        line-height: 1.5;
         margin: 0;
     }
     
-    .input-with-badge {
+    .time-input-group {
         display: flex;
         align-items: center;
-        gap: 0;
+        gap: 8px;
     }
     
-    .input-with-badge input {
+    .time-input-group input[type="time"] {
         flex: 1;
-        border-radius: 8px 0 0 8px !important;
-        border-right: none !important;
     }
     
-    .input-badge {
-        padding: 10px 14px;
-        background: #f3f4f6;
-        border: 2px solid #e2e8f0;
-        border-left: none;
-        border-radius: 0 8px 8px 0;
-        font-size: 13px;
-        font-weight: 600;
+    .time-separator {
+        font-size: 14px;
         color: #6b7280;
-        white-space: nowrap;
+        font-weight: 600;
+    }
+    
+    .tolerance-input-group {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: center;
+    }
+    
+    .tolerance-label {
+        font-size: 12px;
+        color: #6b7280;
+        font-weight: 500;
     }
     
     .dias-laborales-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
         gap: 10px;
-        margin-top: 12px;
     }
     
     .dia-checkbox {
-        display: block;
-        cursor: pointer;
-        margin: 0;
-    }
-    
-    .dia-checkbox input[type="checkbox"] {
-        display: none;
-    }
-    
-    .dia-label {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
+        gap: 8px;
+        padding: 12px 16px;
         background: white;
         border: 2px solid #e2e8f0;
         border-radius: 8px;
+        cursor: pointer;
         transition: all 0.2s;
+        position: relative;
     }
     
-    .dia-checkbox:hover .dia-label {
+    .dia-checkbox:hover {
         border-color: #3b82f6;
         background: #f0f9ff;
     }
     
-    .dia-checkbox input[type="checkbox"]:checked + .dia-label {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        border-color: #1e40af;
-        color: white;
+    .dia-checkbox input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
     }
     
-    .dia-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: #f3f4f6;
-        font-weight: 700;
+    .dia-checkbox label {
         font-size: 13px;
-        color: #374151;
-        flex-shrink: 0;
+        font-weight: 600;
+        color: #111827;
+        cursor: pointer;
+        margin: 0;
     }
     
-    .dia-checkbox input[type="checkbox"]:checked + .dia-label .dia-icon {
-        background: rgba(255, 255, 255, 0.2);
-        color: white;
+    .dia-checkbox.checked {
+        background: #dbeafe;
+        border-color: #3b82f6;
     }
     
-    .dia-nombre {
-        font-size: 13px;
-        font-weight: 500;
-        color: #374151;
-    }
-    
-    .dia-checkbox input[type="checkbox"]:checked + .dia-label .dia-nombre {
-        color: white;
+    .dia-checkbox.checked label {
+        color: #1e40af;
     }
     
     .horario-resumen {
-        margin-top: 20px;
-        padding: 16px;
-        background: #f9fafb;
+        background: white;
+        border: 2px solid #e2e8f0;
         border-radius: 8px;
-        border: 1px solid #e5e7eb;
+        padding: 16px;
+        margin-top: 16px;
     }
     
-    .resumen-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 10px 0;
-    }
-    
-    .resumen-item:not(:last-child) {
-        border-bottom: 1px solid #e5e7eb;
-    }
-    
-    .resumen-item .material-symbols-outlined {
-        font-size: 22px;
-        color: #6b7280;
-        flex-shrink: 0;
-    }
-    
-    .resumen-item strong {
-        display: block;
-        font-size: 12px;
-        color: #374151;
-        margin-bottom: 4px;
-    }
-    
-    .resumen-item p {
+    .horario-resumen-title {
         font-size: 13px;
-        font-weight: 600;
-        color: #1e293b;
-        margin: 0;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
     }
+    
+    .horario-resumen-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .horario-resumen-item:last-child {
+        border-bottom: none;
+    }
+    
+    .horario-resumen-label {
+        font-size: 13px;
+        color: #6b7280;
+        font-weight: 500;
+    }
+    
+    .horario-resumen-value {
+        font-size: 13px;
+        color: #111827;
+        font-weight: 600;
+    }
+
+    .location-helper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 8px;
+        margin-top: 12px;
+    }
+    
+    .helper-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+    }
+    
+    .helper-info .material-symbols-outlined {
+        color: #16a34a;
+        font-size: 24px;
+    }
+    
+    .helper-info p {
+        font-size: 13px;
+        color: #15803d;
+        margin: 0;
+        line-height: 1.4;
+    }
+/* Select múltiple de contratistas */
+#select-contratistas {
+    height: auto !important;
+    min-height: 120px;
+    padding: 8px;
+}
+
+#select-contratistas option {
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    cursor: pointer;
+}
+
+#select-contratistas option:hover {
+    background: #f0f9ff !important;
+}
+
+#select-contratistas option:checked {
+    background: #3b82f6 !important;
+    color: white !important;
+}
+
+#select-contratistas option[value="crear_nuevo"]:hover {
+    background: #bfdbfe !important;
+}
+/* Custom Select Dropdown */
+.custom-select-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.custom-select-trigger {
+    width: 100%;
+    padding: 10px 14px;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.custom-select-trigger:hover {
+    border-color: #3b82f6;
+}
+
+.custom-select-trigger.active {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.custom-select-trigger .material-symbols-outlined {
+    color: #6b7280;
+    transition: transform 0.2s;
+}
+
+.custom-select-trigger.active .material-symbols-outlined {
+    transform: rotate(180deg);
+}
+
+.custom-select-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    max-height: 320px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.dropdown-search {
+    padding: 12px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.dropdown-search input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.dropdown-options {
+    overflow-y: auto;
+    max-height: 240px;
+}
+
+.dropdown-option {
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.dropdown-option:hover {
+    background: #f8fafc;
+}
+
+.dropdown-option input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.dropdown-option label {
+    flex: 1;
+    cursor: pointer;
+    font-size: 14px;
+    color: #111827;
+    margin: 0;
+}
+
+.dropdown-option.create-new {
+    background: #dbeafe;
+    color: #1e40af;
+    font-weight: 600;
+    border-top: 2px solid #bfdbfe;
+}
+
+.dropdown-option.create-new:hover {
+    background: #bfdbfe;
+}
+
+.dropdown-option.create-new .material-symbols-outlined {
+    color: #1e40af;
+    font-size: 20px;
+}
+
+.dropdown-empty {
+    padding: 20px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: #e2e8f0;
+    margin: 4px 0;
+}
 </style>
 {% endblock %}
 
@@ -337,62 +613,71 @@
         <form method="POST" enctype="multipart/form-data" id="proyectoForm">
             {% csrf_token %}
             
-            {% if messages %}
-                {% for message in messages %}
-                {% if message.tags == 'error' %}
-                <div class="alert alert-error" style="margin: 20px 32px 0; border-radius: 8px;">
-                    <span class="material-symbols-outlined">error</span>
-                    <div>{{ message }}</div>
-                </div>
-                {% endif %}
-                {% endfor %}
-            {% endif %}
+            <!-- INPUTS HIDDEN PARA CONTRATISTAS Y AVALÚOS -->
+            <input type="hidden" name="contratistas_ids" id="contratistas_ids" value="">
+            <input type="hidden" name="trabajadores_ids" id="trabajadores_ids" value="">
+            <input type="hidden" name="avaluos_data" id="avaluos_data" value="">
 
             <div class="modal-body">
                 <div class="form-main">
-                    
+                    {% if form.errors %}
+                    <div class="alert alert-error">
+                        <span class="material-symbols-outlined">error</span>
+                        <div>
+                            <strong>Error al crear el proyecto</strong>
+                            <ul>
+                                {% for field, errors in form.errors.items %}
+                                    {% for error in errors %}
+                                        <li>{{ field }}: {{ error }}</li>
+                                    {% endfor %}
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <div class="form-section">
                         <div class="section-header">
                             <div class="section-icon">
-                                <span class="material-symbols-outlined">info</span>
+                                <span class="material-symbols-outlined">apartment</span>
                             </div>
-                            <h3 class="section-title">Información Básica</h3>
+                            <h3 class="section-title">Información General</h3>
                         </div>
 
                         <div class="form-grid">
                             <div class="form-group">
                                 <label for="nombre">Nombre del Proyecto <span class="required">*</span></label>
-                                <input type="text" name="nombre" id="nombre" class="form-control" placeholder="Ej: Torre Residencial Norte" required>
-                            </div>
-                        </div>
-
-                        <div class="form-grid cols-2">
-                            <div class="form-group">
-                                <label for="estado">Estatus del Proyecto <span class="required">*</span></label>
-                                <select name="estado" class="form-control" required id="estado">
-                                    <option value="planificacion">En planificación</option>
-                                    <option value="ejecucion" selected>En ejecución</option>
-                                    <option value="pausado">Pausado</option>
-                                    <option value="finalizado">Finalizado</option>
-                                    <option value="cancelado">Cancelado</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="tipo_proyecto">Tipo de Proyecto <span class="required">*</span></label>
-                                <select name="tipo_proyecto" class="form-control" required id="tipo_proyecto">
-                                    <option value="residencial" selected>Residencial</option>
-                                    <option value="comercial">Comercial</option>
-                                    <option value="publico">Público</option>
-                                    <option value="industrial">Industrial</option>
-                                    <option value="mixto">Mixto</option>
-                                </select>
+                                <input type="text" name="nombre" class="form-control" placeholder="Ej: Proyecto Villa Fontana" required id="nombre">
                             </div>
                         </div>
 
                         <div class="form-grid">
                             <div class="form-group">
-                                <label for="descripcion">Descripción del Proyecto</label>
-                                <textarea name="descripcion" id="descripcion" class="form-control" placeholder="Describe brevemente el proyecto..." rows="3"></textarea>
+                                <label for="descripcion">Descripción</label>
+                                <textarea name="descripcion" class="form-control" placeholder="Descripción detallada del proyecto" id="descripcion"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-grid cols-2">
+                            <div class="form-group">
+                                <label for="estado">Estado del Proyecto <span class="required">*</span></label>
+                                <select name="estado" class="form-control" required id="estado">
+                                    <option value="planificacion">En Planificación</option>
+                                    <option value="en_proceso">En Proceso</option>
+                                    <option value="pausado">Pausado</option>
+                                    <option value="completado">Completado</option>
+                                    <option value="cancelado">Cancelado</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="tipo_proyecto">Tipo de Proyecto</label>
+                                <select name="tipo_proyecto" class="form-control" id="tipo_proyecto">
+                                    <option value="">Seleccionar tipo...</option>
+                                    <option value="residencial">Residencial</option>
+                                    <option value="comercial">Comercial</option>
+                                    <option value="industrial">Industrial</option>
+                                    <option value="infraestructura">Infraestructura</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -502,16 +787,90 @@
                                     {% endfor %}
                                 </select>
                             </div>
+                            
+                            <!-- ✅ NUEVA SECCIÓN DE TRABAJADORES -->
                             <div class="form-group">
-                                <label for="contratistas_asignados">Contratistas Asignados</label>
-                                <input type="number" name="contratistas_asignados" class="form-control" value="0" min="0" id="contratistas_asignados">
+                                <label>Trabajadores Asignados</label>
+                                <div style="position: relative;">
+                                    <div class="custom-select-wrapper">
+                                        <div class="custom-select-trigger" onclick="toggleSelectTrabajadores()">
+                                            <span id="trabajadores-selected-count">Ningún trabajador seleccionado</span>
+                                            <span class="material-symbols-outlined">expand_more</span>
+                                        </div>
+                                        <div class="custom-select-dropdown" id="dropdown-trabajadores" style="display: none;">
+                                            <div class="dropdown-search">
+                                                <input type="text" placeholder="Buscar trabajador..." onkeyup="filtrarTrabajadores(this.value)">
+                                            </div>
+                                            <div class="dropdown-options">
+                                                {% for trabajador in trabajadores_disponibles %}
+                                                <div class="dropdown-option" onclick="toggleTrabajador({{ trabajador.id }}, '{{ trabajador.nombre_completo }}', '{{ trabajador.numero_inss }}')">
+                                                    <input type="checkbox" id="check-trab-{{ trabajador.id }}" data-nombre="{{ trabajador.nombre_completo }}" data-inss="{{ trabajador.numero_inss }}">
+                                                    <label for="check-trab-{{ trabajador.id }}">
+                                                        {{ trabajador.nombre_completo }} 
+                                                        <span style="color: #6b7280; font-size: 12px;">{{ trabajador.numero_inss }}</span>
+                                                        {% if trabajador.proyecto_asignado %}
+                                                        <span style="color: #f59e0b; font-size: 11px;">(En {{ trabajador.proyecto_asignado.nombre }})</span>
+                                                        {% endif %}
+                                                    </label>
+                                                </div>
+                                                {% empty %}
+                                                <div class="dropdown-empty">No hay trabajadores disponibles</div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="trabajadores-seleccionados" style="margin-top: 12px;">
+                                    <!-- Tags aquí -->
+                                </div>
                             </div>
                         </div>
-
+                        
+                        <div class="form-grid">
+                            <!-- ✅ NUEVA SECCIÓN DE CONTRATISTAS (MOVIDA AQUÍ) -->
+                            <div class="form-group">
+                                <label>Contratistas Asignados</label>
+                                <div style="position: relative;">
+                                    <div class="custom-select-wrapper">
+                                        <div class="custom-select-trigger" onclick="toggleSelectContratistas()">
+                                            <span id="selected-count">Ningún contratista seleccionado</span>
+                                            <span class="material-symbols-outlined">expand_more</span>
+                                        </div>
+                                        <div class="custom-select-dropdown" id="dropdown-contratistas" style="display: none;">
+                                            <div class="dropdown-search">
+                                                <input type="text" placeholder="Buscar contratista..." onkeyup="filtrarContratistas(this.value)">
+                                            </div>
+                                            <div class="dropdown-options">
+                                                {% for contratista in contratistas_disponibles %}
+                                                <div class="dropdown-option" onclick="toggleContratista({{ contratista.id }}, '{{ contratista.nombre_completo }}', '{{ contratista.numero_cedula }}')">
+                                                    <input type="checkbox" id="check-{{ contratista.id }}" data-nombre="{{ contratista.nombre_completo }}" data-cedula="{{ contratista.numero_cedula }}">
+                                                    <label for="check-{{ contratista.id }}">{{ contratista.nombre_completo }} <span style="color: #6b7280; font-size: 12px;">{{ contratista.numero_cedula }}</span></label>
+                                                </div>
+                                                {% empty %}
+                                                <div class="dropdown-empty">No hay contratistas disponibles</div>
+                                                {% endfor %}
+                                                <div class="dropdown-divider"></div>
+                                                <div class="dropdown-option create-new" onclick="abrirCrearContratista()">
+                                                    <span class="material-symbols-outlined">add_circle</span>
+                                                    <span>Crear Nuevo Contratista</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="contratistas-seleccionados" style="margin-top: 12px;">
+                                    <!-- Tags aquí -->
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="form-grid cols-3">
                             <div class="form-group">
-                                <label for="personal_asignado">Personal Asignado</label>
-                                <input type="number" name="personal_asignado" class="form-control" value="0" min="0" id="personal_asignado">
+                                <label for="personal_asignado">Personal Asignado (Auto)</label>
+                                <input type="number" name="personal_asignado" class="form-control" value="0" min="0" id="personal_asignado" readonly style="background: #f9fafb;">
+                                <small class="form-help">Se calcula automáticamente</small>
                             </div>
                             <div class="form-group">
                                 <label for="porcentaje_avance_general">% Avance General</label>
@@ -523,7 +882,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="form-section">
                         <div class="section-header">
                              <div class="section-icon">
@@ -590,7 +948,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="fecha_avaluo">Fecha del Avalúo</label>
-                                <input type="date" class="form-control" name="fecha_avaluo" id="fecha_avaluo">
+                                <input type="date" name="fecha_avaluo" class="form-control" id="fecha_avaluo">
                             </div>
                         </div>
                     </div>
@@ -598,15 +956,16 @@
                     <div class="form-section">
                         <div class="section-header">
                             <div class="section-icon">
-                                <span class="material-symbols-outlined">folder</span>
+                                <span class="material-symbols-outlined">description</span>
                             </div>
                             <h3 class="section-title">Documentos Adjuntos</h3>
                         </div>
+
                         <div class="form-grid cols-3">
                             <div class="form-group">
-                                <label for="archivo_contrato">Contrato</label>
+                                <label>Contrato</label>
                                 <div class="file-upload">
-                                    <input type="file" name="archivo_contrato" id="archivo_contrato" accept=".pdf">
+                                    <input type="file" name="archivo_contrato" id="archivo_contrato" accept=".pdf" class="form-control">
                                     <label for="archivo_contrato" class="file-upload-label">
                                         <span class="material-symbols-outlined">description</span>
                                         <p>Adjuntar PDF</p>
@@ -614,28 +973,38 @@
                                     </label>
                                 </div>
                             </div>
+
+
                             <div class="form-group">
-                                <label for="archivo_avaluo">Avalúo</label>
+                                <label>Presupuesto</label>
                                 <div class="file-upload">
-                                    <input type="file" name="archivo_avaluo" id="archivo_avaluo" accept=".pdf">
-                                    <label for="archivo_avaluo" class="file-upload-label">
-                                        <span class="material-symbols-outlined">receipt_long</span>
-                                        <p>Adjuntar PDF</p>
-                                        <small>Máx. 10MB</small>
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="archivo_presupuesto">Presupuesto</label>
-                                <div class="file-upload">
-                                    <input type="file" name="archivo_presupuesto" id="archivo_presupuesto" accept=".pdf,.xlsx,.xls">
+                                    <input type="file" name="archivo_presupuesto" id="archivo_presupuesto" accept=".pdf,.xlsx,.xls" class="form-control">
                                     <label for="archivo_presupuesto" class="file-upload-label">
-                                        <span class="material-symbols-outlined">request_quote</span>
+                                        <span class="material-symbols-outlined">description</span>
                                         <p>PDF/Excel</p>
                                         <small>Máx. 10MB</small>
                                     </label>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- ✅ NUEVA SECCIÓN: AVALÚOS -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <div class="section-icon">
+                                <span class="material-symbols-outlined">assignment</span>
+                            </div>
+                            <h3 class="section-title">Avalúos de Contratistas</h3>
+                        </div>
+                        
+                        <button type="button" class="btn btn-primary btn-sm" onclick="agregarAvaluo()" style="margin-bottom: 16px;">
+                            <span class="material-symbols-outlined">add</span>
+                            Agregar Avalúo
+                        </button>
+                        
+                        <div id="avaluos-container">
+                            <!-- Aquí se agregarán los avalúos dinámicamente -->
                         </div>
                     </div>
 
@@ -646,169 +1015,159 @@
                             </div>
                             <h3 class="section-title">Imagen del Proyecto (Opcional)</h3>
                         </div>
-                        <div class="form-grid">
+
+                        <div class="form-group">
+                            <div class="file-upload">
+                                <input type="file" name="imagen" id="imagen" accept=".jpg,.jpeg,.png" class="form-control">
+                                <label for="imagen" class="file-upload-label">
+                                    <span class="material-symbols-outlined">photo_camera</span>
+                                    <p>Haz clic para seleccionar una imagen</p>
+                                    <small>.JPG, .PNG (recomendado: 1200x400px, máx. 5MB)</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="section-header">
+                            <div class="section-icon">
+                                <span class="material-symbols-outlined">schedule</span>
+                            </div>
+                            <h3 class="section-title">Horarios y Días Laborales</h3>
+                        </div>
+
+                        <div class="horarios-info-banner">
+                            <span class="material-symbols-outlined">info</span>
+                            <div class="horarios-info-content">
+                                <strong>Configura el horario laboral de este proyecto</strong>
+                                <p>Estos horarios se usarán para calcular automáticamente llegadas tarde y horas extras.</p>
+                            </div>
+                        </div>
+
+                        <div class="form-grid cols-2">
                             <div class="form-group">
-                                <div class="file-upload" style="padding: 24px;">
-                                    <input type="file" name="imagen_proyecto" id="imagen_proyecto" accept="image/*">
-                                    <label for="imagen_proyecto" class="file-upload-label">
-                                        <span class="material-symbols-outlined">add_photo_alternate</span>
-                                        <p>Haz clic para seleccionar una imagen</p>
-                                        <small>JPG, PNG (recomendado: 1200x400px, máx. 5MB)</small>
-                                    </label>
+                                <label for="hora_entrada_esperada">Hora de Entrada <span class="required">*</span></label>
+                                <input type="time" name="hora_entrada_esperada" class="form-control" value="08:00" required id="hora_entrada_esperada">
+                                <small class="form-help">Hora en que deben llegar los trabajadores</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="hora_salida_esperada">Hora de Salida <span class="required">*</span></label>
+                                <input type="time" name="hora_salida_esperada" class="form-control" value="17:00" required id="hora_salida_esperada">
+                                <small class="form-help">Hora en que termina la jornada</small>
+                            </div>
+                        </div>
+
+                        <div class="form-grid cols-2">
+                            <div class="form-group">
+                                <label for="minutos_tolerancia">Minutos de Tolerancia <span class="required">*</span></label>
+                                <div class="tolerance-input-group">
+                                    <input type="number" name="minutos_tolerancia" class="form-control" value="15" min="0" max="60" step="1" required id="minutos_tolerancia">
+                                    <span class="tolerance-label">minutos</span>
+                                </div>
+                                <small class="form-help">Minutos permitidos de retraso</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="horas_jornada">Horas por Jornada <span class="required">*</span></label>
+                                <div class="tolerance-input-group">
+                                    <input type="number" name="horas_jornada" class="form-control" value="8.0" min="1" max="24" step="0.5" required id="horas_jornada">
+                                    <span class="tolerance-label">horas</span>
+                                </div>
+                                <small class="form-help">Horas diarias de trabajo</small>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Días Laborales <span class="required">*</span></label>
+                            <div class="dias-laborales-grid">
+                                <div class="dia-checkbox" onclick="toggleDia(this, '1')">
+                                    <input type="checkbox" name="dias_laborales" value="1" id="dia_lunes" checked>
+                                    <label for="dia_lunes">L Lunes</label>
+                                </div>
+                                <div class="dia-checkbox" onclick="toggleDia(this, '2')">
+                                    <input type="checkbox" name="dias_laborales" value="2" id="dia_martes" checked>
+                                    <label for="dia_martes">M Martes</label>
+                                </div>
+                                <div class="dia-checkbox" onclick="toggleDia(this, '3')">
+                                    <input type="checkbox" name="dias_laborales" value="3" id="dia_miercoles" checked>
+                                    <label for="dia_miercoles">M Miércoles</label>
+                                </div>
+                                <div class="dia-checkbox" onclick="toggleDia(this, '4')">
+                                    <input type="checkbox" name="dias_laborales" value="4" id="dia_jueves" checked>
+                                    <label for="dia_jueves">J Jueves</label>
+                                </div>
+                                <div class="dia-checkbox" onclick="toggleDia(this, '5')">
+                                    <input type="checkbox" name="dias_laborales" value="5" id="dia_viernes" checked>
+                                    <label for="dia_viernes">V Viernes</label>
+                                </div>
+                                <div class="dia-checkbox" onclick="toggleDia(this, '6')">
+                                    <input type="checkbox" name="dias_laborales" value="6" id="dia_sabado">
+                                    <label for="dia_sabado">S Sábado</label>
+                                </div>
+                                <div class="dia-checkbox" onclick="toggleDia(this, '7')">
+                                    <input type="checkbox" name="dias_laborales" value="7" id="dia_domingo">
+                                    <label for="dia_domingo">D Domingo</label>
                                 </div>
                             </div>
+                            <small class="form-help">Selecciona los días que se trabaja en este proyecto</small>
+                        </div>
+
+                        <div class="horario-resumen">
+                            <div class="horario-resumen-title">
+                                <span class="material-symbols-outlined">visibility</span>
+                                Horario configurado:
+                            </div>
+                            <div class="horario-resumen-item">
+                                <span class="horario-resumen-label">Horario:</span>
+                                <span class="horario-resumen-value" id="horario-preview">08:00 - 17:00 (8.0 horas)</span>
+                            </div>
+                            <div class="horario-resumen-item">
+                                <span class="horario-resumen-label">Días laborales:</span>
+                                <span class="horario-resumen-value" id="dias-preview">Lunes, Martes, Miércoles, Jueves, Viernes</span>
+                            </div>
                         </div>
                     </div>
 
                 </div>
-
-                <!-- ✨ SECCIÓN DE HORARIOS Y DÍAS LABORALES -->
-                <div class="form-section">
-                    <div class="section-header">
-                        <div class="section-icon">
-                            <span class="material-symbols-outlined">schedule</span>
-                        </div>
-                        <h3 class="section-title">Horarios y Días Laborales</h3>
-                    </div>
-
-                    <div class="horarios-info-banner">
-                        <span class="material-symbols-outlined">info</span>
-                        <div>
-                            <strong>Configura el horario laboral de este proyecto</strong>
-                            <p>Estos horarios se usarán para calcular automáticamente llegadas tarde y horas extras.</p>
-                        </div>
-                    </div>
-
-                    <div class="form-grid cols-2">
-                        <div class="form-group">
-                            <label>Hora de Entrada <span class="required">*</span></label>
-                            <input type="time" name="hora_entrada_esperada" id="hora_entrada_esperada" value="08:00" required>
-                            <span class="form-help">Hora en que deben llegar los trabajadores</span>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Hora de Salida <span class="required">*</span></label>
-                            <input type="time" name="hora_salida_esperada" id="hora_salida_esperada" value="17:00" required>
-                            <span class="form-help">Hora en que termina la jornada</span>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Minutos de Tolerancia <span class="required">*</span></label>
-                            <div class="input-with-badge">
-                                <input type="number" name="minutos_tolerancia" id="minutos_tolerancia" value="15" min="0" max="60" required>
-                                <span class="input-badge">minutos</span>
-                            </div>
-                            <span class="form-help">Minutos permitidos de retraso</span>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Horas por Jornada <span class="required">*</span></label>
-                            <div class="input-with-badge">
-                                <input type="number" name="horas_jornada" id="horas_jornada" value="8.0" min="1" max="24" step="0.5" required>
-                                <span class="input-badge">horas</span>
-                            </div>
-                            <span class="form-help">Horas diarias de trabajo</span>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Días Laborales <span class="required">*</span></label>
-                        <div class="dias-laborales-grid">
-                            <label class="dia-checkbox">
-                                <input type="checkbox" name="dias_laborales" value="1" checked>
-                                <span class="dia-label">
-                                    <span class="dia-icon">L</span>
-                                    <span class="dia-nombre">Lunes</span>
-                                </span>
-                            </label>
-                            <label class="dia-checkbox">
-                                <input type="checkbox" name="dias_laborales" value="2" checked>
-                                <span class="dia-label">
-                                    <span class="dia-icon">M</span>
-                                    <span class="dia-nombre">Martes</span>
-                                </span>
-                            </label>
-                            <label class="dia-checkbox">
-                                <input type="checkbox" name="dias_laborales" value="3" checked>
-                                <span class="dia-label">
-                                    <span class="dia-icon">M</span>
-                                    <span class="dia-nombre">Miércoles</span>
-                                </span>
-                            </label>
-                            <label class="dia-checkbox">
-                                <input type="checkbox" name="dias_laborales" value="4" checked>
-                                <span class="dia-label">
-                                    <span class="dia-icon">J</span>
-                                    <span class="dia-nombre">Jueves</span>
-                                </span>
-                            </label>
-                            <label class="dia-checkbox">
-                                <input type="checkbox" name="dias_laborales" value="5" checked>
-                                <span class="dia-label">
-                                    <span class="dia-icon">V</span>
-                                    <span class="dia-nombre">Viernes</span>
-                                </span>
-                            </label>
-                            <label class="dia-checkbox">
-                                <input type="checkbox" name="dias_laborales" value="6">
-                                <span class="dia-label">
-                                    <span class="dia-icon">S</span>
-                                    <span class="dia-nombre">Sábado</span>
-                                </span>
-                            </label>
-                            <label class="dia-checkbox">
-                                <input type="checkbox" name="dias_laborales" value="7">
-                                <span class="dia-label">
-                                    <span class="dia-icon">D</span>
-                                    <span class="dia-nombre">Domingo</span>
-                                </span>
-                            </label>
-                        </div>
-                        <span class="form-help">Selecciona los días que se trabaja en este proyecto</span>
-                    </div>
-
-                    <div class="horario-resumen">
-                        <div class="resumen-item">
-                            <span class="material-symbols-outlined">schedule</span>
-                            <div>
-                                <strong>Horario configurado:</strong>
-                                <p id="horario-preview">08:00 - 17:00 (8.0 horas)</p>
-                            </div>
-                        </div>
-                        <div class="resumen-item">
-                            <span class="material-symbols-outlined">event</span>
-                            <div>
-                                <strong>Días laborales:</strong>
-                                <p id="dias-preview">Lunes, Martes, Miércoles, Jueves, Viernes</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- FIN SECCIÓN HORARIOS -->
 
                 <div class="form-sidebar">
-                    
                     <div class="sidebar-scroll">
                         <div class="sidebar-section">
                             <div class="sidebar-title">
-                                <span class="material-symbols-outlined">summarize</span>
-                                Resumen
+                                <span class="material-symbols-outlined">analytics</span>
+                                Resumen del Proyecto
                             </div>
                             <div class="sidebar-row">
                                 <span class="sidebar-label">Presupuesto Total</span>
                                 <span class="sidebar-value" id="resumen-presupuesto">$0</span>
                             </div>
                             <div class="sidebar-row">
-                                <span class="sidebar-label">Avance</span>
+                                <span class="sidebar-label">% Avance</span>
                                 <span class="sidebar-value" id="resumen-avance">0%</span>
+                            </div>
+                            <div class="sidebar-row">
+                                <span class="sidebar-label">Estado</span>
+                                <span class="sidebar-value">En Planificación</span>
+                            </div>
+                        </div>
+
+                        <div class="sidebar-section">
+                            <div class="sidebar-title">
+                                <span class="material-symbols-outlined">checklist</span>
+                                Campos Requeridos
+                            </div>
+                            <div style="font-size: 13px; line-height: 1.8; color: #6b7280;">
+                                <p style="margin-bottom: 8px;">✓ Nombre del proyecto</p>
+                                <p style="margin-bottom: 8px;">✓ Ubicación / Dirección</p>
+                                <p style="margin-bottom: 8px;">✓ Gerente / Supervisor</p>
+                                <p style="margin-bottom: 8px;">✓ Fechas del proyecto</p>
+                                <p style="margin-bottom: 8px;">✓ Presupuesto total</p>
+                                <p style="margin-bottom: 0;">✓ Horarios laborales</p>
                             </div>
                         </div>
                     </div>
 
                     <div class="sidebar-footer">
-                        <div class="footer-note">
-                            Los campos con <span class="required" style="color:red;">*</span> son obligatorios
-                        </div>
+                        <p class="footer-note">Al crear el proyecto, podrás asignar trabajadores y comenzar a registrar asistencias.</p>
                         <div class="footer-buttons">
                             <a href="{% url 'proyectos_lista' %}" class="btn btn-secondary">
                                 <span class="material-symbols-outlined">close</span>
@@ -831,21 +1190,371 @@
 
 {% block extra_js %}
 <script>
-// Actualización dinámica del resumen
+// ==========================================
+// JAVASCRIPT CORREGIDO - CREAR PROYECTO
+// ==========================================
+// Este código reemplaza todo el bloque <script> del template crear.html
+
+// ==========================================
+// VARIABLES GLOBALES
+// ==========================================
+let contratistasSeleccionados = [];
+let trabajadoresSeleccionados = [];
+let avaluoCounter = 0;
+let avaluos = [];
+
+// ==========================================
+// FUNCIONES PARA TRABAJADORES
+// ==========================================
+
+function toggleSelectTrabajadores() {
+    const dropdown = document.getElementById('dropdown-trabajadores');
+    const trigger = dropdown.previousElementSibling;
+    
+    if (dropdown.style.display === 'none') {
+        dropdown.style.display = 'flex';
+        trigger.classList.add('active');
+        // Cerrar dropdown de contratistas si está abierto
+        const dropdownContratistas = document.getElementById('dropdown-contratistas');
+        if (dropdownContratistas) {
+            dropdownContratistas.style.display = 'none';
+            dropdownContratistas.previousElementSibling.classList.remove('active');
+        }
+    } else {
+        dropdown.style.display = 'none';
+        trigger.classList.remove('active');
+    }
+}
+
+function toggleTrabajador(id, nombre, inss) {
+    event.stopPropagation();
+    
+    const checkbox = document.getElementById('check-trab-' + id);
+    const index = trabajadoresSeleccionados.findIndex(t => t.id == id);
+    
+    if (index === -1) {
+        checkbox.checked = true;
+        trabajadoresSeleccionados.push({ id, nombre, inss });
+        console.log('✅ Trabajador agregado:', { id, nombre, inss });
+    } else {
+        checkbox.checked = false;
+        trabajadoresSeleccionados.splice(index, 1);
+        console.log('❌ Trabajador removido:', { id, nombre, inss });
+    }
+    
+    console.log('📋 Trabajadores seleccionados:', trabajadoresSeleccionados);
+    actualizarVistaTrabajadores();
+}
+
+function actualizarVistaTrabajadores() {
+    const count = trabajadoresSeleccionados.length;
+    const countText = document.getElementById('trabajadores-selected-count');
+    
+    if (count === 0) {
+        countText.textContent = 'Ningún trabajador seleccionado';
+    } else if (count === 1) {
+        countText.textContent = '1 trabajador seleccionado';
+    } else {
+        countText.textContent = `${count} trabajadores seleccionados`;
+    }
+    
+    const container = document.getElementById('trabajadores-seleccionados');
+    if (count === 0) {
+        container.innerHTML = '<p style="color: #6b7280; font-size: 13px; margin: 8px 0;">Ningún trabajador seleccionado</p>';
+    } else {
+        container.innerHTML = trabajadoresSeleccionados.map(t => `
+            <div class="contratista-selected">
+                <span>${t.nombre}</span>
+                <button type="button" class="remove-btn" onclick="removerTrabajador(${t.id})">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+                </button>
+            </div>
+        `).join('');
+    }
+    
+    // ✅ ACTUALIZAR INPUT HIDDEN
+    const ids = trabajadoresSeleccionados.map(t => t.id).join(',');
+    document.getElementById('trabajadores_ids').value = ids;
+    console.log('✅ trabajadores_ids actualizado:', ids);
+    
+    // Actualizar contador de "Personal Asignado"
+    document.getElementById('personal_asignado').value = count;
+}
+
+function removerTrabajador(id) {
+    trabajadoresSeleccionados = trabajadoresSeleccionados.filter(t => t.id != id);
+    actualizarVistaTrabajadores();
+    
+    const checkbox = document.getElementById('check-trab-' + id);
+    if (checkbox) checkbox.checked = false;
+}
+
+function filtrarTrabajadores(texto) {
+    const options = document.querySelectorAll('#dropdown-trabajadores .dropdown-option');
+    const searchTerm = texto.toLowerCase();
+    
+    options.forEach(option => {
+        const label = option.querySelector('label');
+        if (label) {
+            const text = label.textContent.toLowerCase();
+            option.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+        }
+    });
+}
+
+// ==========================================
+// FUNCIONES PARA CONTRATISTAS
+// ==========================================
+
+function toggleSelectContratistas() {
+    const dropdown = document.getElementById('dropdown-contratistas');
+    const trigger = dropdown.previousElementSibling;
+    
+    if (dropdown.style.display === 'none') {
+        dropdown.style.display = 'flex';
+        trigger.classList.add('active');
+        // Cerrar dropdown de trabajadores si está abierto
+        const dropdownTrabajadores = document.getElementById('dropdown-trabajadores');
+        if (dropdownTrabajadores) {
+            dropdownTrabajadores.style.display = 'none';
+            dropdownTrabajadores.previousElementSibling.classList.remove('active');
+        }
+    } else {
+        dropdown.style.display = 'none';
+        trigger.classList.remove('active');
+    }
+}
+
+function toggleContratista(id, nombre, cedula) {
+    event.stopPropagation();
+    
+    const checkbox = document.getElementById('check-' + id);
+    const index = contratistasSeleccionados.findIndex(c => c.id == id);
+    
+    if (index === -1) {
+        checkbox.checked = true;
+        contratistasSeleccionados.push({ id, nombre, cedula });
+        console.log('✅ Contratista agregado:', { id, nombre, cedula });
+    } else {
+        checkbox.checked = false;
+        contratistasSeleccionados.splice(index, 1);
+        console.log('❌ Contratista removido:', { id, nombre, cedula });
+    }
+    
+    console.log('📋 Contratistas seleccionados:', contratistasSeleccionados);
+    actualizarVistaContratistas();
+}
+
+function actualizarVistaContratistas() {
+    const count = contratistasSeleccionados.length;
+    const countText = document.getElementById('selected-count');
+    
+    if (count === 0) {
+        countText.textContent = 'Ningún contratista seleccionado';
+    } else if (count === 1) {
+        countText.textContent = '1 contratista seleccionado';
+    } else {
+        countText.textContent = `${count} contratistas seleccionados`;
+    }
+    
+    mostrarContratistasSeleccionados();
+    actualizarInputHiddenContratistas();
+}
+
+function mostrarContratistasSeleccionados() {
+    const container = document.getElementById('contratistas-seleccionados');
+    
+    if (contratistasSeleccionados.length === 0) {
+        container.innerHTML = '<p style="color: #6b7280; font-size: 13px; margin: 8px 0;">Ningún contratista seleccionado</p>';
+        return;
+    }
+    
+    container.innerHTML = contratistasSeleccionados.map(c => `
+        <div class="contratista-selected">
+            <span>${c.nombre}</span>
+            <button type="button" class="remove-btn" onclick="removerContratista(${c.id})">
+                <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+            </button>
+        </div>
+    `).join('');
+}
+
+function removerContratista(id) {
+    contratistasSeleccionados = contratistasSeleccionados.filter(c => c.id != id);
+    mostrarContratistasSeleccionados();
+    actualizarInputHiddenContratistas();
+    
+    const checkbox = document.getElementById('check-' + id);
+    if (checkbox) checkbox.checked = false;
+}
+
+function actualizarInputHiddenContratistas() {
+    const ids = contratistasSeleccionados.map(c => c.id).join(',');
+    document.getElementById('contratistas_ids').value = ids;
+    console.log('✅ contratistas_ids actualizado:', ids);
+    console.log('   - Array:', contratistasSeleccionados);
+}
+
+function filtrarContratistas(texto) {
+    const options = document.querySelectorAll('#dropdown-contratistas .dropdown-option:not(.create-new)');
+    const searchTerm = texto.toLowerCase();
+    
+    options.forEach(option => {
+        const label = option.querySelector('label');
+        if (label) {
+            const text = label.textContent.toLowerCase();
+            option.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+        }
+    });
+}
+
+function abrirCrearContratista() {
+    window.open('/contratistas/crear/', 'crear_contratista', 'width=800,height=600');
+}
+
+// ==========================================
+// FUNCIONES PARA AVALÚOS
+// ==========================================
+
+function agregarAvaluo() {
+    if (contratistasSeleccionados.length === 0) {
+        alert('Primero debes seleccionar al menos un contratista');
+        return;
+    }
+    
+    avaluoCounter++;
+    const container = document.getElementById('avaluos-container');
+    
+    const avaluoHTML = `
+        <div class="avaluo-item" id="avaluo-${avaluoCounter}">
+            <div class="avaluo-header">
+                <span class="avaluo-numero">Avalúo #${avaluoCounter}</span>
+                <button type="button" class="avaluo-delete" onclick="eliminarAvaluo(${avaluoCounter})">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
+                    Eliminar
+                </button>
+            </div>
+            
+            <div class="avaluo-grid">
+                <div class="form-group">
+                    <label>Contratista <span class="required">*</span></label>
+                    <select class="form-control avaluo-contratista" data-avaluo="${avaluoCounter}">
+                        <option value="">Seleccionar...</option>
+                        ${contratistasSeleccionados.map(c => `
+                            <option value="${c.id}">${c.nombre}</option>
+                        `).join('')}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Período</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="date" class="form-control avaluo-periodo-inicio" data-avaluo="${avaluoCounter}" style="flex: 1;">
+                        <span style="color: #6b7280;">al</span>
+                        <input type="date" class="form-control avaluo-periodo-fin" data-avaluo="${avaluoCounter}" style="flex: 1;">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="avaluo-grid">
+                <div class="form-group">
+                    <label>% Avance <span class="required">*</span></label>
+                    <input type="number" 
+                           class="form-control avaluo-porcentaje" 
+                           data-avaluo="${avaluoCounter}"
+                           min="0" 
+                           max="100" 
+                           step="0.01" 
+                           placeholder="30.00">
+                </div>
+                
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <textarea class="form-control avaluo-descripcion" 
+                              data-avaluo="${avaluoCounter}" 
+                              placeholder="Descripción del trabajo realizado..."
+                              rows="1"></textarea>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', avaluoHTML);
+}
+
+function eliminarAvaluo(index) {
+    if (confirm('¿Deseas eliminar este avalúo?')) {
+        document.getElementById(`avaluo-${index}`).remove();
+        actualizarInputHiddenAvaluos();
+    }
+}
+
+function actualizarInputHiddenAvaluos() {
+    const avaluosData = [];
+    
+    document.querySelectorAll('.avaluo-item').forEach(item => {
+        const contratista = item.querySelector('.avaluo-contratista').value;
+        const periodoInicio = item.querySelector('.avaluo-periodo-inicio').value;
+        const periodoFin = item.querySelector('.avaluo-periodo-fin').value;
+        const porcentaje = item.querySelector('.avaluo-porcentaje').value;
+        const descripcion = item.querySelector('.avaluo-descripcion').value;
+        
+        if (contratista && porcentaje) {
+            avaluosData.push({
+                contratista_id: contratista,
+                periodo_inicio: periodoInicio,
+                periodo_fin: periodoFin,
+                porcentaje_avance: porcentaje,
+                descripcion: descripcion
+            });
+        }
+    });
+    
+    document.getElementById('avaluos_data').value = JSON.stringify(avaluosData);
+    console.log('✅ avaluos_data actualizado:', avaluosData);
+}
+
+// ==========================================
+// CERRAR DROPDOWNS AL HACER CLIC FUERA
+// ==========================================
+
+document.addEventListener('click', function(e) {
+    // Cerrar dropdown de contratistas
+    const wrapperContratistas = document.querySelector('#dropdown-contratistas')?.parentElement;
+    if (wrapperContratistas && !wrapperContratistas.contains(e.target)) {
+        const dropdown = document.getElementById('dropdown-contratistas');
+        if (dropdown) {
+            dropdown.style.display = 'none';
+            dropdown.previousElementSibling.classList.remove('active');
+        }
+    }
+    
+    // Cerrar dropdown de trabajadores
+    const wrapperTrabajadores = document.querySelector('#dropdown-trabajadores')?.parentElement;
+    if (wrapperTrabajadores && !wrapperTrabajadores.contains(e.target)) {
+        const dropdown = document.getElementById('dropdown-trabajadores');
+        if (dropdown) {
+            dropdown.style.display = 'none';
+            dropdown.previousElementSibling.classList.remove('active');
+        }
+    }
+});
+
+// ==========================================
+// FUNCIONES ORIGINALES DEL TEMPLATE
+// ==========================================
+
 document.addEventListener('DOMContentLoaded', function() {
-    // [CORREGIDO] Apunta al 'name' correcto
     const presupuestoInput = document.querySelector('input[name="presupuesto_total"]');
     const avanceInput = document.querySelector('input[name="porcentaje_avance_general"]');
     
     const resumenPresupuesto = document.getElementById('resumen-presupuesto');
     const resumenAvance = document.getElementById('resumen-avance');
 
-    // Formatear número a moneda (simple)
     function formatearMoneda(valor) {
         return '$' + new Intl.NumberFormat('es-CO').format(valor.toFixed(0));
     }
 
-    // Actualizar presupuesto
     if (presupuestoInput) {
         presupuestoInput.addEventListener('input', function() {
             const valor = parseFloat(this.value) || 0;
@@ -853,7 +1562,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Actualizar avance
     if (avanceInput) {
         avanceInput.addEventListener('input', function() {
             const valor = parseFloat(this.value) || 0;
@@ -861,11 +1569,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Preview de archivos
     document.querySelectorAll('input[type="file"]').forEach(input => {
         input.addEventListener('change', function(e) {
             const fileName = e.target.files[0]?.name;
-            const label = this.nextElementSibling.querySelector('p');
+            const label = this.nextElementSibling?.querySelector('p');
             if (fileName && label) {
                 label.textContent = fileName;
                 label.style.color = '#3b82f6';
@@ -873,9 +1580,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    
+    // Marcar días laborales checked por defecto
+    document.querySelectorAll('.dia-checkbox input[type="checkbox"]:checked').forEach(checkbox => {
+        checkbox.parentElement.classList.add('checked');
+    });
+    
+    // ✅ Actualizar preview de horarios
+    actualizarPreviewHorario();
+    actualizarPreviewDias();
+    
+    document.getElementById('hora_entrada_esperada')?.addEventListener('change', actualizarPreviewHorario);
+    document.getElementById('hora_salida_esperada')?.addEventListener('change', actualizarPreviewHorario);
+    document.getElementById('horas_jornada')?.addEventListener('input', actualizarPreviewHorario);
+    
+    document.querySelectorAll('input[name="dias_laborales"]').forEach(checkbox => {
+        checkbox.addEventListener('change', actualizarPreviewDias);
+    });
 });
 
-// Obtener ubicación GPS
 function obtenerUbicacionActual() {
     if (!navigator.geolocation) {
         alert('Tu navegador no soporta geolocalización');
@@ -892,7 +1615,6 @@ function obtenerUbicacionActual() {
             const lat = position.coords.latitude.toFixed(7);
             const lon = position.coords.longitude.toFixed(7);
             
-            // [CORREGIDO] Rellena el campo 'ubicacion_coordenadas'
             document.querySelector('input[name="ubicacion_coordenadas"]').value = `${lat}, ${lon}`;
             
             btn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> ¡Obtenido!';
@@ -915,29 +1637,19 @@ function obtenerUbicacionActual() {
     );
 }
 
-// Validación de formulario
-document.getElementById('proyectoForm').addEventListener('submit', function(e) {
-    const requiredFields = this.querySelectorAll('[required]');
-    let hasErrors = false;
+function toggleDia(element, value) {
+    const checkbox = element.querySelector('input[type="checkbox"]');
+    checkbox.checked = !checkbox.checked;
     
-    requiredFields.forEach(field => {
-        if (!field.value.trim()) {
-            field.style.borderColor = '#ef4444';
-            hasErrors = true;
-        } else {
-            field.style.borderColor = '#e2e8f0';
-        }
-    });
-    
-    if (hasErrors) {
-        e.preventDefault();
-        alert('Por favor complete todos los campos obligatorios marcados con *');
-        // Opcional: enfocar el primer campo con error
-        requiredFields[0].focus();
+    if (checkbox.checked) {
+        element.classList.add('checked');
+    } else {
+        element.classList.remove('checked');
     }
-});
+    
+    actualizarPreviewDias();
+}
 
-// ===== PREVIEW HORARIOS EN TIEMPO REAL =====
 function actualizarPreviewHorario() {
     const horaEntrada = document.getElementById('hora_entrada_esperada')?.value || '08:00';
     const horaSalida = document.getElementById('hora_salida_esperada')?.value || '17:00';
@@ -966,19 +1678,40 @@ function actualizarPreviewDias() {
     }
 }
 
-// Event listeners para previews
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('hora_entrada_esperada')?.addEventListener('change', actualizarPreviewHorario);
-    document.getElementById('hora_salida_esperada')?.addEventListener('change', actualizarPreviewHorario);
-    document.getElementById('horas_jornada')?.addEventListener('input', actualizarPreviewHorario);
+// ==========================================
+// ✅ EVENTO SUBMIT DEL FORMULARIO
+// ==========================================
+
+document.getElementById('proyectoForm').addEventListener('submit', function(e) {
+    // ✅ CRÍTICO: Actualizar todos los inputs hidden ANTES de enviar
+    actualizarInputHiddenContratistas();
+    actualizarInputHiddenAvaluos();
     
-    document.querySelectorAll('input[name="dias_laborales"]').forEach(checkbox => {
-        checkbox.addEventListener('change', actualizarPreviewDias);
+    // ✅ DEBUG: Mostrar valores en consola
+    console.log('📤 ENVIANDO FORMULARIO');
+    console.log('   - contratistas_ids:', document.getElementById('contratistas_ids').value);
+    console.log('   - trabajadores_ids:', document.getElementById('trabajadores_ids').value);
+    console.log('   - avaluos_data:', document.getElementById('avaluos_data').value);
+    
+    // Validar campos requeridos
+    const requiredFields = this.querySelectorAll('[required]');
+    let hasErrors = false;
+    
+    requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+            field.style.borderColor = '#ef4444';
+            hasErrors = true;
+        } else {
+            field.style.borderColor = '#e2e8f0';
+        }
     });
     
-    // Inicializar previews
-    actualizarPreviewHorario();
-    actualizarPreviewDias();
+    if (hasErrors) {
+        e.preventDefault();
+        alert('Por favor complete todos los campos obligatorios marcados con *');
+        requiredFields[0].focus();
+        return false;
+    }
 });
 </script>
 {% endblock %}

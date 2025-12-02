@@ -3,7 +3,7 @@ Configuración del Admin para Contratistas
 apps/contratistas/admin.py
 """
 from django.contrib import admin
-from .models import Contratista, ContratoProyecto, PagoContratista
+from .models import Contratista, ContratoProyecto, AvaluoContratista, PlanillaContratista, DetallePlanillaContratista
 
 
 @admin.register(Contratista)
@@ -58,9 +58,9 @@ class ContratoProyectoAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(PagoContratista)
-class PagoContratistaAdmin(admin.ModelAdmin):
-    list_display = ['codigo', 'contrato', 'fecha_pago', 'monto_cordobas', 'forma_pago', 'estado']
+@admin.register(AvaluoContratista)
+class AvaluoContratistaAdmin(admin.ModelAdmin):
+    list_display = ['codigo', 'contrato', 'fecha_pago', 'porcentaje_avance', 'monto_cordobas', 'forma_pago', 'estado']
     list_filter = ['estado', 'forma_pago', 'fecha_pago']
     search_fields = ['codigo', 'contrato__codigo', 'contrato__contratista__nombre', 'concepto']
     readonly_fields = ['codigo', 'monto_dolares', 'creado_en', 'modificado_en', 'fecha_ingreso']
@@ -93,3 +93,16 @@ class PagoContratistaAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+@admin.register(PlanillaContratista)
+class PlanillaContratistaAdmin(admin.ModelAdmin):
+    list_display = ['codigo', 'proyecto', 'periodo_inicio', 'periodo_fin', 'total_cordobas', 'estado']
+    list_filter = ['estado', 'proyecto']
+    search_fields = ['codigo', 'nombre']
+    readonly_fields = ['codigo', 'total_cordobas', 'total_dolares', 'fecha_generacion']
+
+@admin.register(DetallePlanillaContratista)
+class DetallePlanillaContratistaAdmin(admin.ModelAdmin):
+    list_display = ['planilla', 'contratista_nombre', 'actividad', 'monto_cordobas']
+    list_filter = ['planilla']
+    search_fields = ['contratista_nombre', 'contratista_cedula']
