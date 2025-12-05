@@ -4,6 +4,7 @@ apps/contratistas/urls.py
 """
 from django.urls import path
 from .views import (
+    ContratistaDetalleView,
     ContratistaListView,
     ContratistaCreateView,
     ContratistaUpdateView,
@@ -11,7 +12,15 @@ from .views import (
     ContratistaEstadoCuentaAPIView,
     ContratoCreateView,
     ContratoDeleteView,
-    ContratoUpdateView,  
+    ContratoUpdateView,
+    PagoAprobarContadorView,
+    PagoAprobarGerenteView,
+    PagoContratistaCreateView,
+    PagoContratistaDeleteView,
+    PagoContratistaDetalleView,
+    PagoContratistaUpdateView,
+    PagoRechazarView,
+    PagosPendientesListView,  
     )
 
 urlpatterns = [
@@ -34,6 +43,10 @@ urlpatterns = [
          ContratistaEstadoCuentaAPIView.as_view(), 
          name='contratista_estado_cuenta_api'),
 
+    path('contratistas/<int:pk>/',
+         ContratistaDetalleView.as_view(),
+         name='contratista_detalle'),
+         
 # Gestión de contratos
     path('proyectos/<int:proyecto_id>/contratos/crear/', 
          ContratoCreateView.as_view(), 
@@ -46,4 +59,41 @@ urlpatterns = [
     path('contratos/<int:pk>/eliminar/', 
          ContratoDeleteView.as_view(), 
          name='contrato_eliminar'),
+
+    # Gestión de pagos
+    path('contratos/<int:contrato_id>/pagos/crear/',
+         PagoContratistaCreateView.as_view(),
+         name='pago_crear'),
+
+    path('pagos/<int:pk>/editar/',
+         PagoContratistaUpdateView.as_view(),
+         name='pago_editar'),
+    
+    path('pagos/<int:pk>/eliminar/',
+         PagoContratistaDeleteView.as_view(),
+         name='pago_eliminar'),
+
+    # Detalle del pago
+    path('pagos/<int:pk>/',
+         PagoContratistaDetalleView.as_view(),
+         name='pago_detalle'),
+    
+    # Aprobaciones
+    path('pagos/<int:pk>/aprobar-gerente/',
+         PagoAprobarGerenteView.as_view(),
+         name='pago_aprobar_gerente'),
+    
+    path('pagos/<int:pk>/aprobar-contador/',
+         PagoAprobarContadorView.as_view(),
+         name='pago_aprobar_contador'),
+    
+    path('pagos/<int:pk>/rechazar/',
+         PagoRechazarView.as_view(),
+         name='pago_rechazar'),
+    
+    # Lista de pagos pendientes
+    path('pagos/pendientes/',
+         PagosPendientesListView.as_view(),
+         name='pagos_pendientes'),
+
 ]

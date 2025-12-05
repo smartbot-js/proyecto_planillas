@@ -52,8 +52,8 @@
                     <span class="material-symbols-outlined">engineering</span>
                     <span>Contratistas</span>
                 </a>
-                <a href="#" class="nav-item" title="Pagos (Próximamente)"> <span class="material-symbols-outlined">payments</span>
-                    <span>Pagos</span>
+                <a href="{% url 'pagos_pendientes' %}" class="nav-item {% if 'pagos' in request.path %}active{% endif %}">
+                    <span>Pagos Contratistas</span>
                 </a>
                 
                 <a href="{% url 'asistencias_reportes' %}" class="nav-item {% if 'asistencias/reportes' in request.path %}active{% endif %}" title="Reportes">

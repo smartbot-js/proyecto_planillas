@@ -73,6 +73,7 @@
         </div>
     </div>
     
+    
     <div class="proyecto-meta-grid">
         <div class="meta-item">
             <span class="material-symbols-outlined">person</span>
@@ -134,9 +135,13 @@
         </button>
     </div>
 </div>
+
 <div class="tab-content active" data-content="resumen">
+    
     <div class="detalle-layout-grid">
+        
         <div class="detalle-main-content">
+            
             {% if proyecto.descripcion %}
             <div class="content-card">
                 <div class="card-header">
@@ -168,6 +173,7 @@
                 </div>
             </div>
 
+            <!-- ✨ NUEVA SECCIÓN: HORARIOS Y DÍAS LABORALES -->
             <div class="content-card">
                 <div class="card-header">
                     <h3><span class="material-symbols-outlined">schedule</span> Horarios y Días Laborales</h3>
@@ -234,6 +240,7 @@
                     <p>{{ proyecto.get_horario_display }} • {{ proyecto.get_dias_laborales_nombres }}</p>
                 </div>
             </div>
+            <!-- FIN SECCIÓN HORARIOS -->
 
             <div class="content-card">
                 <div class="card-header">
@@ -316,6 +323,7 @@
         </div>
         
         <div class="detalle-sidebar-content">
+            
             <div class="content-card">
                 <div class="card-header">
                     <h3><span class="material-symbols-outlined">insights</span> Progreso</h3>
@@ -327,8 +335,7 @@
                             <strong class="progress-percent">{{ proyecto.porcentaje_avance_general|default:0|floatformat:0 }}%</strong>
                         </div>
                         <div class="progress-bar">
-                            <div class="progress-fill" style="width: {{ proyecto.porcentaje_avance_general|default:0|floatformat:"-2" }}%;"></div>
-                        </div>
+                            <div class="progress-fill" style="width: {{ proyecto.porcentaje_avance_general|default:0|floatformat:"-2" }}%;"></div>                        </div>
                     </div>
                     <div class="progress-list-item">
                         <div class="progress-header">
@@ -349,8 +356,7 @@
                             <strong class="progress-percent">{{ proyecto.porcentaje_asignacion_planilla|default:0|floatformat:0 }}%</strong>
                         </div>
                         <div class="progress-bar">
-                            <div class="progress-fill" style="width: {{ proyecto.porcentaje_asignacion_planilla|default:0|floatformat:"-2" }}%;"></div>
-                        </div>
+                            <div class="progress-fill" style="width: {{ proyecto.porcentaje_asignacion_planilla|default:0|floatformat:"-2" }}%;"></div>                        </div>
                     </div>
                 </div>
             </div>
@@ -360,6 +366,7 @@
                     <h3><span class="material-symbols-outlined">location_on</span> Ubicación</h3>
                 </div>
                 <div class="location-content-reorganized">
+                    
                     {% if proyecto.ubicacion_coordenadas %}
                     <div class="map-container">
                         <iframe
@@ -446,10 +453,8 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
-<div class="tab-content" data-content="trabajadores">
+
+        </div> </div> </div> <div class="tab-content" data-content="trabajadores">
     <div class="content-card">
         <div class="card-header">
             <h3>Trabajadores Asignados ({{ trabajadores.count|default:0 }})</h3>
@@ -523,78 +528,48 @@
     </div>
 </div>
 
+<!-- ============================================ -->
+<!-- PESTAÑA: CONTRATISTAS ASIGNADOS -->
+<!-- ============================================ -->
 <div class="tab-content" data-content="contratistas">
     <div class="content-card">
         <div class="card-header">
             <h3>Contratistas Asignados ({{ proyecto.contratistas.count }})</h3>
-            <div style="display: flex; gap: 8px;">
-                {% if user.es_administrador or proyecto.supervisor == user %}
-                <a href="{% url 'proyecto_editar' proyecto.id %}" class="btn btn-secondary btn-sm">
-                    <span class="material-symbols-outlined">edit</span>
-                    Gestionar Contratistas
-                </a>
-                {% endif %}
-                <a href="{% url 'contrato_crear' proyecto.id %}" class="btn btn-primary btn-sm">
-                    <span class="material-symbols-outlined">add</span>
-                    Crear Contrato
-                </a>
-            </div>
+            {% if user.es_administrador or proyecto.supervisor == user %}
+            <a href="{% url 'proyecto_editar' proyecto.id %}" class="btn btn-primary btn-sm">
+                <span class="material-symbols-outlined">edit</span>
+                Gestionar Contratistas
+            </a>
+            {% endif %}
+            <button class="btn btn-primary btn-sm" onclick="location.href='{% url 'contrato_crear' proyecto.id %}'">
+                <span class="material-symbols-outlined">add</span>
+                Crear Contrato
+            </button>
         </div>
 
         {% if proyecto.contratistas.exists %}
         <div class="contratistas-grid-detalle">
             {% for contratista in proyecto.contratistas.all %}
-            <div class="contratista-card-modern">
-                <div class="contratista-header-modern">
-                    <div class="contratista-avatar-modern">
+            <div class="contratista-card">
+                <div class="contratista-header">
+                    <div class="contratista-avatar">
                         {% if contratista.foto_cedula %}
                             <img src="{{ contratista.foto_cedula.url }}" alt="{{ contratista.nombre_completo }}">
                         {% else %}
-                            <div class="avatar-placeholder-modern">
-                                <span class="material-symbols-outlined">person</span>
-                            </div>
+                            <span class="material-symbols-outlined">person</span>
                         {% endif %}
                     </div>
-                    <div class="contratista-info-modern">
-                        <h4 class="contratista-nombre">{{ contratista.nombre_completo }}</h4>
-                        <p class="contratista-cedula">
-                            <span class="material-symbols-outlined">badge</span>
-                            {{ contratista.numero_cedula }}
-                        </p>
-                        {% if contratista.telefono %}
-                        <p class="contratista-telefono">
-                            <span class="material-symbols-outlined">phone</span>
-                            {{ contratista.telefono }}
-                        </p>
-                        {% endif %}
+                    <div class="contratista-info">
+                        <h4>{{ contratista.nombre_completo }}</h4>
+                        <p>Cédula: {{ contratista.numero_cedula }}</p>
                     </div>
-                    <a href="{% url 'contratista_detalle' contratista.id %}" class="btn-ver-detalle" title="Ver detalle completo">
+                    <a href="javascript:void(0)" onclick="verDetalleContratista({{ contratista.id }})" class="contratista-link">
                         <span class="material-symbols-outlined">visibility</span>
                     </a>
                 </div>
                 
-                <div class="contratista-stats-modern">
-                    <div class="stat-item-modern">
-                        <span class="stat-icon-modern">
-                            <span class="material-symbols-outlined">description</span>
-                        </span>
-                        <div class="stat-content-modern">
-                            <span class="stat-value-modern">{{ contratista.total_contratos }}</span>
-                            <span class="stat-label-modern">Contratos</span>
-                        </div>
-                    </div>
-                    <div class="stat-item-modern success">
-                        <span class="stat-icon-modern">
-                            <span class="material-symbols-outlined">payments</span>
-                        </span>
-                        <div class="stat-content-modern">
-                            <span class="stat-value-modern">C$ {{ contratista.total_pagado|floatformat:0 }}</span>
-                            <span class="stat-label-modern">Total Pagado</span>
-                        </div>
-                    </div>
-                </div>
-                
-                {% with contratos=contratista.contratos.all %}
+                <!-- Sección de Contratos -->
+                {% with contratos=contratista.contratos.filter|dictsort:"fecha_inicio"|slice:":10" %}
                 {% if contratos %}
                 <div class="contratos-section-detalle">
                     <div class="contratos-header-detalle">
@@ -606,6 +581,7 @@
                     
                     {% for contrato in contratos %}
                     <div class="contrato-card-detalle">
+                        <!-- Header del Contrato -->
                         <div class="contrato-header-info">
                             <div class="contrato-codigo-section">
                                 <span class="contrato-codigo-badge">{{ contrato.codigo }}</span>
@@ -618,6 +594,7 @@
                             </div>
                         </div>
                         
+                        <!-- Métricas Financieras -->
                         <div class="contrato-metrics-grid">
                             <div class="metric-box">
                                 <span class="metric-label">Valor Contrato</span>
@@ -637,12 +614,14 @@
                             </div>
                         </div>
                         
+                        <!-- Barra de Progreso -->
                         <div class="contrato-progress-section">
                             <div class="progress-bar">
                                 <div class="progress-fill" style="width: {{ contrato.porcentaje_avance }}%"></div>
                             </div>
                         </div>
                         
+                        <!-- Lista de Avalúos -->
                         {% with avaluos=contrato.avaluos.all %}
                         {% if avaluos %}
                         <div class="avaluos-section-detalle">
@@ -700,6 +679,7 @@
                         {% endif %}
                         {% endwith %}
                         
+                        <!-- Acciones del Contrato -->
                         <div class="contrato-actions-detalle">
                             <a href="{% url 'pago_crear' contrato.id %}" class="btn-contrato-action primary">
                                 <span class="material-symbols-outlined">add</span>
@@ -729,6 +709,7 @@
                 {% endwith %}
             </div>
             {% endfor %}
+            
         </div>
         {% else %}
         <div class="empty-state-small">
@@ -749,6 +730,7 @@
     <div class="content-card">
         <div class="card-header">
             <h3><span class="material-symbols-outlined">assignment</span> Asistencias Recientes</h3>
+            
             <a href="{% url 'asistencias_lista' %}?proyecto={{ proyecto.id }}" class="btn btn-sm btn-secondary">
                 <span class="material-symbols-outlined">list_alt</span>
                 Ver Todas
@@ -828,7 +810,6 @@
         {% endif %}
     </div>
 </div>
-
 <div class="tab-content" data-content="planillas">
     <div class="content-card">
         <div class="card-header">
@@ -843,6 +824,8 @@
         </div>
     </div>
 </div>
+
+
 <div id="modalAsignar" class="modal">
     <div class="modal-content modal-lg">
         <div class="modal-header">
@@ -904,6 +887,7 @@
 </form>
 {% endif %}
 
+<!-- Modal de Detalle del Contratista -->
 <div id="modalDetalleContratista" class="modal-overlay-contratista" style="display: none;">
     <div class="modal-container-contratista">
         <div class="modal-header-contratista">
@@ -916,6 +900,7 @@
             </button>
         </div>
         
+        <!-- Pestañas -->
         <div class="modal-tabs-contratista">
             <button class="tab-btn-contratista active" onclick="cambiarTabContratista('info')">
                 <span class="material-symbols-outlined">badge</span>
@@ -931,6 +916,7 @@
             </button>
         </div>
         
+        <!-- Contenido del Modal -->
         <div class="modal-body-contratista" id="modalBodyContratista">
             <div class="loading-spinner-contratista">
                 <div class="spinner-contratista"></div>
@@ -949,54 +935,117 @@
 
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background-color: #f8fafc; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-.page-header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; }
-.page-header h1 { font-size: 28px; font-weight: 700; color: #111827; margin: 8px 0; letter-spacing: -0.02em; }
+
+body { 
+    background-color: #f8fafc;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.page-header { 
+    margin-bottom: 24px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.page-header h1 { 
+    font-size: 28px; 
+    font-weight: 700; 
+    color: #111827; 
+    margin: 8px 0; 
+    letter-spacing: -0.02em;
+}
 .header-title { display: flex; align-items: center; gap: 12px; }
 .page-description { color: #6b7280; font-size: 14px; margin-top: 4px; }
 .back-link { display: inline-flex; align-items: center; gap: 8px; color: #3b82f6; text-decoration: none; font-size: 14px; margin-bottom: 8px; font-weight: 500; }
 .back-link:hover { color: #2563eb; }
 .page-actions { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+
+/* Header Card con imagen */
 .proyecto-header-card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; margin-bottom: 24px; }
-.proyecto-header-image { height: 280px; background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); display: flex; align-items: center; justify-content: center; position: relative; }
+.proyecto-header-image { 
+    height: 280px; 
+    background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    position: relative;
+}
 .proyecto-header-image img { width: 100%; height: 100%; object-fit: cover; }
 .placeholder-image { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
 .placeholder-image .material-symbols-outlined { font-size: 120px; color: rgba(59, 130, 246, 0.3); }
-.proyecto-header-overlay { position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10; }
-.badge.badge-estado, .badge.badge-tipo { backdrop-filter: blur(5px); background-color: rgba(255, 255, 255, 0.85); color: #111827; border: 1px solid rgba(0, 0, 0, 0.05); box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-weight: 600; padding: 6px 12px; }
+
+/* Badges en la Imagen */
+.proyecto-header-overlay {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+}
+.badge.badge-estado, .badge.badge-tipo {
+    backdrop-filter: blur(5px);
+    background-color: rgba(255, 255, 255, 0.85);
+    color: #111827;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    font-weight: 600;
+    padding: 6px 12px;
+}
 .badge-estado.estado-ejecucion { background-color: rgba(209, 250, 229, 0.9); color: #065f46; }
 .badge-estado.estado-planificacion { background-color: rgba(219, 234, 254, 0.9); color: #1e40af; }
 .badge-estado.estado-pausado { background-color: rgba(254, 243, 199, 0.9); color: #92400e; }
 .badge-estado.estado-finalizado { background-color: rgba(243, 244, 246, 0.9); color: #374151; }
 .badge-estado.estado-cancelado { background-color: rgba(254, 226, 226, 0.9); color: #991b1b; }
+
+
 .proyecto-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; padding: 24px; }
 .meta-item { display: flex; align-items: flex-start; gap: 12px; }
 .meta-item .material-symbols-outlined { color: #3b82f6; font-size: 20px; margin-top: 2px; }
 .meta-label { display: block; font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; }
 .meta-value { display: block; font-size: 14px; color: #111827; font-weight: 600; }
+
+/* Tabs */
 .tabs-container { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px; margin-bottom: 24px; }
 .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
 .tab { flex: 1; background: transparent; border: none; padding: 12px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; color: #6b7280; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 150px; }
 .tab:hover { background: #f3f4f6; color: #111827; }
 .tab.active { background: #3b82f6; color: white; }
 .tab .material-symbols-outlined { font-size: 20px; }
+
 .tab-content { display: none; }
 .tab-content.active { display: block; }
-.detalle-layout-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+
+/* Layout de 2 columnas para Resumen */
+.detalle-layout-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+}
 .detalle-main-content { display: flex; flex-direction: column; gap: 24px; }
 .detalle-sidebar-content { display: flex; flex-direction: column; gap: 24px; }
+
+/* Cards */
 .content-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; }
 .card-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #f3f4f6; }
 .card-header h3 { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 600; color: #111827; margin: 0; }
 .card-header h3 .material-symbols-outlined { font-size: 22px; color: #3b82f6; }
+
 .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 24px; }
 .info-item { display: flex; flex-direction: column; gap: 4px; }
 .info-item.full-width { grid-column: 1 / -1; }
 .info-label { font-size: 12px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.02em; }
 .info-value { font-size: 14px; color: #111827; font-weight: 600; }
 .info-value.stat-success { color: #10b981; font-weight: 700; }
+
 .description-section { padding: 24px; }
 .description-text { font-size: 14px; color: #374151; line-height: 1.6; }
+
+/* Progreso */
 .progress-list { display: flex; flex-direction: column; gap: 20px; padding: 24px; }
 .progress-list-item { display: flex; flex-direction: column; gap: 8px; }
 .progress-header { display: flex; justify-content: space-between; align-items: center; }
@@ -1005,18 +1054,48 @@ body { background-color: #f8fafc; font-family: 'Inter', -apple-system, BlinkMacS
 .progress-bar { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
 .progress-fill { height: 100%; background: #3b82f6; transition: width 0.3s; }
 .progress-fill.bg-danger { background: #ef4444; }
+
+/* Ubicación (Reorganizado) */
 .location-content-reorganized { padding: 0; }
-.map-container { margin-top: 0; border-radius: 0; border-top: none; border-left: none; border-right: none; border-bottom: 1px solid #e2e8f0; line-height: 0; width: 100%; }
-.location-padding { padding: 24px 24px 0 24px; }
-.location-info-items { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; padding: 24px; }
-.location-info-items .info-item.full-width { grid-column: 1 / -1; }
-.financial-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; padding: 24px; }
+.map-container {
+    margin-top: 0; 
+    border-radius: 0;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+    line-height: 0;
+    width: 100%;
+}
+.location-padding {
+    padding: 24px 24px 0 24px;
+}
+.location-info-items {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+    padding: 24px;
+}
+.location-info-items .info-item.full-width {
+    grid-column: 1 / -1;
+}
+
+/* Financial */
+.financial-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+    gap: 16px; 
+    padding: 24px; 
+}
 .financial-item { display: flex; flex-direction: column; gap: 8px; padding: 16px; background: #f9fafb; border-radius: 8px; }
 .financial-label { font-size: 12px; color: #6b7280; font-weight: 500; }
 .financial-value { font-size: 20px; font-weight: 700; color: #111827; }
 .financial-value.primary { color: #3b82f6; }
 .financial-value.success { color: #10b981; }
 .financial-value.danger { color: #ef4444; }
+
+/* Documents */
 .documents-grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 24px; }
 .document-card { display: flex; align-items: center; gap: 12px; padding: 16px; background: #f9fafb; border: 1px solid #e2e8f0; border-radius: 8px; text-decoration: none; transition: all 0.2s; }
 .document-card:hover { background: #eff6ff; border-color: #dbeafe; }
@@ -1024,6 +1103,8 @@ body { background-color: #f8fafc; font-family: 'Inter', -apple-system, BlinkMacS
 .document-card strong { display: block; font-size: 14px; color: #111827; font-weight: 500; }
 .document-card small { font-size: 12px; color: #6b7280; }
 .document-card .material-symbols-outlined:last-child { margin-left: auto; color: #9ca3af; }
+
+/* Table */
 .table-container { overflow-x: auto; }
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table thead { background: #f9fafb; border-bottom: 2px solid #e5e7eb; }
@@ -1037,9 +1118,13 @@ body { background-color: #f8fafc; font-family: 'Inter', -apple-system, BlinkMacS
 .worker-info { display: flex; flex-direction: column; }
 .worker-info strong { font-size: 14px; color: #111827; }
 .worker-info small { font-size: 12px; color: #6b7280; }
+
+/* [NUEVO] Estilos para tabla de Asistencias */
 .time-text { font-family: 'Courier New', Courier, monospace; font-weight: 600; font-size: 14px; color: #1e293b; }
 .time-text.time-late { color: #ef4444; }
 .text-muted { color: #9ca3af; }
+
+/* Buttons */
 .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; text-decoration: none; transition: all 0.2s; }
 .btn-primary { background: #3b82f6; color: white; }
 .btn-primary:hover { background: #2563eb; }
@@ -1053,12 +1138,16 @@ body { background-color: #f8fafc; font-family: 'Inter', -apple-system, BlinkMacS
 .btn .material-symbols-outlined { font-size: 18px; }
 .btn-icon { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; color: #64748b; cursor: pointer; transition: all 0.2s; text-decoration: none; }
 .btn-icon:hover { background: #f8fafc; border-color: #3b82f6; color: #3b82f6; }
+
+/* Badge */
 .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
 .badge-success { background: #d1fae5; color: #065f46; }
 .badge-warning { background: #fef3c7; color: #92400e; }
 .badge-error { background: #fee2e2; color: #991b1b; }
 .badge-secondary { background: #f3f4f6; color: #374151; }
 .badge-info { background: #dbeafe; color: #1e40af; }
+
+/* Modal */
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center; }
 .modal.active { display: flex; }
 .modal-content { background: white; border-radius: 12px; width: 90%; max-width: 600px; max-height: 90vh; display: flex; flex-direction: column; }
@@ -1081,249 +1170,2037 @@ body { background-color: #f8fafc; font-family: 'Inter', -apple-system, BlinkMacS
 .empty-state-small { text-align: center; padding: 40px 20px; }
 .empty-state-small .material-symbols-outlined { font-size: 48px; color: #d1d5db; margin-bottom: 12px; }
 .empty-state-small p { color: #6b7280; margin-bottom: 16px; }
+.text-muted { color: #9ca3af; }
 .form-group { margin-bottom: 20px; }
 .form-group label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151; }
-.horarios-detalle-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; padding: 24px; padding-bottom: 16px; }
-.horario-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: #f9fafb; border-radius: 8px; }
-.horario-icon { width: 40px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.horario-icon .material-symbols-outlined { color: white; font-size: 22px; }
-.horario-info { display: flex; flex-direction: column; gap: 2px; }
-.horario-label { font-size: 11px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.02em; }
-.horario-value { font-size: 16px; color: #111827; font-weight: 700; }
-.dias-laborales-detalle { display: flex; align-items: center; gap: 12px; padding: 16px 24px; background: #f9fafb; margin: 0 24px 16px 24px; border-radius: 8px; }
-.dias-label { font-size: 13px; color: #6b7280; font-weight: 500; }
-.dias-badges { display: flex; gap: 6px; }
-.dia-badge { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; background: white; border: 2px solid #e2e8f0; color: #9ca3af; }
-.dia-badge.activo { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-color: #1e40af; color: white; }
-.horario-resumen-detalle { display: flex; align-items: center; gap: 12px; padding: 16px 24px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-top: 1px solid #e2e8f0; border-radius: 0 0 12px 12px; }
-.horario-resumen-detalle .material-symbols-outlined { color: #3b82f6; font-size: 20px; }
-.horario-resumen-detalle p { margin: 0; font-size: 13px; color: #1e40af; font-weight: 500; }
-.contratistas-grid-detalle { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; padding: 24px; }
-.contratista-card-modern { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; transition: all 0.2s; }
-.contratista-card-modern:hover { border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1); }
-.contratista-header-modern { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
-.contratista-avatar-modern { width: 60px; height: 60px; border-radius: 12px; overflow: hidden; border: 2px solid #e5e7eb; flex-shrink: 0; }
-.contratista-avatar-modern img { width: 100%; height: 100%; object-fit: cover; }
-.avatar-placeholder-modern { width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; }
-.avatar-placeholder-modern .material-symbols-outlined { font-size: 32px; color: white; }
-.contratista-info-modern { flex: 1; }
-.contratista-nombre { margin: 0 0 6px 0; font-size: 16px; font-weight: 700; color: #111827; }
-.contratista-cedula, .contratista-telefono { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #6b7280; margin: 4px 0; }
-.contratista-cedula .material-symbols-outlined, .contratista-telefono .material-symbols-outlined { font-size: 16px; }
-.btn-ver-detalle { width: 40px; height: 40px; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; color: #6b7280; }
-.btn-ver-detalle:hover { border-color: #3b82f6; background: #eff6ff; color: #3b82f6; }
-.btn-ver-detalle .material-symbols-outlined { font-size: 20px; }
-.contratista-stats-modern { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-.stat-item-modern { display: flex; align-items: center; gap: 12px; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; }
-.stat-item-modern.success { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-color: #10b981; }
-.stat-icon-modern { width: 40px; height: 40px; border-radius: 8px; background: white; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.stat-icon-modern .material-symbols-outlined { font-size: 22px; color: #3b82f6; }
-.stat-item-modern.success .stat-icon-modern .material-symbols-outlined { color: #10b981; }
-.stat-content-modern { display: flex; flex-direction: column; gap: 2px; }
-.stat-value-modern { font-size: 16px; font-weight: 700; color: #111827; }
-.stat-label-modern { font-size: 11px; color: #6b7280; font-weight: 500; text-transform: uppercase; }
-.contratos-section-detalle { margin-top: 20px; }
-.contratos-header-detalle { margin-bottom: 16px; }
-.contratos-title-detalle { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: #111827; margin: 0; }
-.contratos-title-detalle .material-symbols-outlined { font-size: 20px; color: #3b82f6; }
-.contrato-card-detalle { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 16px; transition: all 0.2s; }
-.contrato-card-detalle:hover { border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1); }
-.contrato-header-info { margin-bottom: 16px; }
-.contrato-codigo-section { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.contrato-codigo-badge { display: inline-flex; align-items: center; padding: 6px 12px; background: white; border: 2px solid #3b82f6; border-radius: 8px; font-size: 13px; font-weight: 700; color: #3b82f6; }
-.contrato-estado-badge { display: inline-flex; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
-.contrato-estado-badge.estado-planificacion { background: #dbeafe; color: #1e40af; }
-.contrato-estado-badge.estado-en_proceso { background: #dcfce7; color: #166534; }
-.contrato-estado-badge.estado-pausado { background: #fef3c7; color: #92400e; }
-.contrato-estado-badge.estado-completado { background: #d1fae5; color: #065f46; }
-.contrato-estado-badge.estado-cancelado { background: #fee2e2; color: #991b1b; }
-.contrato-descripcion-text { font-size: 13px; color: #6b7280; line-height: 1.5; }
-.contrato-metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 12px; }
-.metric-box { background: white; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; text-align: center; }
-.metric-box.success { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-color: #10b981; }
-.metric-box.warning { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-color: #f59e0b; }
-.metric-box.info { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-color: #3b82f6; }
-.metric-label { display: block; font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
-.metric-value { display: block; font-size: 16px; font-weight: 700; color: #111827; }
-.contrato-progress-section { margin-bottom: 16px; }
-.avaluos-section-detalle { margin: 16px 0; background: white; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
-.avaluos-toggle-btn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: white; border: none; cursor: pointer; font-size: 14px; font-weight: 600; color: #374151; transition: all 0.2s; }
-.avaluos-toggle-btn:hover { background: #f9fafb; }
-.avaluos-toggle-btn .material-symbols-outlined:first-child { color: #8b5cf6; font-size: 20px; }
-.avaluos-toggle-btn .chevron { margin-left: auto; transition: transform 0.2s; }
-.avaluos-toggle-btn.active .chevron { transform: rotate(180deg); }
-.avaluos-content-detalle { border-top: 1px solid #e5e7eb; }
-.avaluo-item-detalle { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid #f3f4f6; transition: background 0.2s; }
-.avaluo-item-detalle:last-child { border-bottom: none; }
-.avaluo-item-detalle:hover { background: #f9fafb; }
-.avaluo-main-info { flex: 1; }
-.avaluo-header-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.avaluo-codigo { font-size: 13px; font-weight: 700; color: #111827; }
-.avaluo-estado-badge { display: inline-flex; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
-.avaluo-estado-badge.estado-pendiente { background: #fef3c7; color: #92400e; }
-.avaluo-estado-badge.estado-aprobado_gerente { background: #e0e7ff; color: #5b21b6; }
-.avaluo-estado-badge.estado-aprobado_contador { background: #d1fae5; color: #065f46; }
-.avaluo-estado-badge.estado-pagado { background: #d1fae5; color: #065f46; }
-.avaluo-estado-badge.estado-rechazado { background: #fee2e2; color: #991b1b; }
-.avaluo-concepto { font-size: 12px; color: #6b7280; margin: 0 0 8px 0; line-height: 1.4; }
-.avaluo-meta-info { display: flex; gap: 16px; flex-wrap: wrap; }
-.avaluo-meta-info span { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #6b7280; font-weight: 500; }
-.avaluo-meta-info .material-symbols-outlined { font-size: 16px; }
-.avaluo-actions { display: flex; gap: 6px; }
-.btn-icon-action { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; transition: all 0.2s; color: #6b7280; text-decoration: none; }
-.btn-icon-action:hover { border-color: #3b82f6; background: #eff6ff; color: #3b82f6; }
-.btn-icon-action.danger:hover { border-color: #ef4444; background: #fee2e2; color: #ef4444; }
-.btn-icon-action .material-symbols-outlined { font-size: 18px; }
-.no-avaluos-message { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 20px; background: #f9fafb; border-radius: 8px; color: #6b7280; font-size: 13px; margin: 16px 0; }
-.no-avaluos-message .material-symbols-outlined { font-size: 20px; }
-.contrato-actions-detalle { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid #e5e7eb; }
-.btn-contrato-action { display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; }
-.btn-contrato-action .material-symbols-outlined { font-size: 18px; }
-.btn-contrato-action.primary { background: #3b82f6; color: white; }
-.btn-contrato-action.primary:hover { background: #2563eb; }
-.btn-contrato-action.secondary { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
-.btn-contrato-action.secondary:hover { background: #e5e7eb; }
-.btn-contrato-action.danger { background: #fee2e2; color: #991b1b; }
-.btn-contrato-action.danger:hover { background: #fecaca; }
-.no-contratos-message-detalle { text-align: center; padding: 40px 20px; background: #f9fafb; border: 1px dashed #d1d5db; border-radius: 12px; margin-top: 20px; }
-.no-contratos-message-detalle .material-symbols-outlined { font-size: 48px; color: #d1d5db; margin-bottom: 12px; }
-.no-contratos-message-detalle p { color: #6b7280; margin: 0; }
-.modal-overlay-contratista { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px; }
-.modal-container-contratista { background: white; border-radius: 16px; width: 100%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); }
-.modal-header-contratista { padding: 24px 28px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-.modal-title-contratista { font-size: 22px; font-weight: 700; color: #111827; display: flex; align-items: center; gap: 12px; margin: 0; }
-.modal-title-contratista .material-symbols-outlined { font-size: 28px; color: #3b82f6; }
-.modal-close-contratista { width: 40px; height: 40px; border: none; background: #f3f4f6; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
-.modal-close-contratista:hover { background: #e5e7eb; transform: rotate(90deg); }
-.modal-tabs-contratista { display: flex; gap: 4px; padding: 0 24px; background: #f9fafb; border-bottom: 1px solid #e2e8f0; overflow-x: auto; }
-.tab-btn-contratista { padding: 14px 20px; border: none; background: transparent; cursor: pointer; font-size: 14px; font-weight: 600; color: #6b7280; display: flex; align-items: center; gap: 8px; border-bottom: 3px solid transparent; transition: all 0.2s ease; white-space: nowrap; }
-.tab-btn-contratista .material-symbols-outlined { font-size: 20px; }
-.tab-btn-contratista:hover { color: #111827; background: #f3f4f6; }
-.tab-btn-contratista.active { color: #3b82f6; border-bottom-color: #3b82f6; }
-.modal-body-contratista { padding: 24px 28px; overflow-y: auto; flex: 1; }
-.loading-spinner-contratista { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; }
-.spinner-contratista { width: 50px; height: 50px; border: 4px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.loading-spinner-contratista p { margin-top: 16px; color: #6b7280; font-size: 14px; }
-.info-grid-contratista { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 24px; }
-.info-card-contratista { background: #f9fafb; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; }
-.info-card-title-contratista { font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-.info-card-value-contratista { font-size: 16px; font-weight: 600; color: #111827; }
-.cedula-photo-contratista { width: 100%; max-width: 400px; border-radius: 12px; border: 2px solid #e2e8f0; margin: 20px 0; }
-.section-title-contratista { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center; gap: 8px; }
-.section-title-contratista .material-symbols-outlined { font-size: 24px; color: #3b82f6; }
-.empty-message-contratista { text-align: center; padding: 40px 20px; color: #6b7280; }
-.empty-message-contratista .material-symbols-outlined { font-size: 60px; color: #d1d5db; margin-bottom: 12px; }
-@media (max-width: 1024px) { .detalle-layout-grid { grid-template-columns: 1fr; } .detalle-sidebar-content { grid-row: 1; } }
-@media (max-width: 768px) { .financial-grid { grid-template-columns: 1fr; } .proyecto-meta-grid { grid-template-columns: 1fr; } .workers-selection { grid-template-columns: 1fr; } .tabs { flex-direction: column; } .page-header { flex-direction: column; align-items: stretch; } .page-actions { flex-direction: column; width: 100%; } .location-info-items { grid-template-columns: 1fr; } .contrato-metrics-grid { grid-template-columns: repeat(2, 1fr); } .avaluo-item-detalle { flex-direction: column; align-items: flex-start; gap: 12px; } .avaluo-actions { width: 100%; justify-content: flex-end; } .contrato-actions-detalle { flex-direction: column; } .btn-contrato-action { width: 100%; justify-content: center; } .contratista-header-modern { flex-wrap: wrap; } .btn-ver-detalle { width: 100%; } .contratista-stats-modern { grid-template-columns: 1fr; } .contratistas-grid-detalle { grid-template-columns: 1fr; } }
+
+/* Media Queries de adaptabilidad */
+@media (max-width: 1024px) {
+    .detalle-layout-grid {
+        grid-template-columns: 1fr;
+    }
+    .detalle-sidebar-content {
+        grid-row: 1;
+    }
+}
+@media (max-width: 768px) {
+    .financial-grid { grid-template-columns: 1fr; }
+    .proyecto-meta-grid { grid-template-columns: 1fr; }
+    .workers-selection { grid-template-columns: 1fr; }
+    .tabs { flex-direction: column; }
+    .page-header { flex-direction: column; align-items: stretch; }
+    .page-actions { flex-direction: column; width: 100%; }
+    .location-info-items { grid-template-columns: 1fr; }
+}
+/* ============================================================
+[NUEVO] ESTILOS PARA LA PESTAÑA DE ASISTENCIAS
+============================================================
+*/
+
+.table-container { 
+    overflow-x: auto; 
+}
+.data-table { 
+    width: 100%; 
+    border-collapse: collapse; 
+}
+.data-table thead { 
+    background: #f9fafb; 
+    border-bottom: 2px solid #e5e7eb; 
+}
+.data-table th { 
+    padding: 12px 16px; 
+    text-align: left; 
+    font-size: 12px; 
+    font-weight: 600; 
+    color: #6b7280; 
+    text-transform: uppercase; 
+}
+.data-table td { 
+    padding: 16px; 
+    border-bottom: 1px solid #f3f4f6; 
+}
+.data-table tbody tr:hover { 
+    background: #f9fafb; 
+}
+.data-table tbody tr:last-child td { 
+    border-bottom: none; 
+}
+.worker-cell { 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+}
+.worker-avatar { 
+    width: 40px; 
+    height: 40px; 
+    border-radius: 50%; 
+    object-fit: cover; 
+}
+.worker-avatar-placeholder { 
+    width: 40px; 
+    height: 40px; 
+    border-radius: 50%; 
+    background: #3b82f6; 
+    color: white; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-weight: 600; 
+    font-size: 14px; 
+}
+.worker-info { 
+    display: flex; 
+    flex-direction: column; 
+}
+.worker-info strong { 
+    font-size: 14px; 
+    color: #111827; 
+}
+.worker-info small { 
+    font-size: 12px; 
+    color: #6b7280; 
+}
+.time-text { 
+    font-family: 'Courier New', Courier, monospace; 
+    font-weight: 600; 
+    font-size: 14px; 
+    color: #1e293b; 
+}
+.time-text.time-late { 
+    color: #ef4444; 
+}
+.text-muted { 
+    color: #9ca3af; 
+}
+/* ===== ESTILOS PARA HORARIOS EN DETALLE ===== */
+.horarios-detalle-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    padding: 24px;
+    padding-bottom: 16px;
+}
+
+.horario-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.horario-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.horario-icon .material-symbols-outlined {
+    color: white;
+    font-size: 22px;
+}
+
+.horario-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.horario-label {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.horario-value {
+    font-size: 16px;
+    color: #111827;
+    font-weight: 700;
+}
+
+.dias-laborales-detalle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    background: #f9fafb;
+    margin: 0 24px 16px 24px;
+    border-radius: 8px;
+}
+
+.dias-label {
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.dias-badges {
+    display: flex;
+    gap: 6px;
+}
+
+.dia-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    background: white;
+    border: 2px solid #e2e8f0;
+    color: #9ca3af;
+}
+
+.dia-badge.activo {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border-color: #1e40af;
+    color: white;
+}
+
+.horario-resumen-detalle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-top: 1px solid #e2e8f0;
+    border-radius: 0 0 12px 12px;
+}
+
+.horario-resumen-detalle .material-symbols-outlined {
+    color: #3b82f6;
+    font-size: 20px;
+}
+
+.horario-resumen-detalle p {
+    margin: 0;
+    font-size: 13px;
+    color: #1e40af;
+    font-weight: 500;
+}
+/* ============================================ */
+/* ESTILOS PARA PESTAÑA DE CONTRATISTAS */
+/* ============================================ */
+.contratistas-grid-detalle {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    padding: 24px;
+}
+
+.contratista-card-detalle {
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.contratista-card-detalle:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    transform: translateY(-2px);
+}
+
+.contratista-header {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.contratista-avatar-detalle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
+.contratista-avatar-detalle img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-placeholder-detalle {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.avatar-placeholder-detalle .material-symbols-outlined {
+    font-size: 32px;
+}
+
+.contratista-info-detalle {
+    flex: 1;
+}
+
+.contratista-info-detalle h4 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.contratista-link {
+    color: #3b82f6;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.contratista-link:hover {
+    color: #2563eb;
+    text-decoration: underline;
+}
+
+.contratista-cedula,
+.contratista-telefono {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.contratista-cedula .material-symbols-outlined,
+.contratista-telefono .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.contratista-stats-detalle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.stat-box {
+    text-align: center;
+    padding: 12px;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.stat-box .stat-label {
+    display: block;
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.stat-box .stat-value {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.contratista-actions {
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+}
+
+@media (max-width: 768px) {
+    .contratistas-grid-detalle {
+        grid-template-columns: 1fr;
+    }
+}
+/* Modal de Contratista */
+.modal-overlay-contratista {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease;
+    padding: 20px;
+}
+
+.modal-container-contratista {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 900px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+.modal-header-contratista {
+    padding: 24px 28px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-title-contratista {
+    font-size: 22px;
+    font-weight: 700;
+    color: #111827;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+}
+
+.modal-title-contratista .material-symbols-outlined {
+    font-size: 28px;
+    color: #3b82f6;
+}
+
+.modal-close-contratista {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: #f3f4f6;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.modal-close-contratista:hover {
+    background: #e5e7eb;
+    transform: rotate(90deg);
+}
+
+.modal-tabs-contratista {
+    display: flex;
+    gap: 4px;
+    padding: 0 24px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e2e8f0;
+    overflow-x: auto;
+}
+
+.tab-btn-contratista {
+    padding: 14px 20px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.tab-btn-contratista .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.tab-btn-contratista:hover {
+    color: #111827;
+    background: #f3f4f6;
+}
+
+.tab-btn-contratista.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+}
+
+.modal-body-contratista {
+    padding: 24px 28px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.loading-spinner-contratista {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+}
+
+.spinner-contratista {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #e5e7eb;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-spinner-contratista p {
+    margin-top: 16px;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.info-grid-contratista {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.info-card-contratista {
+    background: #f9fafb;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.info-card-title-contratista {
+    font-size: 12px;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.info-card-value-contratista {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.cedula-photo-contratista {
+    width: 100%;
+    max-width: 400px;
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+    margin: 20px 0;
+}
+
+.section-title-contratista {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-title-contratista .material-symbols-outlined {
+    font-size: 24px;
+    color: #3b82f6;
+}
+
+.empty-message-contratista {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7280;
+}
+
+.empty-message-contratista .material-symbols-outlined {
+    font-size: 60px;
+    color: #d1d5db;
+    margin-bottom: 12px;
+}
+/* Contratos Section */
+.contratos-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 2px solid #e2e8f0;
+}
+
+.contratos-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.contratos-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+}
+
+.contratos-title .material-symbols-outlined {
+    font-size: 18px;
+    color: #3b82f6;
+}
+
+.contrato-item {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+}
+
+.contrato-item:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+.contrato-main-info {
+    margin-bottom: 12px;
+}
+
+.contrato-codigo-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.contrato-codigo {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.contrato-estado {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.contrato-estado-planificacion {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.contrato-estado-en_proceso {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.contrato-estado-pausado {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.contrato-estado-completado {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.contrato-estado-cancelado {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.contrato-actividades {
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    margin: 4px 0;
+}
+
+.contrato-descripcion {
+    font-size: 11px;
+    color: #6b7280;
+    margin: 0;
+}
+
+.contrato-financial {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 12px 0;
+    padding: 12px;
+    background: white;
+    border-radius: 6px;
+}
+
+.financial-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+}
+
+.financial-label {
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.financial-value {
+    color: #111827;
+    font-weight: 700;
+}
+
+.financial-value.success {
+    color: #10b981;
+}
+
+.financial-value.warning {
+    color: #f59e0b;
+}
+
+.progress-bar-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+    transition: width 0.3s;
+}
+
+.progress-text {
+    font-size: 11px;
+    font-weight: 700;
+    color: #10b981;
+    min-width: 45px;
+    text-align: right;
+}
+
+/* Pagos List */
+.pagos-list {
+    margin-top: 12px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 12px;
+}
+
+.pagos-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    cursor: pointer;
+    padding: 4px 0;
+}
+
+.pagos-list-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #374151;
+}
+
+.pagos-list-title .material-symbols-outlined {
+    font-size: 16px;
+    color: #8b5cf6;
+}
+
+.btn-toggle-pagos {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: #6b7280;
+    transition: transform 0.2s;
+}
+
+.btn-toggle-pagos:hover {
+    color: #111827;
+}
+
+.btn-toggle-pagos.active {
+    transform: rotate(180deg);
+}
+
+.pagos-content {
+    margin-top: 8px;
+}
+
+.pago-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    transition: all 0.2s;
+}
+
+.pago-item:hover {
+    border-color: #8b5cf6;
+    box-shadow: 0 2px 6px rgba(139, 92, 246, 0.1);
+}
+
+.pago-info {
+    flex: 1;
+}
+
+.pago-header-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.pago-codigo {
+    font-size: 12px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.pago-badge {
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.pago-badge-pendiente {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.pago-badge-aprobado_gerente {
+    background: #e0e7ff;
+    color: #5b21b6;
+}
+
+.pago-badge-aprobado {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.pago-badge-rechazado {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.pago-concepto {
+    font-size: 11px;
+    color: #374151;
+    margin: 4px 0;
+}
+
+.pago-details {
+    display: flex;
+    gap: 12px;
+    font-size: 10px;
+    color: #6b7280;
+}
+
+.pago-date,
+.pago-amount,
+.pago-method {
+    font-weight: 500;
+}
+
+.pago-amount {
+    color: #10b981;
+    font-weight: 700;
+}
+
+.pago-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: 12px;
+}
+
+.btn-icon-sm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #6b7280;
+}
+
+.btn-icon-sm:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    color: #3b82f6;
+}
+
+.btn-icon-sm.btn-danger:hover {
+    border-color: #ef4444;
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.btn-icon-sm:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-icon-sm .material-symbols-outlined {
+    font-size: 16px;
+}
+
+/* Contrato Actions */
+.contrato-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn-action .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.btn-primary-small {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-primary-small:hover {
+    background: #2563eb;
+}
+
+.btn-secondary-small {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.btn-secondary-small:hover {
+    background: #e5e7eb;
+}
+
+.btn-danger-small {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.btn-danger-small:hover {
+    background: #fecaca;
+}
+
+.no-contratos {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    background: #f9fafb;
+    border: 1px dashed #d1d5db;
+    border-radius: 8px;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.no-contratos .material-symbols-outlined {
+    font-size: 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .contrato-financial {
+        grid-template-columns: 1fr;
+    }
+    
+    .pago-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .pago-actions {
+        margin-left: 0;
+        margin-top: 8px;
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .contrato-actions {
+        flex-direction: column;
+    }
+    
+    .btn-action {
+        width: 100%;
+        justify-content: center;
+    }
+}
+/* ============================================ */
+/* ESTILOS MEJORADOS PARA CONTRATOS Y AVALÚOS */
+/* ============================================ */
+.contratos-section-detalle {
+    margin-top: 20px;
+}
+
+.contratos-header-detalle {
+    margin-bottom: 16px;
+}
+
+.contratos-title-detalle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+}
+
+.contratos-title-detalle .material-symbols-outlined {
+    font-size: 20px;
+    color: #3b82f6;
+}
+
+.contrato-card-detalle {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: all 0.2s;
+}
+
+.contrato-card-detalle:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+}
+
+.contrato-header-info {
+    margin-bottom: 16px;
+}
+
+.contrato-codigo-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.contrato-codigo-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: white;
+    border: 2px solid #3b82f6;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #3b82f6;
+}
+
+.contrato-estado-badge {
+    display: inline-flex;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.contrato-estado-badge.estado-planificacion {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.contrato-estado-badge.estado-en_proceso {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.contrato-estado-badge.estado-pausado {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.contrato-estado-badge.estado-completado {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.contrato-estado-badge.estado-cancelado {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.contrato-descripcion-text {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.contrato-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.metric-box {
+    background: white;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    text-align: center;
+}
+
+.metric-box.success {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    border-color: #10b981;
+}
+
+.metric-box.warning {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-color: #f59e0b;
+}
+
+.metric-box.info {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border-color: #3b82f6;
+}
+
+.metric-label {
+    display: block;
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.metric-value {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.contrato-progress-section {
+    margin-bottom: 16px;
+}
+
+.avaluos-section-detalle {
+    margin: 16px 0;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.avaluos-toggle-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: white;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    transition: all 0.2s;
+}
+
+.avaluos-toggle-btn:hover {
+    background: #f9fafb;
+}
+
+.avaluos-toggle-btn .material-symbols-outlined:first-child {
+    color: #8b5cf6;
+    font-size: 20px;
+}
+
+.avaluos-toggle-btn .chevron {
+    margin-left: auto;
+    transition: transform 0.2s;
+}
+
+.avaluos-toggle-btn.active .chevron {
+    transform: rotate(180deg);
+}
+
+.avaluos-content-detalle {
+    border-top: 1px solid #e5e7eb;
+}
+
+.avaluo-item-detalle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.2s;
+}
+
+.avaluo-item-detalle:last-child {
+    border-bottom: none;
+}
+
+.avaluo-item-detalle:hover {
+    background: #f9fafb;
+}
+
+.avaluo-main-info {
+    flex: 1;
+}
+
+.avaluo-header-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.avaluo-codigo {
+    font-size: 13px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.avaluo-estado-badge {
+    display: inline-flex;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.avaluo-estado-badge.estado-pendiente {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.avaluo-estado-badge.estado-aprobado_gerente {
+    background: #e0e7ff;
+    color: #5b21b6;
+}
+
+.avaluo-estado-badge.estado-aprobado_contador {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.avaluo-estado-badge.estado-pagado {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.avaluo-estado-badge.estado-rechazado {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.avaluo-concepto {
+    font-size: 12px;
+    color: #6b7280;
+    margin: 0 0 8px 0;
+    line-height: 1.4;
+}
+
+.avaluo-meta-info {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.avaluo-meta-info span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.avaluo-meta-info .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.avaluo-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.btn-icon-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #6b7280;
+    text-decoration: none;
+}
+
+.btn-icon-action:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    color: #3b82f6;
+}
+
+.btn-icon-action.danger:hover {
+    border-color: #ef4444;
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.btn-icon-action .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.no-avaluos-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px;
+    background: #f9fafb;
+    border-radius: 8px;
+    color: #6b7280;
+    font-size: 13px;
+    margin: 16px 0;
+}
+
+.no-avaluos-message .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.contrato-actions-detalle {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.btn-contrato-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.btn-contrato-action .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.btn-contrato-action.primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-contrato-action.primary:hover {
+    background: #2563eb;
+}
+
+.btn-contrato-action.secondary {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+}
+
+.btn-contrato-action.secondary:hover {
+    background: #e5e7eb;
+}
+
+.btn-contrato-action.danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.btn-contrato-action.danger:hover {
+    background: #fecaca;
+}
+
+.no-contratos-message-detalle {
+    text-align: center;
+    padding: 40px 20px;
+    background: #f9fafb;
+    border: 1px dashed #d1d5db;
+    border-radius: 12px;
+    margin-top: 20px;
+}
+
+.no-contratos-message-detalle .material-symbols-outlined {
+    font-size: 48px;
+    color: #d1d5db;
+    margin-bottom: 12px;
+}
+
+.no-contratos-message-detalle p {
+    color: #6b7280;
+    margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .contrato-metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .avaluo-item-detalle {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .avaluo-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .contrato-actions-detalle {
+        flex-direction: column;
+    }
+    
+    .btn-contrato-action {
+        width: 100%;
+        justify-content: center;
+    }
+}
+/* ============================================ */
+/* DISEÑO MODERNO PARA CARDS DE CONTRATISTAS */
+/* ============================================ */
+.contratista-card-modern {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.2s;
+}
+
+.contratista-card-modern:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+}
+
+.contratista-header-modern {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.contratista-avatar-modern {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid #e5e7eb;
+    flex-shrink: 0;
+}
+
+.contratista-avatar-modern img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-placeholder-modern {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-placeholder-modern .material-symbols-outlined {
+    font-size: 32px;
+    color: white;
+}
+
+.contratista-info-modern {
+    flex: 1;
+}
+
+.contratista-nombre {
+    margin: 0 0 6px 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.contratista-cedula,
+.contratista-telefono {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #6b7280;
+    margin: 4px 0;
+}
+
+.contratista-cedula .material-symbols-outlined,
+.contratista-telefono .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.btn-ver-detalle {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    color: #6b7280;
+}
+
+.btn-ver-detalle:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    color: #3b82f6;
+}
+
+.btn-ver-detalle .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.contratista-stats-modern {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.stat-item-modern {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.stat-item-modern.success {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    border-color: #10b981;
+}
+
+.stat-icon-modern {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.stat-icon-modern .material-symbols-outlined {
+    font-size: 22px;
+    color: #3b82f6;
+}
+
+.stat-item-modern.success .stat-icon-modern .material-symbols-outlined {
+    color: #10b981;
+}
+
+.stat-content-modern {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stat-value-modern {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.stat-label-modern {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+    .contratista-header-modern {
+        flex-wrap: wrap;
+    }
+    
+    .btn-ver-detalle {
+        width: 100%;
+    }
+    
+    .contratista-stats-modern {
+        grid-template-columns: 1fr;
+    }
+}
 </style>
 {% endblock %}
 
+
 {% block extra_js %}
 <script>
-// ============================================
-// SISTEMA DE TABS PRINCIPALES
-// ============================================
-function cambiarTab(tabName) {
-    // Ocultar todos los contenidos
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
-    });
-    
-    // Desactivar todos los tabs
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // Activar el tab seleccionado
-    const tabContent = document.querySelector(`[data-content="${tabName}"]`);
-    const tabButton = document.querySelector(`[data-tab="${tabName}"]`);
-    
-    if (tabContent) tabContent.classList.add('active');
-    if (tabButton) tabButton.classList.add('active');
-}
-
-// Inicializar el primer tab al cargar
-document.addEventListener('DOMContentLoaded', function() {
-    const primerTab = document.querySelector('.tab');
-    if (primerTab) {
-        const tabName = primerTab.getAttribute('data-tab');
-        cambiarTab(tabName);
-    }
-});
-
-// ============================================
-// TOGGLE DE AVALÚOS EN CONTRATOS
-// ============================================
-function toggleAvaluos(contratoId) {
-    const avaluosContent = document.getElementById(`avaluos-${contratoId}`);
-    const toggleBtn = avaluosContent ? avaluosContent.previousElementSibling : null;
-    
-    if (avaluosContent) {
-        if (avaluosContent.style.display === 'none' || avaluosContent.style.display === '') {
-            avaluosContent.style.display = 'block';
-            if (toggleBtn) toggleBtn.classList.add('active');
-        } else {
-            avaluosContent.style.display = 'none';
-            if (toggleBtn) toggleBtn.classList.remove('active');
-        }
-    }
-}
-
-// ============================================
-// MODAL DE ASIGNAR TRABAJADORES
-// ============================================
-function abrirModalAsignar() {
-    const modal = document.getElementById('modalAsignar');
-    if (modal) {
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-}
-
-function cerrarModalAsignar() {
-    const modal = document.getElementById('modalAsignar');
-    if (modal) {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-}
-
-// Cerrar modal al hacer clic fuera
-document.addEventListener('DOMContentLoaded', function() {
-    const modal = document.getElementById('modalAsignar');
-    if (modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                cerrarModalAsignar();
-            }
-        });
-    }
-});
-
-// ============================================
-// MODAL DE DETALLE DE CONTRATISTA
-// ============================================
+// Variable global para almacenar los datos del contratista
 let contratistaActualProyecto = null;
 let tabActualContratista = 'info';
 
+function toggleAvaluos(contratoId) {
+    const avaluosContent = document.getElementById('avaluos-' + contratoId);
+    const toggleBtn = event.currentTarget;
+    
+    if (avaluosContent.style.display === 'none') {
+        avaluosContent.style.display = 'block';
+        toggleBtn.classList.add('active');
+    } else {
+        avaluosContent.style.display = 'none';
+        toggleBtn.classList.remove('active');
+    }
+}
+/**
+ * Abrir modal de detalle del contratista
+ */
+function verDetalleContratista(contratistaId) {
+    const modal = document.getElementById('modalDetalleContratista');
+    const modalBody = document.getElementById('modalBodyContratista');
+    
+    // Mostrar modal
+    modal.style.display = 'flex';
+    
+    // Mostrar loading
+    modalBody.innerHTML = `
+        <div class="loading-spinner-contratista">
+            <div class="spinner-contratista"></div>
+            <p>Cargando información...</p>
+        </div>
+    `;
+    
+    // Resetear tabs
+    document.querySelectorAll('.tab-btn-contratista').forEach(btn => btn.classList.remove('active'));
+    document.querySelector('.tab-btn-contratista').classList.add('active');
+    tabActualContratista = 'info';
+    
+    // Cargar datos del contratista
+    fetch(`/contratistas/${contratistaId}/detalle/`)
+        .then(response => response.json())
+        .then(data => {
+            contratistaActualProyecto = data;
+            renderizarContenidoContratista('info');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            modalBody.innerHTML = `
+                <div class="empty-message-contratista">
+                    <span class="material-symbols-outlined">error</span>
+                    <p>Error al cargar la información del contratista</p>
+                </div>
+            `;
+        });
+}
 
-// ============================================
-// CONFIRMACIÓN DE ELIMINACIÓN DE PROYECTO
-// ============================================
+/**
+ * Cerrar modal de detalle
+ */
+function cerrarModalDetalleContratista() {
+    document.getElementById('modalDetalleContratista').style.display = 'none';
+    contratistaActualProyecto = null;
+}
+
+/**
+ * Cambiar de pestaña
+ */
+function cambiarTabContratista(tab) {
+    // Actualizar botones
+    document.querySelectorAll('.tab-btn-contratista').forEach(btn => btn.classList.remove('active'));
+    event.target.closest('.tab-btn-contratista').classList.add('active');
+    
+    tabActualContratista = tab;
+    renderizarContenidoContratista(tab);
+}
+
+/**
+ * Renderizar contenido según la pestaña
+ */
+function renderizarContenidoContratista(tab) {
+    const modalBody = document.getElementById('modalBodyContratista');
+    
+    if (!contratistaActualProyecto) {
+        modalBody.innerHTML = '<p>No hay datos disponibles</p>';
+        return;
+    }
+    
+    switch(tab) {
+        case 'info':
+            modalBody.innerHTML = renderInfoPersonalContratista();
+            break;
+        case 'contratos':
+            modalBody.innerHTML = renderContratosContratista();
+            break;
+        case 'pagos':
+            modalBody.innerHTML = renderPagosContratista();
+            break;
+    }
+}
+
+/**
+ * Renderizar Información Personal
+ */
+function renderInfoPersonalContratista() {
+    const data = contratistaActualProyecto;
+    
+    return `
+        <div style="margin-bottom: 32px;">
+            <h3 class="section-title-contratista">
+                <span class="material-symbols-outlined">person</span>
+                Datos Personales
+            </h3>
+            
+            <div class="info-grid-contratista">
+                <div class="info-card-contratista">
+                    <div class="info-card-title-contratista">Nombre Completo</div>
+                    <div class="info-card-value-contratista">${data.nombre_completo}</div>
+                </div>
+                
+                <div class="info-card-contratista">
+                    <div class="info-card-title-contratista">Cédula</div>
+                    <div class="info-card-value-contratista">${data.numero_cedula}</div>
+                </div>
+                
+                <div class="info-card-contratista">
+                    <div class="info-card-title-contratista">Teléfono</div>
+                    <div class="info-card-value-contratista">${data.telefono}</div>
+                </div>
+                
+                <div class="info-card-contratista">
+                    <div class="info-card-title-contratista">Dirección</div>
+                    <div class="info-card-value-contratista">${data.direccion}</div>
+                </div>
+            </div>
+            
+            ${data.foto_cedula_url ? `
+                <div>
+                    <h4 style="margin: 20px 0 12px 0; color: #374151;">Foto de Cédula</h4>
+                    <img src="${data.foto_cedula_url}" alt="Cédula" class="cedula-photo-contratista">
+                </div>
+            ` : ''}
+        </div>
+        
+        <div style="margin-bottom: 32px;">
+            <h3 class="section-title-contratista">
+                <span class="material-symbols-outlined">analytics</span>
+                Resumen Financiero
+            </h3>
+            
+            <div class="info-grid-contratista">
+                <div class="info-card-contratista">
+                    <div class="info-card-title-contratista">Total Contratos</div>
+                    <div class="info-card-value-contratista">${data.total_contratos}</div>
+                </div>
+                
+                <div class="info-card-contratista">
+                    <div class="info-card-title-contratista">Valor Total Contratos</div>
+                    <div class="info-card-value-contratista">C$ ${formatNumberContratista(data.valor_total_contratos)}</div>
+                </div>
+                
+                <div class="info-card-contratista">
+                    <div class="info-card-title-contratista">Total Pagado</div>
+                    <div class="info-card-value-contratista" style="color: #10b981">
+                        C$ ${formatNumberContratista(data.total_pagado)}
+                    </div>
+                </div>
+                
+                <div class="info-card-contratista">
+                    <div class="info-card-title-contratista">Pendiente</div>
+                    <div class="info-card-value-contratista" style="color: #f59e0b">
+                        C$ ${formatNumberContratista(data.total_pendiente)}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Renderizar Contratos
+ */
+ function renderContratosContratista() {
+    const contratos = contratistaActualProyecto.contratos;
+    
+    if (!contratos || contratos.length === 0) {
+        return `
+            <div class="empty-message-contratista">
+                <span class="material-symbols-outlined">description</span>
+                <p>No hay contratos registrados</p>
+            </div>
+        `;
+    }
+    
+    let html = `<div><h3 class="section-title-contratista">
+        <span class="material-symbols-outlined">description</span>
+        Contratos (${contratos.length})
+    </h3>`;
+    
+    contratos.forEach(contrato => {
+        html += `
+            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div>
+                        <h4 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 700; color: #111827;">${contrato.codigo}</h4>
+                        <p style="font-size: 13px; color: #6b7280; margin: 0;">${contrato.proyecto.nombre}</p>
+                    </div>
+                    <span class="badge badge-info" style="padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;">
+                        ${contrato.estado_display || 'En Proceso'}
+                    </span>
+                </div>
+                
+                <p style="font-size: 13px; color: #374151; margin: 0 0 16px 0; line-height: 1.5;">
+                    <strong>Actividades:</strong> ${contrato.actividades || 'No especificadas'}
+                </p>
+                
+                <div class="info-grid-contratista">
+                    <div class="info-card-contratista">
+                        <div class="info-card-title-contratista">Valor Contrato</div>
+                        <div class="info-card-value-contratista">C$ ${formatNumberContratista(contrato.valor_contrato)}</div>
+                    </div>
+                    
+                    <div class="info-card-contratista" style="background: #d1fae5;">
+                        <div class="info-card-title-contratista">Total Pagado</div>
+                        <div class="info-card-value-contratista" style="color: #065f46;">
+                            C$ ${formatNumberContratista(contrato.total_pagado)}
+                        </div>
+                    </div>
+                    
+                    <div class="info-card-contratista" style="background: #fef3c7;">
+                        <div class="info-card-title-contratista">Pendiente</div>
+                        <div class="info-card-value-contratista" style="color: #92400e;">
+                            C$ ${formatNumberContratista(contrato.pendiente)}
+                        </div>
+                    </div>
+                    
+                    <div class="info-card-contratista" style="background: #dbeafe;">
+                        <div class="info-card-title-contratista">% Avance</div>
+                        <div class="info-card-value-contratista" style="color: #1e40af;">
+                            ${contrato.porcentaje_avance ? contrato.porcentaje_avance.toFixed(1) : '0.0'}%
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 12px;">
+                    <div style="height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+                        <div style="height: 100%; background: linear-gradient(90deg, #10b981 0%, #059669 100%); width: ${contrato.porcentaje_avance || 0}%"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    return html;
+}
+
+/**
+ * Renderizar Pagos
+ */
+ function renderPagosContratista() {
+    const contratos = contratistaActualProyecto.contratos;
+    let todosPagos = [];
+    
+    // Recopilar todos los pagos de todos los contratos
+    contratos.forEach(contrato => {
+        if (contrato.pagos && contrato.pagos.length > 0) {
+            contrato.pagos.forEach(pago => {
+                todosPagos.push({
+                    ...pago,
+                    proyecto: contrato.proyecto.nombre,
+                    contrato_codigo: contrato.codigo
+                });
+            });
+        }
+    });
+    
+    if (todosPagos.length === 0) {
+        return `
+            <div class="empty-message-contratista">
+                <span class="material-symbols-outlined">payments</span>
+                <p>No hay pagos registrados</p>
+            </div>
+        `;
+    }
+    
+    // Ordenar por fecha más reciente
+    todosPagos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    
+    let html = `<div><h3 class="section-title-contratista">
+        <span class="material-symbols-outlined">payments</span>
+        Historial de Pagos (${todosPagos.length})
+    </h3>`;
+    
+    todosPagos.forEach(pago => {
+        // Determinar badge de estado
+        let estadoBadge = '';
+        if (pago.estado === 'pendiente') {
+            estadoBadge = '<span style="background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">⏳ Pendiente</span>';
+        } else if (pago.estado === 'aprobado_gerente') {
+            estadoBadge = '<span style="background: #e0e7ff; color: #5b21b6; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">🟣 Aprobado Gerente</span>';
+        } else if (pago.estado === 'aprobado_contador') {
+            estadoBadge = '<span style="background: #d1fae5; color: #065f46; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">✅ Aprobado Contador</span>';
+        } else if (pago.estado === 'pagado') {
+            estadoBadge = '<span style="background: #d1fae5; color: #065f46; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">💰 Pagado</span>';
+        } else if (pago.estado === 'rechazado') {
+            estadoBadge = '<span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">❌ Rechazado</span>';
+        }
+        
+        html += `
+            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <strong style="font-size: 14px; color: #111827;">${pago.codigo}</strong>
+                            ${estadoBadge}
+                        </div>
+                        <p style="margin: 4px 0 0 0; font-size: 12px; color: #6b7280;">
+                            <strong>Contrato:</strong> ${pago.contrato_codigo} - ${pago.proyecto}
+                        </p>
+                    </div>
+                    <strong style="font-size: 18px; color: #10b981; white-space: nowrap; margin-left: 16px;">
+                        C$ ${formatNumberContratista(pago.monto_cordobas)}
+                    </strong>
+                </div>
+                <p style="font-size: 13px; color: #374151; margin: 8px 0; line-height: 1.4;">
+                    <strong>Concepto:</strong> ${pago.concepto}
+                </p>
+                <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #6b7280;">
+                    <span style="display: flex; align-items: center; gap: 4px;">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">calendar_today</span>
+                        ${pago.fecha}
+                    </span>
+                    <span style="display: flex; align-items: center; gap: 4px;">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">payments</span>
+                        ${pago.forma_pago_display || 'Transferencia'}
+                    </span>
+                    ${pago.porcentaje_avance ? `
+                        <span style="display: flex; align-items: center; gap: 4px;">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">show_chart</span>
+                            ${pago.porcentaje_avance}% Avance
+                        </span>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    return html;
+}
+/**
+ * Función auxiliar para formatear números
+ */
+function formatNumberContratista(num) {
+    return new Intl.NumberFormat('es-NI', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(num);
+}
+
+// Cerrar modal al hacer clic fuera
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('modalDetalleContratista');
+    if (event.target === modal) {
+        cerrarModalDetalleContratista();
+    }
+});
+
+function cambiarTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+    document.querySelector(`[data-content="${tab}"]`).classList.add('active');
+}
+
+function abrirModalAsignar() {
+    document.getElementById('modalAsignar').classList.add('active');
+}
+
+function cerrarModalAsignar() {
+    document.getElementById('modalAsignar').classList.remove('active');
+}
+
 function confirmarEliminar() {
-    if (confirm('¿Estás seguro de que deseas eliminar este proyecto? Esta acción no se puede deshacer.')) {
+    if (confirm('¿Está seguro de eliminar este proyecto? Esta acción no se puede deshacer.')) {
         document.getElementById('formEliminar').submit();
     }
 }
 
-// ============================================
-// CERRAR MODALES CON TECLA ESC
-// ============================================
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') cerrarModalAsignar();
+});
+
+// Clic fuera del modal para cerrar
+document.getElementById('modalAsignar').addEventListener('click', function(e) {
+    if (e.target === this) {
         cerrarModalAsignar();
-        cerrarModalDetalleContratista();
     }
 });
 </script>

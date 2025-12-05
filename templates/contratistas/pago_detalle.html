@@ -1,0 +1,817 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Detalle del Pago {{ pago.codigo }} - Sistema de Planillas{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --primary: #3b82f6;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --purple: #8b5cf6;
+    --gray: #6b7280;
+}
+
+.container-detalle {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header */
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #f3f4f6;
+    border: none;
+    border-radius: 8px;
+    color: #374151;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.back-btn:hover {
+    background: #e5e7eb;
+}
+
+.page-title-wrapper h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 4px 0;
+}
+
+.page-subtitle {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.estado-badge {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.estado-badge.pendiente {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.estado-badge.aprobado_gerente {
+    background: #e0e7ff;
+    color: #5b21b6;
+}
+
+.estado-badge.aprobado {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.estado-badge.rechazado {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Main Grid */
+.main-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+/* Cards */
+.card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.card-header .material-symbols-outlined {
+    font-size: 28px;
+    color: var(--primary);
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+}
+
+/* Info Grid */
+.info-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    padding: 12px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #6b7280;
+    flex-shrink: 0;
+    width: 40%;
+}
+
+.info-value {
+    font-size: 14px;
+    color: #111827;
+    font-weight: 500;
+    text-align: right;
+    flex: 1;
+}
+
+.info-value.large {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--success);
+}
+
+.info-value.muted {
+    color: #6b7280;
+}
+
+/* Timeline */
+.timeline {
+    position: relative;
+    padding: 20px 0;
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 48px;
+    padding-bottom: 32px;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-item:last-child .timeline-line {
+    display: none;
+}
+
+.timeline-icon {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.timeline-icon.blue {
+    background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%);
+    color: var(--primary);
+}
+
+.timeline-icon.purple {
+    background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+    color: var(--purple);
+}
+
+.timeline-icon.green {
+    background: linear-gradient(135deg, #d1fae5 0%, #6ee7b7 100%);
+    color: var(--success);
+}
+
+.timeline-icon.gray {
+    background: #f3f4f6;
+    color: var(--gray);
+}
+
+.timeline-icon .material-symbols-outlined {
+    font-size: 22px;
+}
+
+.timeline-line {
+    position: absolute;
+    left: 19px;
+    top: 40px;
+    bottom: 0;
+    width: 2px;
+    background: #e2e8f0;
+}
+
+.timeline-content {
+    margin-top: -4px;
+}
+
+.timeline-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 4px 0;
+}
+
+.timeline-user {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 0;
+}
+
+.timeline-date {
+    font-size: 12px;
+    color: #9ca3af;
+    margin: 4px 0 0 0;
+}
+
+.timeline-item.pending .timeline-title {
+    color: #9ca3af;
+}
+
+/* Archivo Section */
+.archivo-section {
+    padding: 20px;
+    background: #f9fafb;
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.archivo-icon {
+    font-size: 48px;
+    color: var(--primary);
+    margin-bottom: 12px;
+}
+
+.archivo-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.archivo-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 12px;
+}
+
+.no-archivo {
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+/* Actions */
+.actions-card {
+    position: sticky;
+    top: 20px;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.btn-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.btn-action .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.btn-success {
+    background: var(--success);
+    color: white;
+}
+
+.btn-success:hover {
+    background: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.btn-purple {
+    background: var(--purple);
+    color: white;
+}
+
+.btn-purple:hover {
+    background: #7c3aed;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+.action-divider {
+    height: 1px;
+    background: #e2e8f0;
+    margin: 8px 0;
+}
+
+/* Alert Box */
+.alert-box {
+    background: #fef3c7;
+    border: 2px solid #fbbf24;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: start;
+    gap: 12px;
+}
+
+.alert-box.danger {
+    background: #fee2e2;
+    border-color: #fecaca;
+}
+
+.alert-box .material-symbols-outlined {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.alert-box.danger .material-symbols-outlined {
+    color: #991b1b;
+}
+
+.alert-content {
+    flex: 1;
+}
+
+.alert-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #92400e;
+    margin-bottom: 4px;
+}
+
+.alert-box.danger .alert-title {
+    color: #991b1b;
+}
+
+.alert-text {
+    font-size: 13px;
+    color: #92400e;
+    margin: 0;
+}
+
+.alert-box.danger .alert-text {
+    color: #991b1b;
+}
+
+/* Modal Rechazar */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-container {
+    background: white;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    padding: 24px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 4px;
+}
+
+.modal-close:hover {
+    color: #111827;
+}
+
+.modal-body {
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.form-textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #111827;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+/* Responsive */
+@media (max-width: 968px) {
+    .main-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .actions-card {
+        position: static;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-detalle">
+    
+    <!-- Header -->
+    <div class="page-header">
+        <div class="header-left">
+            <a href="{% url 'proyecto_detalle' proyecto.id %}" class="back-btn">
+                <span class="material-symbols-outlined">arrow_back</span>
+                Volver
+            </a>
+            <div class="page-title-wrapper">
+                <h1>Detalle del Pago</h1>
+                <p class="page-subtitle">{{ pago.codigo }}</p>
+            </div>
+        </div>
+        <div class="estado-badge {{ pago.estado }}">
+            {% if pago.estado == 'pendiente' %}
+                ⏳ Pendiente
+            {% elif pago.estado == 'aprobado_gerente' %}
+                🟣 Aprobado Gerente
+            {% elif pago.estado == 'aprobado' %}
+                ✅ Aprobado Final
+            {% elif pago.estado == 'rechazado' %}
+                ❌ Rechazado
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Alert si está rechazado -->
+    {% if pago.estado == 'rechazado' %}
+    <div class="alert-box danger">
+        <span class="material-symbols-outlined">error</span>
+        <div class="alert-content">
+            <div class="alert-title">Pago Rechazado</div>
+            <p class="alert-text">{{ pago.motivo_rechazo }}</p>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Main Grid -->
+    <div class="main-grid">
+        
+        <!-- Left Column -->
+        <div>
+            <!-- Información del Pago -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="material-symbols-outlined">payments</span>
+                    <h2 class="card-title">Información del Pago</h2>
+                </div>
+                <div class="info-grid">
+                    <div class="info-row">
+                        <span class="info-label">Código:</span>
+                        <span class="info-value">{{ pago.codigo }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Fecha de Pago:</span>
+                        <span class="info-value">{{ pago.fecha_pago|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Concepto:</span>
+                        <span class="info-value">{{ pago.concepto }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Monto (Córdobas):</span>
+                        <span class="info-value large">C$ {{ pago.monto_cordobas|floatformat:2 }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Monto (Dólares):</span>
+                        <span class="info-value">$ {{ pago.monto_dolares|floatformat:2 }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Tipo de Cambio:</span>
+                        <span class="info-value">C$ {{ pago.tipo_cambio }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Forma de Pago:</span>
+                        <span class="info-value">{{ pago.get_forma_pago_display }}</span>
+                    </div>
+                    {% if pago.observaciones %}
+                    <div class="info-row">
+                        <span class="info-label">Observaciones:</span>
+                        <span class="info-value">{{ pago.observaciones }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Información del Contrato -->
+            <div class="card" style="margin-top: 24px;">
+                <div class="card-header">
+                    <span class="material-symbols-outlined">description</span>
+                    <h2 class="card-title">Contrato y Contratista</h2>
+                </div>
+                <div class="info-grid">
+                    <div class="info-row">
+                        <span class="info-label">Contratista:</span>
+                        <span class="info-value">{{ contratista.nombre_completo }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Cédula:</span>
+                        <span class="info-value">{{ contratista.numero_cedula }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Contrato:</span>
+                        <span class="info-value">{{ contrato.codigo }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Proyecto:</span>
+                        <span class="info-value">{{ proyecto.nombre }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Valor Contrato:</span>
+                        <span class="info-value">C$ {{ contrato.valor_contrato|floatformat:2 }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Total Pagado:</span>
+                        <span class="info-value">C$ {{ contrato.total_pagado|floatformat:2 }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Pendiente:</span>
+                        <span class="info-value">C$ {{ contrato.total_pendiente|floatformat:2 }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Archivo Soporte -->
+            <div class="card" style="margin-top: 24px;">
+                <div class="card-header">
+                    <span class="material-symbols-outlined">attach_file</span>
+                    <h2 class="card-title">Archivo Soporte</h2>
+                </div>
+                {% if pago.archivo_soporte %}
+                <div class="archivo-section">
+                    <div class="archivo-icon">
+                        <span class="material-symbols-outlined">description</span>
+                    </div>
+                    <div class="archivo-name">{{ pago.archivo_soporte.name|slice:"27:" }}</div>
+                    <div class="archivo-actions">
+                        <a href="{{ pago.archivo_soporte.url }}" target="_blank" class="btn-action btn-secondary">
+                            <span class="material-symbols-outlined">visibility</span>
+                            Ver
+                        </a>
+                        <a href="{{ pago.archivo_soporte.url }}" download class="btn-action btn-secondary">
+                            <span class="material-symbols-outlined">download</span>
+                            Descargar
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="archivo-section">
+                    <div class="no-archivo">
+                        <span class="material-symbols-outlined" style="font-size: 32px; display: block; margin-bottom: 8px; opacity: 0.3;">cloud_off</span>
+                        No se cargó archivo soporte
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Right Column -->
+        <div>
+            <!-- Timeline de Aprobaciones -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="material-symbols-outlined">timeline</span>
+                    <h2 class="card-title">Timeline de Aprobaciones</h2>
+                </div>
+                <div class="timeline">
+                    {% for item in timeline %}
+                    <div class="timeline-item {% if not item.completado %}pending{% endif %}">
+                        <div class="timeline-icon {{ item.color }}">
+                            <span class="material-symbols-outlined">{{ item.icono }}</span>
+                        </div>
+                        <div class="timeline-line"></div>
+                        <div class="timeline-content">
+                            <h4 class="timeline-title">{{ item.titulo }}</h4>
+                            {% if item.usuario %}
+                            <p class="timeline-user">Por: {{ item.usuario.get_full_name }}</p>
+                            <p class="timeline-date">{{ item.fecha|date:"d/m/Y H:i" }}</p>
+                            {% else %}
+                            <p class="timeline-user">En espera...</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Acciones -->
+            <div class="card actions-card" style="margin-top: 24px;">
+                <div class="card-header">
+                    <span class="material-symbols-outlined">check_circle</span>
+                    <h2 class="card-title">Acciones</h2>
+                </div>
+                <div class="action-buttons">
+                    {% if puede_aprobar_gerente %}
+                    <form method="post" action="{% url 'pago_aprobar_gerente' pago.id %}" onsubmit="return confirm('¿Aprobar este pago como GERENTE?')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-action btn-purple" style="width: 100%;">
+                            <span class="material-symbols-outlined">verified_user</span>
+                            Aprobar como Gerente
+                        </button>
+                    </form>
+                    {% endif %}
+                    
+                    {% if puede_aprobar_contador %}
+                    <form method="post" action="{% url 'pago_aprobar_contador' pago.id %}" onsubmit="return confirm('¿Aprobar este pago como CONTADOR? Esta es la aprobación FINAL.')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-action btn-success" style="width: 100%;">
+                            <span class="material-symbols-outlined">done_all</span>
+                            Aprobar como Contador
+                        </button>
+                    </form>
+                    {% endif %}
+                    
+                    {% if puede_rechazar %}
+                    <div class="action-divider"></div>
+                    <button onclick="abrirModalRechazar()" class="btn-action btn-danger" style="width: 100%;">
+                        <span class="material-symbols-outlined">cancel</span>
+                        Rechazar Pago
+                    </button>
+                    {% endif %}
+                    
+                    {% if pago.estado == 'pendiente' %}
+                    <div class="action-divider"></div>
+                    <a href="{% url 'pago_editar' pago.id %}" class="btn-action btn-secondary">
+                        <span class="material-symbols-outlined">edit</span>
+                        Editar Pago
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<!-- Modal Rechazar -->
+<div id="modalRechazar" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 class="modal-title">Rechazar Pago</h3>
+            <button class="modal-close" onclick="cerrarModalRechazar()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form method="post" action="{% url 'pago_rechazar' pago.id %}">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="motivo">Motivo del Rechazo *</label>
+                    <textarea name="motivo" id="motivo" class="form-textarea" rows="4" required placeholder="Explica el motivo del rechazo..."></textarea>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-action btn-secondary" onclick="cerrarModalRechazar()">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn-action btn-danger">
+                    <span class="material-symbols-outlined">cancel</span>
+                    Rechazar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function abrirModalRechazar() {
+    document.getElementById('modalRechazar').style.display = 'flex';
+}
+
+function cerrarModalRechazar() {
+    document.getElementById('modalRechazar').style.display = 'none';
+}
+</script>
+{% endblock %}

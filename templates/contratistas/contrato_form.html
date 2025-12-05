@@ -290,7 +290,8 @@
         
         <form method="POST" id="contratoForm">
             {% csrf_token %}
-            
+            <input type="hidden" name="proyecto" value="{{ proyecto.id }}">
+
             <!-- Sección: Información Básica -->
             <div class="form-section">
                 <h3 class="section-title">

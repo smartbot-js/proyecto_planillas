@@ -1,0 +1,752 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ object|yesno:"Editar,Registrar" }} Avalúo - {{ contrato.codigo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary: #2563eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --purple: #8b5cf6;
+    }
+    
+    .avaluo-form-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+    
+    .form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        color: #374151;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .btn-back:hover {
+        background: #f9fafb;
+        border-color: #9ca3af;
+    }
+    
+    .info-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .info-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+    }
+    
+    .info-card h3 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #6b7280;
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .info-item:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+    
+    .info-value {
+        font-weight: 600;
+        color: #111827;
+    }
+    
+    .financial-summary {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .financial-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+    
+    .financial-item {
+        text-align: center;
+    }
+    
+    .financial-label {
+        font-size: 0.75rem;
+        opacity: 0.9;
+        margin-bottom: 0.25rem;
+    }
+    
+    .financial-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+    
+    .alert-box {
+        background: #fef3c7;
+        border-left: 4px solid #f59e0b;
+        padding: 1rem;
+        margin-bottom: 2rem;
+        border-radius: 0.375rem;
+    }
+    
+    .form-main {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 2rem;
+    }
+    
+    .form-section {
+        margin-bottom: 2rem;
+    }
+    
+    .form-section:last-child {
+        margin-bottom: 0;
+    }
+    
+    .section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .form-group {
+        margin-bottom: 0;
+    }
+    
+    .form-group label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-group label .required {
+        color: #ef4444;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.625rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    .help-text {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+    
+    .file-upload-area {
+        border: 2px dashed #d1d5db;
+        border-radius: 0.5rem;
+        padding: 2rem;
+        text-align: center;
+        background: #f9fafb;
+        transition: all 0.2s;
+    }
+    
+    .file-upload-area:hover {
+        border-color: var(--primary);
+        background: #eff6ff;
+    }
+    
+    .file-upload-icon {
+        font-size: 2.5rem;
+        color: #9ca3af;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .btn {
+        padding: 0.625rem 1.5rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s;
+        cursor: pointer;
+        border: none;
+    }
+    
+    .btn-cancel {
+        background: white;
+        color: #374151;
+        border: 1px solid #d1d5db;
+    }
+    
+    .btn-cancel:hover {
+        background: #f9fafb;
+    }
+    
+    .btn-submit {
+        background: var(--primary);
+        color: white;
+    }
+    
+    .btn-submit:hover {
+        background: #1d4ed8;
+    }
+    
+    .errorlist {
+        list-style: none;
+        padding: 0;
+        margin: 0.5rem 0 0 0;
+    }
+    
+    .errorlist li {
+        color: var(--danger);
+        font-size: 0.75rem;
+        padding: 0.25rem 0;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: #e5e7eb;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 0.5rem;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #10b981, #059669);
+        transition: width 0.3s;
+    }
+    
+    @media (max-width: 768px) {
+        .form-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .financial-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="avaluo-form-container">
+    <!-- Header -->
+    <div class="form-header">
+        <div>
+            <a href="{% url 'proyecto_detalle' contrato.proyecto.pk %}" class="btn-back">
+                <span class="material-symbols-outlined">arrow_back</span>
+                Volver
+            </a>
+            <h1 style="margin: 1rem 0 0 0; font-size: 1.5rem;">
+                {% if object %}Editar Avalúo{% else %}Registrar Avalúo{% endif %}
+            </h1>
+            <p style="color: #6b7280; margin: 0.5rem 0 0 0;">Contrato: {{ contrato.codigo }}</p>
+        </div>
+    </div>
+    
+    <!-- Info Cards -->
+    <div class="info-cards">
+        <!-- Contratista -->
+        <div class="info-card">
+            <h3>Contratista</h3>
+            <div class="info-item">
+                <span class="info-label">Nombre:</span>
+                <span class="info-value">{{ contratista.nombre_completo }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Cédula:</span>
+                <span class="info-value">{{ contratista.numero_cedula }}</span>
+            </div>
+        </div>
+        
+        <!-- Contrato -->
+        <div class="info-card">
+            <h3>Contrato</h3>
+            <div class="info-item">
+                <span class="info-label">Código:</span>
+                <span class="info-value">{{ contrato.codigo }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Proyecto:</span>
+                <span class="info-value">{{ proyecto.nombre }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Financial Summary -->
+    <div class="financial-summary">
+        <div class="financial-grid">
+            <div class="financial-item">
+                <div class="financial-label">Valor Contrato</div>
+                <div class="financial-value">C$ {{ info_financiera.valor_contrato|floatformat:2 }}</div>
+            </div>
+            <div class="financial-item">
+                <div class="financial-label">Total Pagado</div>
+                <div class="financial-value">C$ {{ info_financiera.total_pagado|floatformat:2 }}</div>
+            </div>
+            <div class="financial-item">
+                <div class="financial-label">Pendiente</div>
+                <div class="financial-value">C$ {{ info_financiera.total_pendiente|floatformat:2 }}</div>
+            </div>
+            <div class="financial-item">
+                <div class="financial-label">% Avance</div>
+                <div class="financial-value">{{ info_financiera.porcentaje_avance|floatformat:2 }}%</div>
+            </div>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: {{ info_financiera.porcentaje_avance }}%"></div>
+        </div>
+    </div>
+    
+    <!-- Alert -->
+    <div class="alert-box">
+        <strong>⚠️ Importante:</strong> El monto del avalúo no puede exceder el pendiente del contrato (C$ {{ info_financiera.total_pendiente|floatformat:2 }})
+    </div>
+    
+    <!-- Form -->
+    <form method="post" enctype="multipart/form-data" class="form-main" id="avaluoForm">
+        {% csrf_token %}
+        
+        {% if form.errors %}
+        <div class="alert-error-container" style="
+            position: sticky;
+            top: 20px;
+            z-index: 1000;
+            margin-bottom: 24px;
+            animation: slideDown 0.3s ease;
+        ">
+            <div class="alert-error" style="
+                background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+                border: 2px solid #ef4444;
+                border-radius: 12px;
+                padding: 20px 24px;
+                box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3);
+            ">
+                <div style="display: flex; align-items: start; gap: 16px;">
+                    <div style="
+                        width: 48px;
+                        height: 48px;
+                        background: #ef4444;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-shrink: 0;
+                    ">
+                        <span class="material-symbols-outlined" style="color: white; font-size: 28px;">error</span>
+                    </div>
+                    <div style="flex: 1;">
+                        <h3 style="
+                            margin: 0 0 8px 0;
+                            font-size: 18px;
+                            font-weight: 700;
+                            color: #991b1b;
+                        ">
+                            ⚠️ Error al registrar el avalúo
+                        </h3>
+                        <ul style="
+                            margin: 0;
+                            padding-left: 20px;
+                            color: #991b1b;
+                            font-size: 14px;
+                            line-height: 1.8;
+                        ">
+                            {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                <li>
+                                    {% if field == '__all__' %}
+                                        {{ error }}
+                                    {% elif field == 'monto_cordobas' %}
+                                        <strong>Monto en Córdobas:</strong> {{ error }}
+                                    {% elif field == 'porcentaje_avance' %}
+                                        <strong>Porcentaje de Avance:</strong> {{ error }}
+                                    {% elif field == 'periodo_inicio' %}
+                                        <strong>Fecha Inicio:</strong> {{ error }}
+                                    {% elif field == 'periodo_fin' %}
+                                        <strong>Fecha Fin:</strong> {{ error }}
+                                    {% elif field == 'concepto' %}
+                                        <strong>Concepto:</strong> {{ error }}
+                                    {% elif field == 'fecha_pago' %}
+                                        <strong>Fecha de Pago:</strong> {{ error }}
+                                    {% else %}
+                                        <strong>{{ field }}:</strong> {{ error }}
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <button type="button" onclick="this.parentElement.parentElement.parentElement.style.display='none'" style="
+                        background: none;
+                        border: none;
+                        color: #991b1b;
+                        cursor: pointer;
+                        font-size: 24px;
+                        line-height: 1;
+                        padding: 0;
+                        width: 32px;
+                        height: 32px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border-radius: 6px;
+                        transition: background 0.2s;
+                    " onmouseover="this.style.background='rgba(153, 27, 27, 0.1)'" onmouseout="this.style.background='none'">
+                        ×
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <style>
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        </style>
+        {% endif %}
+        <!-- fin seccion de alerta  -->
+
+        <!-- Sección 1: Período del Avalúo -->
+        <div class="form-section">
+            <h2 class="section-title">📅 Período del Avalúo</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="{{ form.periodo_inicio.id_for_label }}">
+                        {{ form.periodo_inicio.label }} <span class="required">*</span>
+                    </label>
+                    {{ form.periodo_inicio }}
+                    {% if form.periodo_inicio.help_text %}
+                        <div class="help-text">{{ form.periodo_inicio.help_text }}</div>
+                    {% endif %}
+                    {{ form.periodo_inicio.errors }}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.periodo_fin.id_for_label }}">
+                        {{ form.periodo_fin.label }} <span class="required">*</span>
+                    </label>
+                    {{ form.periodo_fin }}
+                    {% if form.periodo_fin.help_text %}
+                        <div class="help-text">{{ form.periodo_fin.help_text }}</div>
+                    {% endif %}
+                    {{ form.periodo_fin.errors }}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.porcentaje_avance.id_for_label }}">
+                        {{ form.porcentaje_avance.label }} <span class="required">*</span>
+                    </label>
+                    {{ form.porcentaje_avance }}
+                    {% if form.porcentaje_avance.help_text %}
+                        <div class="help-text">{{ form.porcentaje_avance.help_text }}</div>
+                    {% endif %}
+                    {{ form.porcentaje_avance.errors }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sección 2: Información del Avalúo -->
+        <div class="form-section">
+            <h2 class="section-title">📋 Información del Avalúo</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="{{ form.fecha_pago.id_for_label }}">
+                        {{ form.fecha_pago.label }} <span class="required">*</span>
+                    </label>
+                    {{ form.fecha_pago }}
+                    {{ form.fecha_pago.errors }}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.forma_pago.id_for_label }}">
+                        {{ form.forma_pago.label }} <span class="required">*</span>
+                    </label>
+                    {{ form.forma_pago }}
+                    {{ form.forma_pago.errors }}
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.concepto.id_for_label }}">
+                    {{ form.concepto.label }} <span class="required">*</span>
+                </label>
+                {{ form.concepto }}
+                {{ form.concepto.errors }}
+            </div>
+        </div>
+        
+        <!-- Sección 3: Montos -->
+        <div class="form-section">
+            <h2 class="section-title">💰 Montos y Tipo de Cambio</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="{{ form.monto_cordobas.id_for_label }}">
+                        {{ form.monto_cordobas.label }} <span class="required">*</span>
+                    </label>
+                    {{ form.monto_cordobas }}
+                    {{ form.monto_cordobas.errors }}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.tipo_cambio.id_for_label }}">
+                        {{ form.tipo_cambio.label }}
+                    </label>
+                    {{ form.tipo_cambio }}
+                    <div class="help-text">Tipo de cambio del BCN (se actualiza automáticamente)</div>
+                    {{ form.tipo_cambio.errors }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sección 4: Archivo Soporte -->
+        <div class="form-section">
+            <h2 class="section-title">📎 Archivo Soporte</h2>
+            <div class="file-upload-area">
+                <div class="file-upload-icon">📄</div>
+                <p style="margin: 0 0 0.5rem 0; color: #6b7280;">
+                    Arrastra un archivo aquí o haz clic para seleccionar
+                </p>
+                <p style="margin: 0; font-size: 0.75rem; color: #9ca3af;">
+                    PDF, JPG o PNG (máximo 10MB)
+                </p>
+                {{ form.archivo_soporte }}
+                {{ form.archivo_soporte.errors }}
+            </div>
+        </div>
+        
+        <!-- Sección 5: Observaciones -->
+        <div class="form-section">
+            <h2 class="section-title">📝 Observaciones Adicionales</h2>
+            <div class="form-group">
+                <label for="{{ form.observaciones.id_for_label }}">
+                    {{ form.observaciones.label }}
+                </label>
+                {{ form.observaciones }}
+                {{ form.observaciones.errors }}
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="form-actions">
+            <a href="{% url 'proyecto_detalle' contrato.proyecto.pk %}" class="btn btn-cancel">
+                Cancelar
+            </a>
+            <button type="submit" class="btn btn-submit">
+                {% if object %}Actualizar Avalúo{% else %}Registrar Avalúo{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('avaluoForm').addEventListener('submit', function(e) {
+        const monto = parseFloat(document.getElementById('{{ form.monto_cordobas.id_for_label }}').value);
+        const tipoCambio = parseFloat(document.getElementById('{{ form.tipo_cambio.id_for_label }}').value);
+        const montoDolares = (monto / tipoCambio).toFixed(2);
+        
+        const mensaje = `¿Confirmar registro del avalúo?\n\nMonto: C$ ${monto.toLocaleString('es-NI', {minimumFractionDigits: 2})}\nEquivalente: $ ${montoDolares}`;
+        
+        if (!confirm(mensaje)) {
+            e.preventDefault();
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+    // Si hay errores, hacer scroll al primer campo con error
+    const primerError = document.querySelector('.is-invalid, .error, input:invalid, select:invalid, textarea:invalid');
+    if (primerError) {
+        setTimeout(() => {
+            primerError.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+            primerError.focus();
+        }, 300);
+    }
+    
+    // Agregar clase visual a campos con error
+    const camposConError = document.querySelectorAll('input:invalid, select:invalid, textarea:invalid');
+    camposConError.forEach(campo => {
+        campo.style.borderColor = '#ef4444';
+        campo.style.borderWidth = '2px';
+        campo.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const montoInput = document.querySelector('input[name="monto_cordobas"]');
+        const porcentajeInput = document.querySelector('input[name="porcentaje_avance"]');
+        
+        // Datos del contrato (desde el backend)
+        const valorContrato = {{ contrato.valor_contrato|default:0 }};
+        const totalAvaluado = {{ total_avaluado|default:0 }};
+        
+        if (montoInput && porcentajeInput && valorContrato > 0) {
+            // Función para calcular el porcentaje
+            function calcularPorcentaje() {
+                const montoActual = parseFloat(montoInput.value) || 0;
+                const totalConNuevo = totalAvaluado + montoActual;
+                const porcentaje = (totalConNuevo / valorContrato) * 100;
+                
+                // Actualizar el campo de porcentaje (automáticamente)
+                porcentajeInput.value = porcentaje.toFixed(2);
+                
+                // Cambiar color según el porcentaje
+                let color = '#10b981'; // Verde
+                if (porcentaje > 100) {
+                    color = '#ef4444'; // Rojo
+                } else if (porcentaje > 90) {
+                    color = '#f59e0b'; // Amarillo
+                }
+                
+                // Actualizar el help text visualmente
+                let helpContainer = porcentajeInput.parentElement.querySelector('.help-text-container');
+                if (!helpContainer) {
+                    helpContainer = document.createElement('div');
+                    helpContainer.className = 'help-text-container';
+                    porcentajeInput.parentElement.appendChild(helpContainer);
+                }
+                
+                helpContainer.innerHTML = `
+                    <div style="
+                        margin-top: 8px;
+                        padding: 12px 16px;
+                        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+                        border-left: 4px solid ${color};
+                        border-radius: 8px;
+                    ">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <span class="material-symbols-outlined" style="color: ${color}; font-size: 20px;">calculate</span>
+                            <span style="color: ${color}; font-weight: 700; font-size: 16px;">
+                                ${porcentaje.toFixed(2)}% del contrato
+                            </span>
+                        </div>
+                        <div style="font-size: 12px; color: #6b7280; line-height: 1.5;">
+                            <strong>Cálculo automático:</strong><br>
+                            Avaluos anteriores: C$ ${totalAvaluado.toLocaleString('es-NI', {minimumFractionDigits: 2})} + 
+                            Este avalúo: C$ ${montoActual.toLocaleString('es-NI', {minimumFractionDigits: 2})} = 
+                            <strong>C$ ${totalConNuevo.toLocaleString('es-NI', {minimumFractionDigits: 2})}</strong><br>
+                            Valor del contrato: C$ ${valorContrato.toLocaleString('es-NI', {minimumFractionDigits: 2})}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Calcular al cargar la página
+            calcularPorcentaje();
+            
+            // Recalcular cuando cambie el monto
+            montoInput.addEventListener('input', calcularPorcentaje);
+            montoInput.addEventListener('change', calcularPorcentaje);
+            
+            // Evitar que el usuario edite el porcentaje manualmente
+            porcentajeInput.addEventListener('keydown', function(e) {
+                e.preventDefault();
+            });
+            
+            porcentajeInput.addEventListener('paste', function(e) {
+                e.preventDefault();
+            });
+        }
+        
+        // Scroll a campos con error
+        const primerError = document.querySelector('.is-invalid, .error, input:invalid, select:invalid, textarea:invalid');
+        if (primerError) {
+            setTimeout(() => {
+                primerError.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+                primerError.focus();
+            }, 300);
+        }
+        
+        // Resaltar campos con error
+        const camposConError = document.querySelectorAll('input:invalid, select:invalid, textarea:invalid');
+        camposConError.forEach(campo => {
+            campo.style.borderColor = '#ef4444';
+            campo.style.borderWidth = '2px';
+            campo.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+            });
+    });
+</script>
+{% endblock %}

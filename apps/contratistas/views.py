@@ -2,7 +2,7 @@
 Vistas del módulo de Contratistas - MEJORADO FASE 1
 apps/contratistas/views.py
 """
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q, Sum, Count
 from django.urls import reverse_lazy, reverse
@@ -13,12 +13,13 @@ import decimal  # Para manejar excepciones de Decimal
 
 from .models import Contratista, ContratoProyecto, AvaluoContratista, PlanillaContratista, DetallePlanillaContratista
 from apps.proyectos.models import Proyecto
-from .forms import ContratistaForm, ContratoProyectoForm
+from .forms import ContratistaForm, ContratoProyectoForm, PagoContratistaForm
 from apps.core.utils import get_tipo_cambio_actual
 
 from django.http import JsonResponse
 from django.views import View
 from django.shortcuts import get_object_or_404,redirect
+
 
 PagoContratista = AvaluoContratista
 
@@ -513,7 +514,7 @@ class ContratoCreateView(LoginRequiredMixin, CreateView):
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['proyecto'] = self.proyecto
+        #kwargs['proyecto'] = self.proyecto
         return kwargs
     
     def get_context_data(self, **kwargs):
@@ -528,6 +529,14 @@ class ContratoCreateView(LoginRequiredMixin, CreateView):
         form.instance.creado_por = self.request.user
         messages.success(self.request, f'✅ Contrato creado exitosamente')
         return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        # ✅ AGREGAR ESTA FUNCIÓN
+        print("=" * 50)
+        print("ERRORES EN EL FORMULARIO:")
+        print(form.errors)
+        print("=" * 50)
+        return super().form_invalid(form)
     
     def get_success_url(self):
         return reverse('proyecto_detalle', kwargs={'pk': self.proyecto.id})
@@ -551,7 +560,7 @@ class ContratoUpdateView(LoginRequiredMixin, UpdateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['proyecto'] = self.proyecto
+        #context['proyecto'] = self.proyecto
         context['titulo'] = 'Editar Contrato'
         context['boton'] = 'Guardar Cambios'
         return context
@@ -569,4 +578,504 @@ class ContratoDeleteView(LoginRequiredMixin, DeleteView):
         contrato.save()
         messages.success(request, f'✅ Contrato eliminado')
         return redirect('proyecto_detalle', pk=proyecto_id)
+
+class ContratistaDetalleView(DetailView):
+    """Vista de detalle del contratista con toda su información"""
+    model = Contratista
+    template_name = 'contratistas/contratista_detalle.html'
+    context_object_name = 'contratista'
     
+    def get_queryset(self):
+        return Contratista.objects.filter(eliminado=False)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        contratista = self.object
+        
+        # Obtener todos los contratos del contratista
+        contratos = ContratoProyecto.objects.filter(
+            contratista=contratista,
+            eliminado=False
+        ).select_related('proyecto').prefetch_related('avaluos')
+        
+        # Obtener todos los avalúos ordenados por fecha
+        todos_avaluos = AvaluoContratista.objects.filter(
+            contrato__contratista=contratista,
+            contrato__eliminado=False,
+            eliminado=False
+        ).select_related('contrato', 'contrato__proyecto').order_by('-fecha_pago')
+        
+        context['contratos'] = contratos
+        context['todos_avaluos'] = todos_avaluos
+        context['total_avaluos'] = todos_avaluos.count()
+        
+        return context
+    
+class PagoContratistaCreateView(LoginRequiredMixin, CreateView):
+    """Vista para crear un nuevo pago a contratista"""
+    model = AvaluoContratista
+    form_class = PagoContratistaForm
+    template_name = 'contratistas/pago_form.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Obtener el contrato
+        self.contrato = get_object_or_404(
+            ContratoProyecto,
+            pk=self.kwargs['contrato_id'],
+            eliminado=False
+        )
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['contrato'] = self.contrato
+        return kwargs
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['contrato'] = self.contrato
+        context['contratista'] = self.contrato.contratista
+        context['proyecto'] = self.contrato.proyecto
+        context['titulo'] = 'Registrar Pago'
+        context['boton'] = 'Registrar Pago'
+        
+        contrato = context['contrato']
+        if contrato:
+            context['contrato'] = contrato
+            
+            # Calcular total avaluado hasta ahora
+            from django.db.models import Sum
+            total = contrato.avaluos.filter(eliminado=False).aggregate(
+                total=Sum('monto_cordobas')
+            )['total'] or 0
+            
+            context['total_avaluado'] = total
+        # Información financiera del contrato
+        context['info_financiera'] = {
+            'valor_contrato': self.contrato.valor_contrato,
+            'total_pagado': self.contrato.total_pagado,
+            'pendiente': self.contrato.total_pendiente,
+            'porcentaje_avance': self.contrato.porcentaje_avance,
+            'cantidad_pagos': self.contrato.cantidad_avaluos,
+        }
+        
+        return context
+    
+    def form_valid(self, form):
+        # Asignar el contrato y el usuario que registra
+        form.instance.contrato = self.contrato
+        form.instance.ingresado_por = self.request.user
+        form.instance.estado = 'pendiente'
+        
+        messages.success(
+            self.request,
+            f'✅ Pago registrado exitosamente. Pendiente de aprobación.'
+        )
+        
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        # Redirigir al detalle del contrato
+        return reverse('proyecto_detalle', kwargs={'pk': self.contrato.proyecto.id})
+
+class PagoContratistaUpdateView(LoginRequiredMixin, UpdateView):
+    """Vista para editar un pago (solo si está pendiente)"""
+    model = PagoContratista
+    form_class = PagoContratistaForm
+    template_name = 'contratistas/pago_form.html'
+    
+    def get_queryset(self):
+        # Solo pagos pendientes pueden editarse
+        return PagoContratista.objects.filter(
+            eliminado=False,
+            estado='pendiente'
+        )
+    
+    def dispatch(self, request, *args, **kwargs):
+        pago = self.get_object()
+        self.contrato = pago.contrato
+        
+        # Validar que el pago está en estado pendiente
+        if pago.estado != 'pendiente':
+            messages.error(
+                request,
+                '❌ Solo se pueden editar pagos en estado pendiente.'
+            )
+            return redirect('proyecto_detalle', pk=self.contrato.proyecto.id)
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['contrato'] = self.contrato
+        return kwargs
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['contrato'] = self.contrato
+        context['contratista'] = self.contrato.contratista
+        context['proyecto'] = self.contrato.proyecto
+        context['titulo'] = 'Editar Pago'
+        context['boton'] = 'Guardar Cambios'
+        
+        # Información financiera del contrato
+        context['info_financiera'] = {
+            'valor_contrato': self.contrato.valor_contrato,
+            'total_pagado': self.contrato.total_pagado,
+            'pendiente': self.contrato.total_pendiente,
+            'porcentaje_avance': self.contrato.porcentaje_avance,
+            'cantidad_pagos': self.contrato.cantidad_pagos,
+        }
+        
+        return context
+    
+    def form_valid(self, form):
+        messages.success(
+            self.request,
+            f'✅ Pago actualizado exitosamente.'
+        )
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse('proyecto_detalle', kwargs={'pk': self.contrato.proyecto.id})
+
+class PagoContratistaDeleteView(LoginRequiredMixin, DeleteView):
+    """Vista para eliminar un pago (soft delete)"""
+    model = PagoContratista
+    
+    def get_queryset(self):
+        # Solo pagos pendientes pueden eliminarse
+        return PagoContratista.objects.filter(
+            eliminado=False,
+            estado='pendiente'
+        )
+    
+    def post(self, request, *args, **kwargs):
+        pago = self.get_object()
+        
+        if pago.estado != 'pendiente':
+            messages.error(
+                request,
+                '❌ Solo se pueden eliminar pagos en estado pendiente.'
+            )
+        else:
+            proyecto_id = pago.contrato.proyecto.id
+            pago.eliminado = True
+            pago.save()
+            messages.success(request, f'✅ Pago eliminado exitosamente')
+            return redirect('proyecto_detalle', pk=proyecto_id)
+        
+        return redirect('proyecto_detalle', pk=pago.contrato.proyecto.id)
+
+class PagoContratistaDetalleView(LoginRequiredMixin, DetailView):
+    """Vista de detalle del pago con timeline de aprobaciones"""
+    model = PagoContratista
+    template_name = 'contratistas/pago_detalle.html'
+    context_object_name = 'pago'
+    
+    def get_queryset(self):
+        return PagoContratista.objects.filter(eliminado=False).select_related(
+            'contrato__contratista',
+            'contrato__proyecto',
+            'ingresado_por',
+            'aprobado_gerente_por',
+            'aprobado_contador_por'
+        )
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pago = self.object
+        
+        context['contrato'] = pago.contrato
+        context['contratista'] = pago.contrato.contratista
+        context['proyecto'] = pago.contrato.proyecto
+        
+        # Timeline de aprobaciones
+        timeline = []
+        
+        # 1. Ingresado
+        timeline.append({
+            'estado': 'ingresado',
+            'titulo': 'Pago Registrado',
+            'usuario': pago.ingresado_por,
+            'fecha': pago.fecha_ingreso,
+            'icono': 'add_circle',
+            'color': 'blue',
+            'completado': True
+        })
+        
+        # 2. Aprobado Gerente
+        if pago.aprobado_gerente_por:
+            timeline.append({
+                'estado': 'aprobado_gerente',
+                'titulo': 'Aprobado por Gerente',
+                'usuario': pago.aprobado_gerente_por,
+                'fecha': pago.fecha_aprobacion_gerente,
+                'icono': 'check_circle',
+                'color': 'purple',
+                'completado': True
+            })
+        else:
+            timeline.append({
+                'estado': 'aprobado_gerente',
+                'titulo': 'Pendiente Aprobación Gerente',
+                'usuario': None,
+                'fecha': None,
+                'icono': 'schedule',
+                'color': 'gray',
+                'completado': False
+            })
+        
+        # 3. Aprobado Contador
+        if pago.aprobado_contador_por:
+            timeline.append({
+                'estado': 'aprobado_contador',
+                'titulo': 'Aprobado por Contador',
+                'usuario': pago.aprobado_contador_por,
+                'fecha': pago.fecha_aprobacion_contador,
+                'icono': 'verified',
+                'color': 'green',
+                'completado': True
+            })
+        else:
+            timeline.append({
+                'estado': 'aprobado_contador',
+                'titulo': 'Pendiente Aprobación Contador',
+                'usuario': None,
+                'fecha': None,
+                'icono': 'pending',
+                'color': 'gray',
+                'completado': False
+            })
+        
+        context['timeline'] = timeline
+        
+        # Verificar permisos del usuario actual
+        user = self.request.user
+        context['puede_aprobar_gerente'] = (
+            pago.estado == 'pendiente' and 
+            (user.rol in ['administrador', 'gerente'])
+        )
+        context['puede_aprobar_contador'] = (
+            pago.estado == 'aprobado_gerente' and 
+            (user.rol in ['administrador', 'contador'])
+        )
+        context['puede_rechazar'] = (
+            pago.estado in ['pendiente', 'aprobado_gerente'] and
+            (user.rol in ['administrador', 'gerente', 'contador'])
+        )
+        
+        return context
+
+
+class PagoAprobarGerenteView(LoginRequiredMixin, View):
+    """Vista para aprobar pago como gerente"""
+    
+    def post(self, request, *args, **kwargs):
+        pago = get_object_or_404(
+            PagoContratista,
+            pk=kwargs['pk'],
+            eliminado=False
+        )
+        
+        # Verificar permisos
+        if request.user.rol not in ['administrador', 'gerente']:
+            messages.error(
+                request,
+                '❌ No tienes permisos para aprobar pagos como gerente.'
+            )
+            return redirect('pago_detalle', pk=pago.id)
+        
+        # Verificar estado
+        if pago.estado != 'pendiente':
+            messages.error(
+                request,
+                '❌ Solo se pueden aprobar pagos en estado PENDIENTE.'
+            )
+            return redirect('pago_detalle', pk=pago.id)
+        
+        try:
+            # Aprobar
+            pago.aprobar_gerente(request.user)
+            
+            messages.success(
+                request,
+                f'✅ Pago {pago.codigo} aprobado como GERENTE. '
+                f'Ahora debe ser aprobado por el CONTADOR.'
+            )
+        except Exception as e:
+            messages.error(
+                request,
+                f'❌ Error al aprobar el pago: {str(e)}'
+            )
+        
+        return redirect('pago_detalle', pk=pago.id)
+
+
+class PagoAprobarContadorView(LoginRequiredMixin, View):
+    """Vista para aprobar pago como contador (aprobación final)"""
+    
+    def post(self, request, *args, **kwargs):
+        pago = get_object_or_404(
+            PagoContratista,
+            pk=kwargs['pk'],
+            eliminado=False
+        )
+        
+        # Verificar permisos
+        if request.user.rol not in ['administrador', 'contador']:
+            messages.error(
+                request,
+                '❌ No tienes permisos para aprobar pagos como contador.'
+            )
+            return redirect('pago_detalle', pk=pago.id)
+        
+        # Verificar estado (puede ser pendiente O aprobado_gerente)
+        if pago.estado not in ['pendiente', 'aprobado_gerente']:
+            messages.error(
+                request,
+                '❌ Este pago no puede ser aprobado por el contador en su estado actual.'
+            )
+            return redirect('pago_detalle', pk=pago.id)
+        
+        try:
+            # Aprobar
+            pago.aprobar_contador(request.user)
+            
+            messages.success(
+                request,
+                f'✅ Pago {pago.codigo} APROBADO FINAL. '
+                f'El pago ha sido registrado y suma al total del contrato.'
+            )
+        except Exception as e:
+            messages.error(
+                request,
+                f'❌ Error al aprobar el pago: {str(e)}'
+            )
+        
+        return redirect('pago_detalle', pk=pago.id)
+
+
+class PagoRechazarView(LoginRequiredMixin, View):
+    """Vista para rechazar un pago"""
+    
+    def post(self, request, *args, **kwargs):
+        pago = get_object_or_404(
+            PagoContratista,
+            pk=kwargs['pk'],
+            eliminado=False
+        )
+        
+        # Verificar permisos
+        if request.user.rol not in ['administrador', 'gerente', 'contador']:
+            messages.error(
+                request,
+                '❌ No tienes permisos para rechazar pagos.'
+            )
+            return redirect('pago_detalle', pk=pago.id)
+        
+        # Verificar estado
+        if pago.estado not in ['pendiente', 'aprobado_gerente']:
+            messages.error(
+                request,
+                '❌ Solo se pueden rechazar pagos pendientes o aprobados por gerente.'
+            )
+            return redirect('pago_detalle', pk=pago.id)
+        
+        # Obtener motivo del rechazo
+        motivo = request.POST.get('motivo', '').strip()
+        if not motivo:
+            messages.error(
+                request,
+                '❌ Debes proporcionar un motivo para rechazar el pago.'
+            )
+            return redirect('pago_detalle', pk=pago.id)
+        
+        try:
+            # Rechazar
+            pago.rechazar(request.user, motivo)
+            
+            messages.warning(
+                request,
+                f'⚠️ Pago {pago.codigo} RECHAZADO. Motivo: {motivo}'
+            )
+        except Exception as e:
+            messages.error(
+                request,
+                f'❌ Error al rechazar el pago: {str(e)}'
+            )
+        
+        return redirect('pago_detalle', pk=pago.id)
+
+
+class PagosPendientesListView(LoginRequiredMixin, ListView):
+    """Vista de lista de pagos pendientes de aprobación"""
+    model = PagoContratista
+    template_name = 'contratistas/pagos_pendientes.html'
+    context_object_name = 'pagos'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = PagoContratista.objects.filter(
+            eliminado=False
+        ).exclude(
+            estado='aprobado'
+        ).select_related(
+            'contrato__contratista',
+            'contrato__proyecto',
+            'ingresado_por'
+        ).order_by('-fecha_ingreso')
+        
+        # Filtro por estado
+        estado = self.request.GET.get('estado', '').strip()
+        if estado:
+            queryset = queryset.filter(estado=estado)
+        
+        # Filtro por contratista
+        contratista_id = self.request.GET.get('contratista', '').strip()
+        if contratista_id:
+            queryset = queryset.filter(contrato__contratista_id=contratista_id)
+        
+        # Filtro por proyecto
+        proyecto_id = self.request.GET.get('proyecto', '').strip()
+        if proyecto_id:
+            queryset = queryset.filter(contrato__proyecto_id=proyecto_id)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Estadísticas
+        total_pendientes = PagoContratista.objects.filter(
+            eliminado=False,
+            estado='pendiente'
+        ).count()
+        
+        total_aprobados_gerente = PagoContratista.objects.filter(
+            eliminado=False,
+            estado='aprobado_gerente'
+        ).count()
+        
+        total_rechazados = PagoContratista.objects.filter(
+            eliminado=False,
+            estado='rechazado'
+        ).count()
+        
+        context['stats'] = {
+            'total_pendientes': total_pendientes,
+            'total_aprobados_gerente': total_aprobados_gerente,
+            'total_rechazados': total_rechazados,
+        }
+        
+        # Listas para filtros
+        context['contratistas'] = Contratista.objects.filter(eliminado=False).order_by('apellido', 'nombre')
+        context['proyectos'] = Proyecto.objects.filter(eliminado=False).order_by('nombre')
+        context['estados'] = PagoContratista.ESTADO_CHOICES
+        
+        # Parámetros actuales
+        context['estado_seleccionado'] = self.request.GET.get('estado', '')
+        context['contratista_seleccionado'] = self.request.GET.get('contratista', '')
+        context['proyecto_seleccionado'] = self.request.GET.get('proyecto', '')
+        
+        return context

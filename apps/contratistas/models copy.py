@@ -1,13 +1,12 @@
 """
-Modelos del módulo de Contratistas - COMPLETO Y LIMPIO
+Modelos del módulo de Contratistas - ACTUALIZADO PASO 1
 apps/contratistas/models.py
 
-Sistema de gestión de contratistas con:
-- Contratistas
-- Contratos de Proyectos
-- Avalúos (antes Pagos)
-- Planillas de Contratistas
-- Detalles de Planillas
+CAMBIOS:
+1. Renombrar PagoContratista → AvaluoContratista (mantiene compatibilidad)
+2. Agregar campos de avalúos y períodos
+3. Crear PlanillaContratista (nueva entidad)
+4. Crear DetallePlanillaContratista (detalle de planilla)
 """
 
 from django.db import models
@@ -246,7 +245,34 @@ class ContratoProyecto(models.Model):
             proyecto=self.proyecto
         ).count() + 1
         return f"CT-{proyecto_codigo}-{numero:03d}"
+
+    @property
+    def total_pagado(self):
+        """Retorna el total pagado en este contrato"""
+        from django.db.models import Sum
+        total = self.pagos.filter(
+            eliminado=False,
+            estado='aprobado'
+        ).aggregate(total=Sum('monto_cordobas'))['total'] or Decimal('0.00')
+        return total
     
+    @property
+    def total_pendiente(self):
+        """Retorna el monto pendiente por pagar"""
+        return self.valor_contrato - self.total_pagado
+    
+    @property
+    def porcentaje_avance(self):
+        """Retorna el porcentaje de avance según pagos"""
+        if self.valor_contrato > 0:
+            return (self.total_pagado / self.valor_contrato) * 100
+        return 0
+    
+    @property
+    def cantidad_pagos(self):
+        """Retorna la cantidad de pagos realizados"""
+        return self.pagos.filter(eliminado=False, estado='aprobado').count()
+
     @property
     def total_pagado(self):
         """Retorna el total pagado en este contrato (suma de avalúos aprobados)"""
@@ -276,6 +302,10 @@ class ContratoProyecto(models.Model):
         return self.avaluos.filter(eliminado=False).count()
 
 
+# ============================================================================
+# MODELO RENOMBRADO: PagoContratista → AvaluoContratista
+# ============================================================================
+
 class AvaluoContratista(models.Model):
     """
     Avalúo quincenal del contratista
@@ -299,7 +329,7 @@ class AvaluoContratista(models.Model):
         ('rechazado', 'Rechazado'),
     ]
     
-    # Código único del avalúo
+    # Código único del avalúo (mantener compatibilidad)
     codigo = models.CharField(
         max_length=20,
         unique=True,
@@ -311,11 +341,11 @@ class AvaluoContratista(models.Model):
     contrato = models.ForeignKey(
         ContratoProyecto,
         on_delete=models.PROTECT,
-        related_name='avaluos',
+        related_name='avaluos',  # Cambio de 'pagos' a 'avaluos'
         verbose_name='Contrato'
     )
     
-    # Campos para avalúos
+    # ✅ NUEVOS CAMPOS PARA AVALÚOS
     periodo_inicio = models.DateField(
         verbose_name='Inicio del Período',
         help_text='Fecha de inicio del período quincenal'
@@ -332,7 +362,7 @@ class AvaluoContratista(models.Model):
         help_text='Porcentaje acumulado de avance del contrato'
     )
     
-    # Información del avalúo
+    # Información del avalúo (antes "pago")
     fecha_pago = models.DateField(
         default=timezone.now,
         verbose_name='Fecha de Registro'
@@ -342,7 +372,7 @@ class AvaluoContratista(models.Model):
         verbose_name='Concepto/Descripción del Trabajo'
     )
     
-    # Montos
+    # Montos (se calculan automáticamente según % de avance)
     monto_cordobas = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -373,7 +403,7 @@ class AvaluoContratista(models.Model):
     
     # Soporte del avalúo
     archivo_soporte = models.FileField(
-        upload_to='contratistas/avaluos/',
+        upload_to='contratistas/avaluos/',  # Cambio de 'soportes' a 'avaluos'
         null=True,
         blank=True,
         verbose_name='Archivo Soporte del Avalúo'
@@ -400,6 +430,7 @@ class AvaluoContratista(models.Model):
         verbose_name='Fecha de Ingreso'
     )
     
+    # ✅ NUEVOS CAMPOS DE APROBACIÓN
     aprobado_gerente_por = models.ForeignKey(
         'usuarios.Usuario',
         on_delete=models.SET_NULL,
@@ -447,7 +478,7 @@ class AvaluoContratista(models.Model):
     modificado_en = models.DateTimeField(auto_now=True)
     
     class Meta:
-        db_table = 'pagos_contratistas'
+        db_table = 'pagos_contratistas'  # Mantener nombre de tabla para compatibilidad
         verbose_name = 'Avalúo de Contratista'
         verbose_name_plural = 'Avalúos de Contratistas'
         ordering = ['-fecha_pago']
@@ -525,6 +556,10 @@ class AvaluoContratista(models.Model):
         self.save()
 
 
+# ============================================================================
+# NUEVOS MODELOS: PLANILLA DE CONTRATISTAS
+# ============================================================================
+
 class PlanillaContratista(models.Model):
     """
     Planilla quincenal de pagos a contratistas
@@ -539,7 +574,7 @@ class PlanillaContratista(models.Model):
         ('anulada', 'Anulada'),
     ]
     
-    # Código único
+    # Código único: PN0825-01
     codigo = models.CharField(
         max_length=20,
         unique=True,
@@ -566,7 +601,7 @@ class PlanillaContratista(models.Model):
     periodo_inicio = models.DateField(verbose_name='Inicio del Período')
     periodo_fin = models.DateField(verbose_name='Fin del Período')
     
-    # Tipo de cambio
+    # Tipo de cambio para la planilla
     tipo_cambio = models.DecimalField(
         max_digits=10,
         decimal_places=4,
@@ -582,7 +617,7 @@ class PlanillaContratista(models.Model):
         verbose_name='Estado'
     )
     
-    # Totales
+    # Totales (calculados)
     total_cordobas = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -756,7 +791,7 @@ class DetallePlanillaContratista(models.Model):
         verbose_name='Avalúo'
     )
     
-    # Datos denormalizados
+    # Datos denormalizados para el reporte (para no depender de joins)
     contratista_nombre = models.CharField(max_length=200, verbose_name='Nombre del Contratista')
     contratista_cedula = models.CharField(max_length=20, verbose_name='Cédula')
     contratista_telefono = models.CharField(max_length=20, null=True, blank=True, verbose_name='Teléfono')
@@ -776,12 +811,12 @@ class DetallePlanillaContratista(models.Model):
     
     forma_pago = models.CharField(max_length=20, verbose_name='Forma de Pago')
     
-    # Datos bancarios
+    # Datos bancarios (denormalizados)
     banco = models.CharField(max_length=100, null=True, blank=True, verbose_name='Banco')
     numero_cuenta = models.CharField(max_length=50, null=True, blank=True, verbose_name='Cuenta')
     moneda_cuenta = models.CharField(max_length=20, null=True, blank=True, verbose_name='Moneda')
     
-    # Orden
+    # Orden en la planilla
     orden = models.PositiveIntegerField(default=0, verbose_name='Orden')
     
     # Metadata
