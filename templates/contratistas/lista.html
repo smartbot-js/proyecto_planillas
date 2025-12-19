@@ -841,14 +841,14 @@ body {
             Contratistas
         </h1>
         <div class="header-actions">
-            <button class="btn btn-secondary" onclick="alert('Carga masiva próximamente')">
+            <!-- <button class="btn btn-secondary" onclick="alert('Carga masiva próximamente')">
                 <span class="material-symbols-outlined">upload_file</span>
                 Carga Masiva
             </button>
             <button class="btn btn-success" onclick="alert('Exportar próximamente')">
                 <span class="material-symbols-outlined">download</span>
                 Exportar Excel
-            </button>
+            </button> -->
             <button class="btn btn-primary" onclick="location.href='{% url 'contratistas_crear' %}'">
                 <span class="material-symbols-outlined">add</span>
                 Agregar Contratista
@@ -1112,11 +1112,11 @@ body {
                                 </button>
                                 
                                 <!-- Botón Conciliar (Estado de Cuenta) -->
-                                <button class="btn-icon" 
-                                        title="Estado de Cuenta" 
-                                        onclick="abrirEstadoCuentaModal({{ contratista.pk }})">
-                                    <span class="material-symbols-outlined">account_balance</span>
-                                </button>
+                                <a href="{% url 'contratista_estado_cuenta' contratista.id %}" 
+                                class="action-button" 
+                                title="Ver Estado de Cuenta">
+                                 <span class="material-symbols-outlined">account_balance_wallet</span>
+                                </a>
                             </div>
                         </td>
                     </tr>

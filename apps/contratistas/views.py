@@ -20,6 +20,12 @@ from django.http import JsonResponse
 from django.views import View
 from django.shortcuts import get_object_or_404,redirect
 
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from django.http import HttpResponse
+from django.utils import timezone
+from django.views.generic import TemplateView
+
 
 PagoContratista = AvaluoContratista
 
@@ -94,61 +100,56 @@ class ContratistaListView(LoginRequiredMixin, ListView):
         return queryset.order_by('apellido', 'nombre')
     
     def get_context_data(self, **kwargs):
+        from django.db.models import Sum
+        from decimal import Decimal
+        
         context = super().get_context_data(**kwargs)
         
-        # Tipo de cambio desde configuración global
-        tipo_cambio_global = get_tipo_cambio_actual()
-        
-        # Permitir override manual si el usuario lo cambia
-        # Manejar tipo_cambio vacío o inválido
-        tipo_cambio_param = self.request.GET.get('tipo_cambio', '').strip()
-        if tipo_cambio_param:
-            try:
-                tipo_cambio = Decimal(tipo_cambio_param)
-                # Validar que sea mayor que 0
-                if tipo_cambio <= 0:
-                    tipo_cambio = tipo_cambio_global
-            except (ValueError, decimal.InvalidOperation):
-                tipo_cambio = tipo_cambio_global
-        else:
-            tipo_cambio = tipo_cambio_global
-        
-        moneda = self.request.GET.get('moneda', 'cordobas')  # cordobas o dolares
-        
-        context['tipo_cambio'] = tipo_cambio
-        context['tipo_cambio_global'] = tipo_cambio_global
-        context['moneda'] = moneda
-        
-        # Obtener listas para filtros
-        context['proyectos'] = Proyecto.objects.filter(eliminado=False).order_by('nombre')
-        context['formas_pago'] = PagoContratista.FORMA_PAGO_CHOICES
-        context['estados_contrato'] = ContratoProyecto.ESTADO_CHOICES
-        
-        # Parámetros de búsqueda actuales
+        # ==========================================
+        # PARÁMETROS DE FILTRADO
+        # ==========================================
         context['buscar'] = self.request.GET.get('buscar', '')
-        context['proyecto_seleccionado'] = self.request.GET.get('proyecto', '')
-        context['forma_pago_seleccionada'] = self.request.GET.get('forma_pago', '')
-        context['estado_seleccionado'] = self.request.GET.get('estado', '')
-        context['fecha_desde'] = self.request.GET.get('fecha_desde', '')  # ✅ NUEVO
-        context['fecha_hasta'] = self.request.GET.get('fecha_hasta', '')  # ✅ NUEVO
+        context['proyecto_filtro'] = self.request.GET.get('proyecto', '')
+        context['forma_pago_filtro'] = self.request.GET.get('forma_pago', '')
+        context['moneda'] = self.request.GET.get('moneda', 'cordobas')
         
-        # Calcular estadísticas generales
+        # ==========================================
+        # LISTAS PARA FILTROS
+        # ==========================================
+        context['proyectos'] = Proyecto.objects.filter(eliminado=False).order_by('nombre')
+        context['formas_pago'] = AvaluoContratista.FORMA_PAGO_CHOICES
+        
+        # ==========================================
+        # TIPO DE CAMBIO
+        # ==========================================
+        tipo_cambio = get_tipo_cambio_actual()
+        context['tipo_cambio'] = tipo_cambio
+        context['tipo_cambio_global'] = tipo_cambio
+        
+        moneda = context['moneda']
+        
+        # ==========================================
+        # ✅ ESTADÍSTICAS GLOBALES (PARA LAS TARJETAS)
+        # ==========================================
+        
+        # Total de contratistas activos
         contratistas_activos = Contratista.objects.filter(eliminado=False, activo=True)
         
-        # Total de contratos
+        # Total de contratos activos
         total_contratos = ContratoProyecto.objects.filter(eliminado=False).count()
         
-        # Total de pagos aprobados
-        pagos_stats = PagoContratista.objects.filter(
-            eliminado=False,
-            estado='aprobado'
+        # ✅ TOTAL PAGADO: Desde planillas pagadas
+        total_pagado_stats = DetallePlanillaContratista.objects.filter(
+            planilla__estado='pagada'
         ).aggregate(
             total_cordobas=Sum('monto_cordobas'),
-            total_pagos=Count('id')
+            total_dolares=Sum('monto_dolares'),
+            cantidad_pagos=Count('id')
         )
         
-        total_pagado_cordobas = pagos_stats['total_cordobas'] or Decimal('0.00')
-        total_pagado_dolares = total_pagado_cordobas / tipo_cambio if tipo_cambio > 0 else Decimal('0.00')
+        total_pagado_cordobas = total_pagado_stats['total_cordobas'] or Decimal('0.00')
+        total_pagado_dolares = total_pagado_stats['total_dolares'] or Decimal('0.00')
+        cantidad_pagos_realizados = total_pagado_stats['cantidad_pagos'] or 0
         
         # Total valor de contratos
         valor_contratos = ContratoProyecto.objects.filter(
@@ -163,10 +164,11 @@ class ContratistaListView(LoginRequiredMixin, ListView):
         # Porcentaje de avance general
         porcentaje_avance = (total_pagado_cordobas / valor_contratos * 100) if valor_contratos > 0 else 0
         
+        # ✅ AGREGAR AL CONTEXTO
         context['stats'] = {
             'total_contratistas': contratistas_activos.count(),
             'total_contratos': total_contratos,
-            'total_pagos': pagos_stats['total_pagos'] or 0,
+            'total_pagos': cantidad_pagos_realizados,
             'total_pagado_cordobas': total_pagado_cordobas,
             'total_pagado_dolares': total_pagado_dolares,
             'valor_total_contratos': valor_contratos,
@@ -175,7 +177,9 @@ class ContratistaListView(LoginRequiredMixin, ListView):
             'porcentaje_avance': porcentaje_avance,
         }
         
-        # Agregar información de contratos y pagos a cada contratista
+        # ==========================================
+        # CALCULAR DATOS FINANCIEROS PARA CADA CONTRATISTA
+        # ==========================================
         for contratista in context['contratistas']:
             # Contratos del contratista
             contratos = ContratoProyecto.objects.filter(
@@ -183,40 +187,58 @@ class ContratistaListView(LoginRequiredMixin, ListView):
                 eliminado=False
             )
             
-            # Total pagado al contratista
-            total_pagado = PagoContratista.objects.filter(
-                contrato__contratista=contratista,
-                contrato__eliminado=False,
-                eliminado=False,
-                estado='aprobado'
-            ).aggregate(total=Sum('monto_cordobas'))['total'] or Decimal('0.00')
+            # Aplicar filtro de proyecto si existe
+            if context['proyecto_filtro']:
+                contratos = contratos.filter(proyecto_id=context['proyecto_filtro'])
             
-            # Total valor de contratos del contratista
-            valor_contratos_contratista = contratos.aggregate(
-                total=Sum('valor_contrato')
+            # Valor total de contratos
+            valor_contratos_contratista = sum([c.valor_contrato for c in contratos])
+            
+            # ✅ TOTAL PAGADO: Suma de avalúos en planillas PAGADAS
+            detalles_pagados = DetallePlanillaContratista.objects.filter(
+                avaluo__contrato__contratista=contratista,
+                avaluo__contrato__eliminado=False,
+                planilla__estado='pagada'
+            )
+            
+            # Aplicar filtro de proyecto si existe
+            if context['proyecto_filtro']:
+                detalles_pagados = detalles_pagados.filter(
+                    avaluo__contrato__proyecto_id=context['proyecto_filtro']
+                )
+            
+            total_pagado = detalles_pagados.aggregate(
+                total=Sum('monto_cordobas')
             )['total'] or Decimal('0.00')
             
-            # Pendiente
+            # Pendiente = Valor contratos - Total pagado
             pendiente = valor_contratos_contratista - total_pagado
             
-            # Avance
+            # Avance = (Total pagado / Valor contratos) * 100
             avance = (total_pagado / valor_contratos_contratista * 100) if valor_contratos_contratista > 0 else 0
             
-            # Cantidad de pagos realizados
-            cantidad_pagos = PagoContratista.objects.filter(
-                contrato__contratista=contratista,
-                contrato__eliminado=False,
-                eliminado=False,
-                estado='aprobado'
-            ).count()
+            # ✅ CANTIDAD DE PAGOS REALIZADOS (avalúos en planillas pagadas)
+            cantidad_pagos_query = DetallePlanillaContratista.objects.filter(
+                avaluo__contrato__contratista=contratista,
+                avaluo__contrato__eliminado=False,
+                planilla__estado='pagada'
+            )
             
-            # Agregar al objeto
+            # Aplicar filtro de proyecto si existe
+            if context['proyecto_filtro']:
+                cantidad_pagos_query = cantidad_pagos_query.filter(
+                    avaluo__contrato__proyecto_id=context['proyecto_filtro']
+                )
+            
+            cantidad_pagos = cantidad_pagos_query.count()
+            
+            # ✅ AGREGAR DATOS AL OBJETO CONTRATISTA
             contratista.total_contratos_count = contratos.count()
             contratista.valor_contratos = valor_contratos_contratista
             contratista.total_pagado_valor = total_pagado
             contratista.pendiente = pendiente
             contratista.avance = avance
-            contratista.cantidad_pagos = cantidad_pagos  # ✅ NUEVO
+            contratista.cantidad_pagos = cantidad_pagos
             
             # Convertir a dólares si es necesario
             if moneda == 'dolares':
@@ -229,7 +251,6 @@ class ContratistaListView(LoginRequiredMixin, ListView):
                 contratista.pendiente_display = pendiente
         
         return context
-
 
 class ContratistaCreateView(LoginRequiredMixin, CreateView):
     """Vista para crear un nuevo contratista"""
@@ -501,7 +522,166 @@ class ContratistaEstadoCuentaAPIView(LoginRequiredMixin, View):
             return JsonResponse({
                 'error': str(e)
             }, status=500)
+
+class ContratistaEstadoCuentaView(LoginRequiredMixin, TemplateView):
+    """
+    Vista de Estado de Cuenta del Contratista (Página Completa)
+    Muestra historial financiero detallado con gráficos y exportación
+    """
+    template_name = 'contratistas/estado_cuenta.html'
+    
+    def get_context_data(self, **kwargs):
+        from django.db.models import Sum
+        from decimal import Decimal
         
+        context = super().get_context_data(**kwargs)
+        
+        # Obtener contratista
+        contratista_id = self.kwargs.get('pk')
+        contratista = get_object_or_404(Contratista, pk=contratista_id, eliminado=False)
+        
+        context['contratista'] = contratista
+        context['tipo_cambio'] = get_tipo_cambio_actual()
+        
+        # ==========================================
+        # RESUMEN FINANCIERO GLOBAL
+        # ==========================================
+        
+        contratos = ContratoProyecto.objects.filter(
+            contratista=contratista,
+            eliminado=False
+        )
+        
+        # Valor total de contratos
+        valor_total_contratos = sum([c.valor_contrato for c in contratos])
+        
+        # Total pagado (desde planillas pagadas)
+        detalles_pagados = DetallePlanillaContratista.objects.filter(
+            avaluo__contrato__contratista=contratista,
+            avaluo__contrato__eliminado=False,
+            planilla__estado='pagada'
+        )
+        
+        total_pagado = detalles_pagados.aggregate(
+            total=Sum('monto_cordobas')
+        )['total'] or Decimal('0.00')
+        
+        saldo_pendiente = valor_total_contratos - total_pagado
+        porcentaje_avance = (total_pagado / valor_total_contratos * 100) if valor_total_contratos > 0 else 0
+        cantidad_pagos = detalles_pagados.count()
+        
+        context['resumen'] = {
+            'valor_total_contratos': valor_total_contratos,
+            'total_pagado': total_pagado,
+            'saldo_pendiente': saldo_pendiente,
+            'porcentaje_avance': porcentaje_avance,
+            'cantidad_pagos': cantidad_pagos,
+            'cantidad_contratos': contratos.count(),
+        }
+        
+        # ==========================================
+        # CONTRATOS CON DETALLES
+        # ==========================================
+        
+        contratos_detalle = []
+        
+        for contrato in contratos.select_related('proyecto'):
+            # Pagos de este contrato
+            detalles_contrato = DetallePlanillaContratista.objects.filter(
+                avaluo__contrato=contrato,
+                planilla__estado='pagada'
+            ).select_related('planilla', 'avaluo')
+            
+            pagado_contrato = detalles_contrato.aggregate(
+                total=Sum('monto_cordobas')
+            )['total'] or Decimal('0.00')
+            
+            pendiente_contrato = contrato.valor_contrato - pagado_contrato
+            avance_contrato = (pagado_contrato / contrato.valor_contrato * 100) if contrato.valor_contrato > 0 else 0
+            
+            contratos_detalle.append({
+                'contrato': contrato,
+                'pagado': pagado_contrato,
+                'pendiente': pendiente_contrato,
+                'avance': avance_contrato,
+                'cantidad_pagos': detalles_contrato.count(),
+                'pagos': detalles_contrato.order_by('planilla__fecha_generacion')
+            })
+        
+        context['contratos_detalle'] = contratos_detalle
+        
+        # ==========================================
+        # HISTORIAL DE PAGOS CRONOLÓGICO
+        # ==========================================
+        
+        historial_pagos = DetallePlanillaContratista.objects.filter(
+            avaluo__contrato__contratista=contratista,
+            avaluo__contrato__eliminado=False,
+            planilla__estado='pagada'
+        ).select_related(
+            'planilla',
+            'avaluo__contrato__proyecto',
+            'avaluo__contrato'
+        ).order_by('planilla__fecha_generacion')
+        
+        # Calcular saldo acumulado
+        saldo_acumulado = Decimal('0.00')
+        historial_con_saldo = []
+        
+        for detalle in historial_pagos:
+            saldo_acumulado += detalle.monto_cordobas
+            historial_con_saldo.append({
+                'detalle': detalle,
+                'saldo_acumulado': saldo_acumulado
+            })
+        
+        context['historial_pagos'] = historial_con_saldo
+        
+        # ==========================================
+        # RESUMEN POR PROYECTO
+        # ==========================================
+        
+        from django.db.models import Count
+        from apps.proyectos.models import Proyecto
+        
+        # Usar diccionario para evitar duplicados
+        proyectos_dict = {}
+        
+        for contrato in contratos:
+            proyecto_id = contrato.proyecto.id
+            
+            # Si el proyecto ya está en el diccionario, skip
+            if proyecto_id in proyectos_dict:
+                continue
+            
+            # Obtener todos los contratos de este proyecto
+            contratos_proyecto = contratos.filter(proyecto=contrato.proyecto)
+            
+            # Total pagado en este proyecto
+            pagado_proyecto = DetallePlanillaContratista.objects.filter(
+                avaluo__contrato__contratista=contratista,
+                avaluo__contrato__proyecto=contrato.proyecto,
+                planilla__estado='pagada'
+            ).aggregate(total=Sum('monto_cordobas'))['total'] or Decimal('0.00')
+            
+            valor_contratos_proyecto = sum([c.valor_contrato for c in contratos_proyecto])
+            pendiente_proyecto = valor_contratos_proyecto - pagado_proyecto
+            
+            proyectos_dict[proyecto_id] = {
+                'proyecto': contrato.proyecto,
+                'cantidad_contratos': contratos_proyecto.count(),
+                'valor_contratos': valor_contratos_proyecto,
+                'pagado': pagado_proyecto,
+                'pendiente': pendiente_proyecto,
+            }
+        
+        # Convertir diccionario a lista
+        resumen_proyectos = list(proyectos_dict.values())
+        
+        context['resumen_proyectos'] = resumen_proyectos
+        
+        return context
+
 
 class ContratoCreateView(LoginRequiredMixin, CreateView):
     model = ContratoProyecto
@@ -1079,3 +1259,581 @@ class PagosPendientesListView(LoginRequiredMixin, ListView):
         context['proyecto_seleccionado'] = self.request.GET.get('proyecto', '')
         
         return context
+
+# ===========================================
+# VISTAS DE PLANILLAS DE CONTRATISTAS
+# ===========================================
+
+class PlanillaListView(LoginRequiredMixin, ListView):
+    """Lista de planillas de contratistas"""
+    model = PlanillaContratista
+    template_name = 'contratistas/planilla_lista.html'
+    context_object_name = 'planillas'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = PlanillaContratista.objects.filter(
+            eliminado=False
+        ).select_related('proyecto', 'generada_por').order_by('-fecha_generacion')
+        
+        # Filtros
+        estado = self.request.GET.get('estado')
+        if estado:
+            queryset = queryset.filter(estado=estado)
+        
+        proyecto_id = self.request.GET.get('proyecto')
+        if proyecto_id:
+            queryset = queryset.filter(proyecto_id=proyecto_id)
+        
+        fecha_desde = self.request.GET.get('fecha_desde')
+        if fecha_desde:
+            queryset = queryset.filter(periodo_inicio__gte=fecha_desde)
+        
+        fecha_hasta = self.request.GET.get('fecha_hasta')
+        if fecha_hasta:
+            queryset = queryset.filter(periodo_fin__lte=fecha_hasta)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['proyectos'] = Proyecto.objects.filter(eliminado=False)
+        context['estados'] = PlanillaContratista.ESTADO_CHOICES
+        
+        # Estadísticas
+        queryset = self.get_queryset()
+        context['total_planillas'] = queryset.count()
+        context['total_cordobas'] = queryset.aggregate(
+            total=Sum('total_cordobas')
+        )['total'] or Decimal('0')
+        context['total_dolares'] = queryset.aggregate(
+            total=Sum('total_dolares')
+        )['total'] or Decimal('0')
+        
+        return context
+
+class PlanillaCreateView(LoginRequiredMixin, CreateView):
+    """Crear nueva planilla de contratistas"""
+    model = PlanillaContratista
+    template_name = 'contratistas/planilla_crear.html'
+    fields = ['proyecto', 'periodo_inicio', 'periodo_fin']
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Proyectos
+        context['proyectos'] = Proyecto.objects.filter(eliminado=False).order_by('nombre')
+        
+        # Filtros
+        proyecto_id = self.request.GET.get('proyecto')
+        contratista_id = self.request.GET.get('contratista')
+        
+        # Solo mostrar avalúos si hay proyecto seleccionado
+        if proyecto_id:
+            avaluos = AvaluoContratista.objects.filter(
+                eliminado=False,
+                estado__in=['pendiente', 'aprobado_gerente', 'aprobado_contador'],
+                contrato__proyecto_id=proyecto_id
+            )
+            
+            # Excluir los que ya están en planilla
+            avaluos_en_planilla = DetallePlanillaContratista.objects.values_list('avaluo_id', flat=True)
+            avaluos = avaluos.exclude(id__in=avaluos_en_planilla)
+            
+            # Filtro opcional por contratista
+            if contratista_id:
+                avaluos = avaluos.filter(contrato__contratista_id=contratista_id)
+            
+            context['avaluos_disponibles'] = avaluos.select_related(
+                'contrato__contratista',
+                'contrato__proyecto'
+            ).order_by('contrato__contratista__apellido', 'fecha_pago')
+            
+            context['filtros_activos'] = True
+        else:
+            context['avaluos_disponibles'] = AvaluoContratista.objects.none()
+            context['filtros_activos'] = False
+        
+        context['tipo_cambio'] = get_tipo_cambio_actual()
+        context['proyecto_seleccionado'] = proyecto_id
+        context['contratista_seleccionado'] = contratista_id
+        
+        return context
+    
+    def form_valid(self, form):
+        avaluos_ids = self.request.POST.getlist('avaluos')
+        
+        if not avaluos_ids:
+            messages.warning(self.request, '⚠️ Selecciona al menos un avalúo')
+            return self.form_invalid(form)
+        
+        # Crear planilla
+        planilla = form.save(commit=False)
+        planilla.generada_por = self.request.user
+        planilla.tipo_cambio = get_tipo_cambio_actual()
+        planilla.save()
+        
+        # Agregar avalúos
+        for avaluo_id in avaluos_ids:
+            avaluo = AvaluoContratista.objects.get(id=avaluo_id)
+            DetallePlanillaContratista.objects.create(
+                planilla=planilla,
+                avaluo=avaluo
+            )
+        
+        planilla.calcular_totales()
+        
+        messages.success(
+            self.request,
+            f'✅ Planilla {planilla.codigo} creada con {len(avaluos_ids)} avalúos'
+        )
+        
+        return redirect('planillas_contratistas_detalle', pk=planilla.pk)
+
+class ObtenerContratistasProyectoView(LoginRequiredMixin, View):
+    """Retorna contratistas con avalúos disponibles en un proyecto"""
+    
+    def get(self, request):
+        proyecto_id = request.GET.get('proyecto_id')
+        
+        if not proyecto_id:
+            return JsonResponse({'contratistas': []})
+        
+        # Avalúos disponibles del proyecto
+        avaluos_disponibles = AvaluoContratista.objects.filter(
+            eliminado=False,
+            estado__in=['pendiente', 'aprobado_gerente', 'aprobado_contador'],
+            contrato__proyecto_id=proyecto_id
+        )
+        
+        # Excluir avalúos ya en planilla
+        avaluos_en_planilla = DetallePlanillaContratista.objects.values_list('avaluo_id', flat=True)
+        avaluos_disponibles = avaluos_disponibles.exclude(id__in=avaluos_en_planilla)
+        
+        # Obtener IDs de contratistas únicos
+        contratistas_ids = avaluos_disponibles.values_list(
+            'contrato__contratista_id', 
+            flat=True
+        ).distinct()
+        
+        # Obtener contratistas
+        contratistas = Contratista.objects.filter(
+            id__in=contratistas_ids,
+            eliminado=False
+        ).order_by('apellido', 'nombre')
+        
+        # Formatear respuesta
+        contratistas_data = [
+            {
+                'id': c.id,
+                'nombre': c.nombre_completo
+            }
+            for c in contratistas
+        ]
+        
+        return JsonResponse({'contratistas': contratistas_data})
+
+class PlanillaDetalleView(LoginRequiredMixin, DetailView):
+    """Vista de detalle de planilla de contratistas"""
+    model = PlanillaContratista
+    template_name = 'contratistas/planilla_detalle.html'
+    context_object_name = 'planilla'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        planilla = self.object
+        
+        # Detalles de la planilla
+        detalles = planilla.detalles.select_related(
+            'avaluo__contrato__contratista',
+            'avaluo__contrato__proyecto'
+        ).order_by('contratista_nombre')
+        
+        # 🔍 DEBUG: Ver qué hay en detalles
+        print("=" * 80)
+        print(f"🔍 DEBUG: Planilla {planilla.codigo}")
+        print(f"Total detalles: {detalles.count()}")
+        
+        for detalle in detalles:
+            print(f"\n📋 Detalle ID: {detalle.id}")
+            print(f"   Contratista: {detalle.contratista_nombre}")
+            print(f"   Forma de pago: '{detalle.forma_pago}' (tipo: {type(detalle.forma_pago)})")
+            print(f"   Monto C$: {detalle.monto_cordobas}")
+            print(f"   Monto USD: {detalle.monto_dolares}")
+        
+        print("=" * 80)
+        
+        context['detalles'] = detalles
+        
+        # CALCULAR TOTALES POR FORMA DE PAGO
+        totales_transferencia = detalles.filter(
+            forma_pago__iexact='transferencia'  # ✅ iexact = case-insensitive
+        ).aggregate(
+            cordobas=Sum('monto_cordobas'),
+            dolares=Sum('monto_dolares')
+        )
+        
+        print(f"\n💰 Totales transferencia:")
+        print(f"   Córdobas: {totales_transferencia['cordobas']}")
+        print(f"   Dólares: {totales_transferencia['dolares']}")
+        
+        totales_efectivo = detalles.filter(
+            forma_pago='efectivo'
+        ).aggregate(
+            cordobas=Sum('monto_cordobas'),
+            dolares=Sum('monto_dolares')
+        )
+        
+        totales_cheque = detalles.filter(
+            forma_pago='cheque'
+        ).aggregate(
+            cordobas=Sum('monto_cordobas'),
+            dolares=Sum('monto_dolares')
+        )
+        
+        context['total_transferencia_cordobas'] = totales_transferencia['cordobas'] or 0
+        context['total_transferencia_dolares'] = totales_transferencia['dolares'] or 0
+        
+        context['total_efectivo_cordobas'] = totales_efectivo['cordobas'] or 0
+        context['total_efectivo_dolares'] = totales_efectivo['dolares'] or 0
+        
+        context['total_cheque_cordobas'] = totales_cheque['cordobas'] or 0
+        context['total_cheque_dolares'] = totales_cheque['dolares'] or 0
+        
+        # Cantidad de contratistas únicos
+        context['cantidad_contratistas'] = detalles.values(
+            'contratista_cedula'
+        ).distinct().count()
+        
+        return context
+
+class PlanillaAprobarGerenteView(LoginRequiredMixin, View):
+    """Aprobar planilla por gerente"""
+    
+    def post(self, request, pk):
+        planilla = get_object_or_404(PlanillaContratista, pk=pk)
+        
+        if planilla.estado != 'borrador':
+            messages.error(request, '❌ Solo se pueden aprobar planillas en borrador')
+            return redirect('planillas_contratistas_detalle', pk=pk)
+        
+        # Cambiar estado de la planilla
+        planilla.estado = 'aprobada_gerente'
+        planilla.aprobada_gerente_por = request.user
+        planilla.fecha_aprobacion_gerente = timezone.now()
+        planilla.save()
+        
+        # ✅ NUEVO: Cambiar estado de avalúos
+        for detalle in planilla.detalles.all():
+            if detalle.avaluo.estado == 'pendiente':
+                detalle.avaluo.estado = 'aprobado_gerente'
+                detalle.avaluo.aprobado_gerente_por = request.user
+                detalle.avaluo.fecha_aprobacion_gerente = timezone.now()
+                detalle.avaluo.save()
+        
+        messages.success(request, f'✅ Planilla {planilla.codigo} aprobada por gerente')
+        return redirect('planillas_contratistas_detalle', pk=pk)
+
+
+class PlanillaAprobarContadorView(LoginRequiredMixin, View):
+    """Aprobar planilla por contador"""
+    
+    def post(self, request, pk):
+        planilla = get_object_or_404(PlanillaContratista, pk=pk)
+        
+        if planilla.estado != 'aprobada_gerente':
+            messages.error(request, '❌ La planilla debe estar aprobada por gerente primero')
+            return redirect('planillas_contratistas_detalle', pk=pk)
+        
+        # Cambiar estado de la planilla
+        planilla.estado = 'aprobada_contador'
+        planilla.aprobada_contador_por = request.user
+        planilla.fecha_aprobacion_contador = timezone.now()
+        planilla.save()
+        
+        # ✅ NUEVO: Cambiar estado de avalúos
+        for detalle in planilla.detalles.all():
+            if detalle.avaluo.estado in ['pendiente', 'aprobado_gerente']:
+                detalle.avaluo.estado = 'aprobado_contador'
+                detalle.avaluo.aprobado_contador_por = request.user
+                detalle.avaluo.fecha_aprobacion_contador = timezone.now()
+                detalle.avaluo.save()
+        
+        messages.success(request, f'✅ Planilla {planilla.codigo} aprobada por contador')
+        return redirect('planillas_contratistas_detalle', pk=pk)
+
+
+class PlanillaMarcarPagadaView(LoginRequiredMixin, View):
+    """Marcar planilla como pagada"""
+    
+    def post(self, request, pk):
+        planilla = get_object_or_404(PlanillaContratista, pk=pk)
+        
+        if planilla.estado != 'aprobada_contador':
+            messages.error(request, '❌ La planilla debe estar aprobada por el contador primero')
+            return redirect('planillas_contratistas_detalle', pk=pk)
+        
+        # Cambiar estado de la planilla
+        planilla.estado = 'pagada'
+        planilla.pagada_por = request.user
+        planilla.fecha_pago = timezone.now()
+        planilla.save()
+        
+        # ✅ NUEVO: Marcar avalúos como pagados
+        for detalle in planilla.detalles.all():
+            detalle.avaluo.estado = 'pagado'
+            detalle.avaluo.save()
+        
+        messages.success(request, f'✅ Planilla {planilla.codigo} marcada como pagada')
+        return redirect('planillas_contratistas_detalle', pk=pk)
+
+class PlanillaExportarExcelView(LoginRequiredMixin, View):
+    """Exportar planilla a Excel con formato"""
+    
+    def get(self, request, pk):
+        from apps.contratistas.models import PlanillaContratista
+        
+        planilla = get_object_or_404(PlanillaContratista, pk=pk)
+        detalles = planilla.detalles.select_related(
+            'avaluo__contrato__contratista',
+            'avaluo__contrato__proyecto'
+        ).order_by('contratista_nombre')
+        
+        # Crear workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = f"Planilla {planilla.codigo}"
+        
+        # ========================================
+        # ENCABEZADO CON ESTILO
+        # ========================================
+        
+        # Fila 1: PROYECTO (Fondo azul, texto blanco, negrita)
+        ws['A1'] = f"PROYECTO: {planilla.proyecto.nombre.upper()}"
+        ws['A1'].font = Font(size=16, bold=True, color='FFFFFF')
+        ws['A1'].fill = PatternFill(start_color='1F4E78', end_color='1F4E78', fill_type='solid')
+        ws['A1'].alignment = Alignment(horizontal='left', vertical='center')
+        ws.merge_cells('A1:L1')
+        ws.row_dimensions[1].height = 30
+        
+        # Fila 2: PLANILLA DE PAGOS (Fondo azul claro)
+        ws['A2'] = "PLANILLA DE PAGOS"
+        ws['A2'].font = Font(size=14, bold=True, color='1F4E78')
+        ws['A2'].fill = PatternFill(start_color='D9E2F3', end_color='D9E2F3', fill_type='solid')
+        ws['A2'].alignment = Alignment(horizontal='left', vertical='center')
+        ws.merge_cells('A2:L2')
+        ws.row_dimensions[2].height = 25
+        
+        # Fila 3: SUBCONTRATISTAS (Fondo azul claro)
+        ws['A3'] = "SUBCONTRATISTAS"
+        ws['A3'].font = Font(size=13, bold=True, color='1F4E78')
+        ws['A3'].fill = PatternFill(start_color='D9E2F3', end_color='D9E2F3', fill_type='solid')
+        ws['A3'].alignment = Alignment(horizontal='left', vertical='center')
+        ws.merge_cells('A3:L3')
+        ws.row_dimensions[3].height = 22
+        
+        # Fila 4: FECHA
+        meses = {
+            1: 'ENERO', 2: 'FEBRERO', 3: 'MARZO', 4: 'ABRIL',
+            5: 'MAYO', 6: 'JUNIO', 7: 'JULIO', 8: 'AGOSTO',
+            9: 'SEPTIEMBRE', 10: 'OCTUBRE', 11: 'NOVIEMBRE', 12: 'DICIEMBRE'
+        }
+        mes_texto = meses[planilla.fecha_generacion.month]
+        ws['A4'] = f"FECHA: {planilla.fecha_generacion.day} DE {mes_texto} DE {planilla.fecha_generacion.year}"
+        ws['A4'].font = Font(size=11, bold=True)
+        ws['A4'].alignment = Alignment(horizontal='left', vertical='center')
+        
+        # Fila 5: PERIODO
+        mes_inicio = meses[planilla.periodo_inicio.month]
+        mes_fin = meses[planilla.periodo_fin.month]
+        ws['A5'] = f"PERIODO: DEL {planilla.periodo_inicio.day} DE {mes_inicio} AL {planilla.periodo_fin.day} DE {mes_fin} DEL {planilla.periodo_fin.year}"
+        ws['A5'].font = Font(size=11, bold=True)
+        ws['A5'].alignment = Alignment(horizontal='left', vertical='center')
+        
+        # Fila 6: TIPO DE CAMBIO (Con fondo amarillo suave)
+        ws['A6'] = "TIPO DE CAMBIO BCN:"
+        ws['B6'] = float(planilla.tipo_cambio)
+        ws['A6'].font = Font(size=11, bold=True)
+        ws['A6'].fill = PatternFill(start_color='FFF2CC', end_color='FFF2CC', fill_type='solid')
+        ws['B6'].font = Font(size=11, bold=True, color='C00000')
+        ws['B6'].fill = PatternFill(start_color='FFF2CC', end_color='FFF2CC', fill_type='solid')
+        ws['B6'].number_format = '0.0000'
+        ws['B6'].alignment = Alignment(horizontal='center')
+        
+        # Fila vacía
+        current_row = 8
+        
+        # ========================================
+        # ENCABEZADO DE TABLA CON ESTILO
+        # ========================================
+        
+        headers = ['N°', 'NOMBRE Y APELLIDO', 'CÉDULA', 'Actividad Catálogo', 'DESCRIPCIÓN', 
+                   'Pago C$', 'Pago en USD', 'Forma de pago', 'Banco', 'Moneda', 
+                   'Numero de cuenta', 'FIRMA']
+        
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=current_row, column=col_num)
+            cell.value = header
+            cell.font = Font(bold=True, size=10, color='FFFFFF')
+            cell.fill = PatternFill(start_color='305496', end_color='305496', fill_type='solid')
+            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+            cell.border = Border(
+                left=Side(style='medium', color='1F4E78'),
+                right=Side(style='medium', color='1F4E78'),
+                top=Side(style='medium', color='1F4E78'),
+                bottom=Side(style='medium', color='1F4E78')
+            )
+        
+        # Altura de fila de encabezado
+        ws.row_dimensions[current_row].height = 35
+        
+        current_row += 1
+        start_data_row = current_row
+        
+        # ========================================
+        # DATOS DE AVALÚOS CON ESTILO
+        # ========================================
+        
+        for idx, detalle in enumerate(detalles, 1):
+            # Alternar colores de fila (zebra striping)
+            if idx % 2 == 0:
+                fill_color = 'F2F2F2'  # Gris claro
+            else:
+                fill_color = 'FFFFFF'  # Blanco
+            
+            ws.cell(row=current_row, column=1, value=idx)  # N°
+            ws.cell(row=current_row, column=2, value=detalle.contratista_nombre)  # Nombre
+            ws.cell(row=current_row, column=3, value=detalle.contratista_cedula)  # Cédula
+            ws.cell(row=current_row, column=4, value='')  # Actividad Catálogo (vacío por ahora)
+            ws.cell(row=current_row, column=5, value=detalle.actividad)  # Descripción (denormalizado en detalle)
+            ws.cell(row=current_row, column=6, value=float(detalle.monto_cordobas))  # C$
+            ws.cell(row=current_row, column=7, value=float(detalle.monto_dolares))  # USD
+            
+            # Forma de pago con capitalización
+            forma_pago_texto = detalle.forma_pago.capitalize() if detalle.forma_pago else ''
+            ws.cell(row=current_row, column=8, value=forma_pago_texto)  # Forma pago
+            
+            ws.cell(row=current_row, column=9, value=detalle.banco or '')  # Banco (denormalizado en detalle)
+            ws.cell(row=current_row, column=10, value=detalle.moneda_cuenta or '')  # Moneda (denormalizado en detalle)
+            ws.cell(row=current_row, column=11, value=detalle.numero_cuenta or '')  # Cuenta (denormalizado en detalle)
+            ws.cell(row=current_row, column=12, value='')  # Firma
+            
+            # Aplicar estilos a todas las celdas de la fila
+            for col in range(1, 13):
+                cell = ws.cell(row=current_row, column=col)
+                
+                # Fondo alternado
+                cell.fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type='solid')
+                
+                # Alineación
+                if col == 1:  # N°
+                    cell.alignment = Alignment(horizontal='center', vertical='center')
+                elif col in [6, 7]:  # Montos
+                    cell.alignment = Alignment(horizontal='right', vertical='center')
+                else:
+                    cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
+                
+                # Formato moneda
+                if col == 6:  # Córdobas
+                    cell.number_format = 'C$#,##0.00'
+                    cell.font = Font(bold=True, color='0070C0')
+                elif col == 7:  # Dólares
+                    cell.number_format = '$#,##0.00'
+                    cell.font = Font(bold=True, color='00B050')
+                
+                # Bordes
+                cell.border = Border(
+                    left=Side(style='thin', color='BFBFBF'),
+                    right=Side(style='thin', color='BFBFBF'),
+                    top=Side(style='thin', color='BFBFBF'),
+                    bottom=Side(style='thin', color='BFBFBF')
+                )
+            
+            # Altura de fila
+            ws.row_dimensions[current_row].height = 25
+            current_row += 1
+        
+        end_data_row = current_row - 1
+        
+        # ========================================
+        # TOTALES CON ESTILO
+        # ========================================
+        
+        current_row += 1
+        
+        # TOTAL EN CÓRDOBAS (Fondo verde claro)
+        ws.cell(row=current_row, column=1, value="TOTAL EN CÓRDOBAS")
+        ws.cell(row=current_row, column=1).font = Font(bold=True, size=12, color='FFFFFF')
+        ws.cell(row=current_row, column=1).fill = PatternFill(start_color='70AD47', end_color='70AD47', fill_type='solid')
+        ws.cell(row=current_row, column=1).alignment = Alignment(horizontal='right', vertical='center')
+        ws.merge_cells(f'A{current_row}:E{current_row}')
+        
+        ws.cell(row=current_row, column=6, value=f'=SUM(F{start_data_row}:F{end_data_row})')
+        ws.cell(row=current_row, column=6).font = Font(bold=True, size=13, color='FFFFFF')
+        ws.cell(row=current_row, column=6).fill = PatternFill(start_color='70AD47', end_color='70AD47', fill_type='solid')
+        ws.cell(row=current_row, column=6).number_format = 'C$#,##0.00'
+        ws.cell(row=current_row, column=6).alignment = Alignment(horizontal='right', vertical='center')
+        ws.cell(row=current_row, column=6).border = Border(
+            left=Side(style='medium'),
+            right=Side(style='medium'),
+            top=Side(style='medium'),
+            bottom=Side(style='medium')
+        )
+        
+        ws.row_dimensions[current_row].height = 28
+        current_row += 1
+        
+        # TOTAL EN DÓLARES (Fondo azul claro)
+        ws.cell(row=current_row, column=1, value="TOTAL EN DÓLARES")
+        ws.cell(row=current_row, column=1).font = Font(bold=True, size=12, color='FFFFFF')
+        ws.cell(row=current_row, column=1).fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
+        ws.cell(row=current_row, column=1).alignment = Alignment(horizontal='right', vertical='center')
+        ws.merge_cells(f'A{current_row}:F{current_row}')
+        
+        ws.cell(row=current_row, column=7, value=f'=SUM(G{start_data_row}:G{end_data_row})')
+        ws.cell(row=current_row, column=7).font = Font(bold=True, size=13, color='FFFFFF')
+        ws.cell(row=current_row, column=7).fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
+        ws.cell(row=current_row, column=7).number_format = 'U$#,##0.00'
+        ws.cell(row=current_row, column=7).alignment = Alignment(horizontal='right', vertical='center')
+        ws.cell(row=current_row, column=7).border = Border(
+            left=Side(style='medium'),
+            right=Side(style='medium'),
+            top=Side(style='medium'),
+            bottom=Side(style='medium')
+        )
+        
+        ws.row_dimensions[current_row].height = 28
+        
+        # ========================================
+        # AJUSTAR ANCHOS DE COLUMNA
+        # ========================================
+        
+        column_widths = {
+            'A': 6,   # N°
+            'B': 30,  # Nombre
+            'C': 18,  # Cédula
+            'D': 15,  # Actividad
+            'E': 45,  # Descripción
+            'F': 15,  # Pago C$
+            'G': 15,  # Pago USD
+            'H': 18,  # Forma pago
+            'I': 18,  # Banco
+            'J': 12,  # Moneda
+            'K': 18,  # Cuenta
+            'L': 15   # Firma
+        }
+        
+        for col, width in column_widths.items():
+            ws.column_dimensions[col].width = width
+        
+        # ========================================
+        # PREPARAR RESPUESTA HTTP
+        # ========================================
+        
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{planilla.codigo}_Planilla_Contratistas.xlsx"'
+        
+        wb.save(response)
+        return response

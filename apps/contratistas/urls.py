@@ -5,6 +5,7 @@ apps/contratistas/urls.py
 from django.urls import path
 from .views import (
     ContratistaDetalleView,
+    ContratistaEstadoCuentaView,
     ContratistaListView,
     ContratistaCreateView,
     ContratistaUpdateView,
@@ -13,6 +14,7 @@ from .views import (
     ContratoCreateView,
     ContratoDeleteView,
     ContratoUpdateView,
+    ObtenerContratistasProyectoView,
     PagoAprobarContadorView,
     PagoAprobarGerenteView,
     PagoContratistaCreateView,
@@ -20,7 +22,14 @@ from .views import (
     PagoContratistaDetalleView,
     PagoContratistaUpdateView,
     PagoRechazarView,
-    PagosPendientesListView,  
+    PagosPendientesListView,
+    PlanillaAprobarContadorView,
+    PlanillaAprobarGerenteView,
+    PlanillaCreateView,
+    PlanillaDetalleView,
+    PlanillaExportarExcelView,
+    PlanillaListView,
+    PlanillaMarcarPagadaView,  
     )
 
 urlpatterns = [
@@ -96,4 +105,44 @@ urlpatterns = [
          PagosPendientesListView.as_view(),
          name='pagos_pendientes'),
 
+     # ===========================================
+     # PLANILLAS DE CONTRATISTAS
+     # ===========================================
+     path('planillas-contratistas/',
+          PlanillaListView.as_view(),
+          name='planillas_contratistas_lista'),
+
+     path('planillas-contratistas/crear/',
+          PlanillaCreateView.as_view(),
+          name='planillas_contratistas_crear'),
+
+     path('planillas-contratistas/<int:pk>/',
+          PlanillaDetalleView.as_view(),
+          name='planillas_contratistas_detalle'),
+
+     path('planillas-contratistas/<int:pk>/aprobar-gerente/',
+          PlanillaAprobarGerenteView.as_view(),
+          name='planillas_contratistas_aprobar_gerente'),
+
+     path('planillas-contratistas/<int:pk>/aprobar-contador/',
+          PlanillaAprobarContadorView.as_view(),
+          name='planillas_contratistas_aprobar_contador'),
+
+     path('planillas-contratistas/<int:pk>/marcar-pagada/',
+          PlanillaMarcarPagadaView.as_view(),
+          name='planillas_contratistas_marcar_pagada'),
+
+     # AJAX para obtener contratistas por proyecto
+    path('api/contratistas-proyecto/', 
+         ObtenerContratistasProyectoView.as_view(), 
+         name='api_contratistas_proyecto'),
+     
+     path('planillas-contratistas/<int:pk>/exportar-excel/', 
+         PlanillaExportarExcelView.as_view(), 
+         name='planillas_contratistas_exportar_excel'),
+     
+         # Estado de cuenta (página completa)
+    path('contratistas/<int:pk>/estado-cuenta-completo/', 
+         ContratistaEstadoCuentaView.as_view(), 
+         name='contratista_estado_cuenta'),
 ]

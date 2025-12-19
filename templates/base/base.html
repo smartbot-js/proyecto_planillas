@@ -48,14 +48,34 @@
                     <span class="material-symbols-outlined">receipt_long</span>
                     <span>Planillas</span>
                 </a>
-                <a href="{% url 'contratistas_lista' %}" class="nav-item {% if 'contratistas' in request.path %}active{% endif %}">
-                    <span class="material-symbols-outlined">engineering</span>
-                    <span>Contratistas</span>
-                </a>
-                <a href="{% url 'pagos_pendientes' %}" class="nav-item {% if 'pagos' in request.path %}active{% endif %}">
-                    <span>Pagos Contratistas</span>
-                </a>
-                
+                <!-- Contratistas con Submenú -->
+                <div class="nav-item-group">
+                    <div class="nav-item-parent {% if 'contratistas' in request.path or 'pagos' in request.path or 'planillas-contratistas' in request.path %}active{% endif %}"
+                        onclick="var sub = this.nextElementSibling; sub.classList.toggle('open'); this.classList.toggle('open');">
+                        <div class="nav-item-content">
+                            <span class="material-symbols-outlined">engineering</span>
+                            <span>Contratistas</span>
+                        </div>
+                        <span class="material-symbols-outlined nav-arrow">expand_more</span>
+                    </div>
+                    
+                    <div class="nav-submenu {% if 'contratistas' in request.path or 'pagos' in request.path or 'planillas-contratistas' in request.path %}open{% endif %}">
+                        <a href="{% url 'contratistas_lista' %}" class="nav-subitem {% if 'contratistas' in request.path and 'pagos' not in request.path and 'planilla' not in request.path %}active{% endif %}" title="Listado de Contratistas">
+                            <span class="material-symbols-outlined">person</span>
+                            <span>Listado</span>
+                        </a>
+                        
+                        <!-- <a href="{% url 'pagos_pendientes' %}" class="nav-subitem {% if 'pagos' in request.path and 'planilla' not in request.path %}active{% endif %}" title="Avalúos Pendientes">
+                            <span class="material-symbols-outlined">pending_actions</span>
+                            <span>Avalúos Pendientes</span>
+                        </a> -->
+                        
+                        <a href="{% url 'planillas_contratistas_lista' %}" class="nav-subitem {% if 'planillas-contratistas' in request.path %}active{% endif %}" title="Planillas de Contratistas">
+                            <span class="material-symbols-outlined">description</span>
+                            <span>Planillas Contratistas</span>
+                        </a>
+                    </div>
+                </div>        
                 <a href="{% url 'asistencias_reportes' %}" class="nav-item {% if 'asistencias/reportes' in request.path %}active{% endif %}" title="Reportes">
                     <span class="material-symbols-outlined">assessment</span>
                     <span>Reportes</span>

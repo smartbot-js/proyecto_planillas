@@ -1,0 +1,762 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Nueva Planilla de Contratistas{% endblock %}
+
+{% block extra_css %}
+<style>
+* { box-sizing: border-box; }
+
+.container-form {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page-header-form {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #f3f4f6;
+    border: none;
+    border-radius: 8px;
+    color: #374151;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.back-btn:hover { background: #e5e7eb; }
+
+.page-title-form {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+}
+
+.info-box {
+    background: #eff6ff;
+    border: 2px solid #dbeafe;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.info-box .material-symbols-outlined {
+    font-size: 24px;
+    color: #3b82f6;
+}
+
+.info-box-content { flex: 1; }
+
+.info-box-content h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e40af;
+    margin: 0 0 4px 0;
+}
+
+.info-box-content p {
+    font-size: 13px;
+    color: #3b82f6;
+    margin: 0;
+}
+
+.card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 24px;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-title .material-symbols-outlined {
+    font-size: 24px;
+    color: #3b82f6;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.form-group {
+    margin-bottom: 0;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.required { color: #ef4444; }
+
+.form-input,
+.form-select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #111827;
+    transition: all 0.2s;
+}
+
+.form-input:focus,
+.form-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-select:disabled {
+    background: #f3f4f6;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+/* Switch de modo de filtro */
+.filter-mode-switch {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+}
+
+.filter-mode-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.switch-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.switch-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.switch-option input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.switch-option.active {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.switch-option:hover {
+    background: #f3f4f6;
+}
+
+.switch-option.active:hover {
+    background: #bfdbfe;
+}
+
+.filter-group-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.avaluos-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.select-all-btn {
+    padding: 8px 16px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.select-all-btn:hover { background: #e5e7eb; }
+
+.avaluos-grid {
+    display: grid;
+    gap: 12px;
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 4px;
+}
+
+.avaluo-item {
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.avaluo-item:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.avaluo-item.selected {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.avaluo-checkbox {
+    display: flex;
+    gap: 12px;
+}
+
+.avaluo-checkbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.avaluo-info { flex: 1; }
+
+.avaluo-header-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.avaluo-code {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.avaluo-amount {
+    font-size: 16px;
+    font-weight: 700;
+    color: #10b981;
+}
+
+.avaluo-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.avaluo-badge.pendiente {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.avaluo-badge.aprobado {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.avaluo-details {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+.avaluo-details strong { color: #374151; }
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7280;
+}
+
+.empty-state .material-symbols-outlined {
+    font-size: 48px;
+    color: #d1d5db;
+    margin-bottom: 12px;
+}
+
+.selection-summary {
+    background: #f0fdf4;
+    border: 2px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.summary-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #166534;
+}
+
+.summary-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #15803d;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn .material-symbols-outlined { font-size: 18px; }
+
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.btn-secondary:hover { background: #e5e7eb; }
+
+.loading {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #d1d5db;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+    .container-form { padding: 16px; }
+    .card { padding: 20px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .filter-actions { flex-direction: column; }
+    .btn { width: 100%; justify-content: center; }
+    .avaluos-header { flex-direction: column; align-items: stretch; }
+    .select-all-btn { width: 100%; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-form">
+    
+    <div class="page-header-form">
+        <a href="{% url 'planillas_contratistas_lista' %}" class="back-btn">
+            <span class="material-symbols-outlined">arrow_back</span>
+            Volver
+        </a>
+        <h1 class="page-title-form">Nueva Planilla de Contratistas</h1>
+    </div>
+    
+    <div class="info-box">
+        <span class="material-symbols-outlined">info</span>
+        <div class="info-box-content">
+            <h4>Tipo de Cambio Actual</h4>
+            <p>C$ {{ tipo_cambio|floatformat:4 }} por dólar (BCN)</p>
+        </div>
+    </div>
+    
+    <form method="POST" id="planillaForm">
+        {% csrf_token %}
+        
+        <div class="card" id="cardInformacionGeneral">
+            <h3 class="section-title">
+                <span class="material-symbols-outlined">info</span>
+                Información de la Planilla
+            </h3>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Proyecto <span class="required">*</span></label>
+                    <select name="proyecto" id="proyectoGeneral" class="form-select" required>
+                        <option value="">Selecciona un proyecto</option>
+                        {% for proyecto in proyectos %}
+                        <option value="{{ proyecto.id }}" {% if proyecto_seleccionado == proyecto.id|stringformat:"s" %}selected{% endif %}>
+                            {{ proyecto.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Período Inicio <span class="required">*</span></label>
+                    <input type="date" name="periodo_inicio" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Período Fin <span class="required">*</span></label>
+                    <input type="date" name="periodo_fin" class="form-input" required>
+                </div>
+            </div>
+            
+            <!-- Filtro opcional por contratista -->
+            <div class="form-grid" style="margin-top: 20px;" id="grupoFiltroContratista">
+                <div class="form-group">
+                    <label>
+                        Filtrar por Contratista (opcional)
+                        <span class="loading" id="loadingContratistas" style="display: none;"></span>
+                    </label>
+                    <select class="form-select" id="filtroContratista" disabled>
+                        <option value="">Primero selecciona un proyecto</option>
+                    </select>
+                    <small style="color: #6b7280; font-size: 12px; margin-top: 4px; display: block;">
+                        💡 Deja en blanco para ver todos los contratistas del proyecto
+                    </small>
+                </div>
+                
+                <div class="form-group" style="display: flex; align-items: flex-end;">
+                    <button type="button" class="btn btn-primary" onclick="aplicarFiltros()" style="width: 100%;">
+                        <span class="material-symbols-outlined">search</span>
+                        Ver Avalúos
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="avaluos-header">
+                <h3 class="section-title" style="margin: 0;">
+                    <span class="material-symbols-outlined">playlist_add_check</span>
+                    Avalúos Disponibles 
+                    {% if filtros_activos %}({{ avaluos_disponibles.count }}){% endif %}
+                </h3>
+                {% if avaluos_disponibles %}
+                <button type="button" class="select-all-btn" onclick="toggleSelectAll()">
+                    Seleccionar Todos
+                </button>
+                {% endif %}
+            </div>
+            
+            {% if not filtros_activos %}
+            <!-- Mensaje inicial: Sin filtros -->
+            <div class="empty-state">
+                <span class="material-symbols-outlined">filter_alt</span>
+                <h3>Selecciona un filtro para ver avalúos disponibles</h3>
+                <p>Usa los filtros de arriba para buscar avalúos por proyecto o contratista.</p>
+            </div>
+            
+            {% elif avaluos_disponibles %}
+            <!-- Lista de avalúos -->
+            <div class="avaluos-grid">
+                {% for avaluo in avaluos_disponibles %}
+                <div class="avaluo-item" onclick="toggleAvaluo(this, {{ avaluo.id }})">
+                    <div class="avaluo-checkbox">
+                        <input type="checkbox" name="avaluos" value="{{ avaluo.id }}" id="avaluo_{{ avaluo.id }}" onclick="event.stopPropagation();">
+                        <div class="avaluo-info">
+                            <div class="avaluo-header-info">
+                                <div>
+                                    <span class="avaluo-code">{{ avaluo.codigo }}</span>
+                                    <span class="avaluo-badge {{ avaluo.estado }}">{{ avaluo.get_estado_display }}</span>
+                                </div>
+                                <span class="avaluo-amount">C$ {{ avaluo.monto_cordobas|floatformat:2 }}</span>
+                            </div>
+                            <div class="avaluo-details">
+                                <strong>Contratista:</strong> {{ avaluo.contrato.contratista.nombre_completo }}<br>
+                                <strong>Proyecto:</strong> {{ avaluo.contrato.proyecto.nombre }}<br>
+                                <strong>Concepto:</strong> {{ avaluo.concepto|truncatewords:15 }}<br>
+                                <strong>Fecha:</strong> {{ avaluo.fecha_pago|date:"d/m/Y" }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="selection-summary">
+                <span class="summary-label">Avalúos seleccionados:</span>
+                <span class="summary-value" id="selectedCount">0</span>
+            </div>
+            
+            {% else %}
+            <!-- Sin resultados con filtros activos -->
+            <div class="empty-state">
+                <span class="material-symbols-outlined">inbox</span>
+                <h3>No hay avalúos disponibles</h3>
+                <p>No se encontraron avalúos con los filtros seleccionados.</p>
+                <button type="button" class="btn btn-secondary" onclick="limpiarFiltros()" style="margin-top: 16px;">
+                    <span class="material-symbols-outlined">refresh</span>
+                    Limpiar Filtros
+                </button>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-actions">
+            <a href="{% url 'planillas_contratistas_lista' %}" class="btn btn-secondary">
+                <span class="material-symbols-outlined">close</span>
+                Cancelar
+            </a>
+            <button type="submit" class="btn btn-primary" {% if not avaluos_disponibles %}disabled{% endif %}>
+                <span class="material-symbols-outlined">check</span>
+                Crear Planilla
+            </button>
+        </div>
+        
+    </form>
+    
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ============================================
+// SINCRONIZACIÓN AUTOMÁTICA: Proyecto → Avalúos
+// ============================================
+
+document.getElementById('proyectoGeneral').addEventListener('change', function() {
+    const proyectoId = this.value;
+    const selectContratista = document.getElementById('filtroContratista');
+    const loading = document.getElementById('loadingContratistas');
+    
+    if (!proyectoId) {
+        selectContratista.disabled = true;
+        selectContratista.innerHTML = '<option value="">Primero selecciona un proyecto</option>';
+        return;
+    }
+    
+    // Cargar contratistas del proyecto (AJAX)
+    loading.style.display = 'inline-block';
+    selectContratista.disabled = true;
+    selectContratista.innerHTML = '<option value="">Cargando...</option>';
+    
+    fetch(`{% url 'api_contratistas_proyecto' %}?proyecto_id=${proyectoId}`)
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            selectContratista.disabled = false;
+            
+            let options = '<option value="">Todos los contratistas</option>';
+            data.contratistas.forEach(c => {
+                options += `<option value="${c.id}">${c.nombre}</option>`;
+            });
+            
+            selectContratista.innerHTML = options;
+            
+            if (data.contratistas.length === 0) {
+                selectContratista.innerHTML = '<option value="">No hay contratistas con avalúos</option>';
+                selectContratista.disabled = true;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            loading.style.display = 'none';
+            selectContratista.innerHTML = '<option value="">Error al cargar</option>';
+        });
+});
+
+// ============================================
+// APLICAR Y LIMPIAR FILTROS
+// ============================================
+
+function aplicarFiltros() {
+    const proyecto = document.getElementById('proyectoGeneral').value;
+    const contratista = document.getElementById('filtroContratista').value;
+    
+    if (!proyecto) {
+        alert('⚠️ Primero selecciona un proyecto');
+        return;
+    }
+    
+    const params = new URLSearchParams();
+    params.set('proyecto', proyecto);
+    if (contratista) params.set('contratista', contratista);
+    
+    window.location.href = '?' + params.toString();
+}
+
+function limpiarFiltros() {
+    window.location.href = window.location.pathname;
+}
+
+// ============================================
+// SELECCIÓN DE AVALÚOS
+// ============================================
+
+function toggleAvaluo(element, avaluoId) {
+    const checkbox = element.querySelector('input[type="checkbox"]');
+    checkbox.checked = !checkbox.checked;
+    element.classList.toggle('selected', checkbox.checked);
+    updateSelectedCount();
+}
+
+function toggleSelectAll() {
+    const checkboxes = document.querySelectorAll('input[name="avaluos"]');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = !allChecked;
+        checkbox.closest('.avaluo-item').classList.toggle('selected', checkbox.checked);
+    });
+    
+    updateSelectedCount();
+    
+    const btn = document.querySelector('.select-all-btn');
+    if (btn) {
+        btn.textContent = allChecked ? 'Seleccionar Todos' : 'Deseleccionar Todos';
+    }
+}
+
+function updateSelectedCount() {
+    const count = document.querySelectorAll('input[name="avaluos"]:checked').length;
+    const countElement = document.getElementById('selectedCount');
+    if (countElement) {
+        countElement.textContent = count;
+    }
+}
+
+// ============================================
+// VALIDACIÓN DEL FORMULARIO
+// ============================================
+
+document.getElementById('planillaForm').addEventListener('submit', function(e) {
+    const proyectoGeneral = document.querySelector('[name="proyecto"]').value;
+    const inicio = document.querySelector('[name="periodo_inicio"]').value;
+    const fin = document.querySelector('[name="periodo_fin"]').value;
+    const avaluosSeleccionados = document.querySelectorAll('input[name="avaluos"]:checked');
+    
+    // Validar proyecto obligatorio
+    if (!proyectoGeneral) {
+        e.preventDefault();
+        alert('⚠️ Debes seleccionar un proyecto');
+        return false;
+    }
+    
+    // Validar fechas
+    if (!inicio || !fin) {
+        e.preventDefault();
+        alert('⚠️ Completa las fechas del período');
+        return false;
+    }
+    
+    if (new Date(fin) < new Date(inicio)) {
+        e.preventDefault();
+        alert('⚠️ La fecha de fin no puede ser anterior al inicio');
+        return false;
+    }
+    
+    // Validar avalúos seleccionados
+    if (avaluosSeleccionados.length === 0) {
+        e.preventDefault();
+        alert('⚠️ Selecciona al menos un avalúo');
+        return false;
+    }
+    
+    // Confirmación final
+    const proyectoNombre = document.querySelector('[name="proyecto"] option:checked').text;
+    const confirmacion = confirm(
+        '¿Confirmas crear la planilla?\n\n' +
+        '📋 Proyecto: ' + proyectoNombre + '\n' +
+        '📅 Período: ' + inicio + ' al ' + fin + '\n' +
+        '✅ Avalúos: ' + avaluosSeleccionados.length
+    );
+    
+    return confirmacion;
+});
+
+// ============================================
+// INICIALIZACIÓN
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Si hay proyecto seleccionado en URL, cargar contratistas
+    const urlParams = new URLSearchParams(window.location.search);
+    const proyectoId = urlParams.get('proyecto');
+    
+    if (proyectoId) {
+        const selectProyecto = document.getElementById('proyectoGeneral');
+        selectProyecto.value = proyectoId;
+        selectProyecto.dispatchEvent(new Event('change'));
+    }
+});
+</script>
+{% endblock %}

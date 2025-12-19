@@ -1,0 +1,1288 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ planilla.codigo }} - Detalle de Planilla{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+.container-detalle {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+    gap: 20px;
+}
+
+.header-left {
+    flex: 1;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #6b7280;
+    text-decoration: none;
+    font-size: 14px;
+    margin-bottom: 12px;
+    transition: color 0.2s;
+}
+
+.back-link:hover {
+    color: #3b82f6;
+}
+
+.page-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-title .material-symbols-outlined {
+    font-size: 36px;
+    color: #3b82f6;
+}
+
+.page-subtitle {
+    font-size: 16px;
+    color: #6b7280;
+    margin: 0;
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+    white-space: nowrap;
+}
+
+.btn .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-success {
+    background: #10b981;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+}
+
+.btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+/* Badge de Estado */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.status-badge .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.badge-yellow {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #92400e;
+    border: 2px solid #fbbf24;
+}
+
+.badge-blue {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #1e40af;
+    border: 2px solid #60a5fa;
+}
+
+.badge-purple {
+    background: linear-gradient(135deg, #e9d5ff 0%, #d8b4fe 100%);
+    color: #6b21a8;
+    border: 2px solid #a78bfa;
+}
+
+.badge-green {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    color: #065f46;
+    border: 2px solid #34d399;
+}
+
+/* Info Cards */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+.info-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.info-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.info-card-title .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.info-value {
+    font-size: 14px;
+    color: #111827;
+    font-weight: 600;
+    text-align: right;
+}
+
+/* Stats Cards */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+.stat-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid;
+}
+
+.stat-card.blue {
+    border-left-color: #3b82f6;
+}
+
+.stat-card.green {
+    border-left-color: #10b981;
+}
+
+.stat-card.purple {
+    border-left-color: #8b5cf6;
+}
+
+.stat-card.orange {
+    border-left-color: #f59e0b;
+}
+
+.stat-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+}
+
+/* Timeline de Aprobaciones */
+.timeline-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 32px;
+}
+
+.timeline-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.timeline {
+    position: relative;
+    padding-left: 40px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e5e7eb;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 32px;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -32px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.timeline-marker.active {
+    background: #10b981;
+}
+
+.timeline-marker.pending {
+    background: #d1d5db;
+}
+
+.timeline-marker .material-symbols-outlined {
+    font-size: 16px;
+    color: white;
+}
+
+.timeline-content {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 8px;
+}
+
+.timeline-status {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.timeline-date {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.timeline-user {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.timeline-obs {
+    font-size: 13px;
+    color: #374151;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Table */
+.table-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 32px;
+}
+
+.table-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f9fafb;
+}
+
+.table-header h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.table-container {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead {
+    background: #f9fafb;
+}
+
+th {
+    padding: 12px 24px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+td {
+    padding: 16px 24px;
+    font-size: 14px;
+    color: #374151;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+tbody tr:hover {
+    background: #f9fafb;
+}
+
+.table-footer {
+    padding: 20px 24px;
+    background: #f9fafb;
+    border-top: 2px solid #e2e8f0;
+}
+
+.totals-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.total-item {
+    text-align: center;
+}
+
+.total-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.total-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-container {
+    background: white;
+    border-radius: 16px;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    padding: 24px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-footer {
+    padding: 20px 24px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.form-textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #111827;
+    resize: vertical;
+    font-family: inherit;
+    min-height: 100px;
+}
+
+.form-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .header-actions {
+        width: 100%;
+    }
+    
+    .btn {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .totals-grid {
+        grid-template-columns: 1fr;
+    }
+}
+/* Toast personalizado en la esquina superior derecha */
+.swal2-container.swal2-top-end {
+    z-index: 9999 !important;
+}
+
+/* Personalizar colores de toasts */
+.swal2-popup.swal2-toast {
+    font-size: 16px !important;
+    padding: 16px 20px !important;
+}
+
+.swal2-popup.swal2-toast .swal2-title {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-detalle">
+    
+    <!-- Header -->
+    <div class="page-header">
+        <div class="header-left">
+            <a href="{% url 'planillas_contratistas_lista' %}" class="back-link">
+                <span class="material-symbols-outlined">arrow_back</span>
+                Volver a Planillas
+            </a>
+            <h1 class="page-title">
+                <span class="material-symbols-outlined">description</span>
+                {{ planilla.codigo }}
+            </h1>
+            <p class="page-subtitle">{{ planilla.nombre }}</p>
+        </div>
+        
+        <div class="header-actions">
+            {% if planilla.estado == 'borrador' %}
+            <button onclick="openAprobarModal('gerente')" class="btn btn-success">
+                <span class="material-symbols-outlined">check_circle</span>
+                Aprobar (Gerente)
+            </button>
+            {% elif planilla.estado == 'aprobada_gerente' %}
+            <button onclick="openAprobarModal('contador')" class="btn btn-success">
+                <span class="material-symbols-outlined">verified</span>
+                Aprobar (Contador)
+            </button>
+            {% elif planilla.estado == 'aprobada_contador' %}
+            <button onclick="openPagarModal()" class="btn btn-primary">
+                <span class="material-symbols-outlined">paid</span>
+                Marcar como Pagada
+            </button>
+            {% endif %}
+            
+            {% if planilla.estado in 'borrador,aprobada_gerente' %}
+            <button onclick="openRechazarModal()" class="btn btn-danger">
+                <span class="material-symbols-outlined">cancel</span>
+                Rechazar
+            </button>
+            {% endif %}
+            
+            <a href="{% url 'planillas_contratistas_exportar_excel' planilla.pk %}" class="btn btn-secondary">
+                <span class="material-symbols-outlined">download</span>
+                Exportar Excel
+            </a>
+        </div>
+    </div>
+    
+    <!-- Estado Badge -->
+    <div style="margin-bottom: 24px;">
+        {% if planilla.estado == 'borrador' %}
+        <span class="status-badge badge-yellow">
+            <span class="material-symbols-outlined">draft</span>
+            Borrador
+        </span>
+        {% elif planilla.estado == 'aprobada_gerente' %}
+        <span class="status-badge badge-blue">
+            <span class="material-symbols-outlined">check_circle</span>
+            Aprobada por Gerente
+        </span>
+        {% elif planilla.estado == 'aprobada_contador' %}
+        <span class="status-badge badge-purple">
+            <span class="material-symbols-outlined">verified</span>
+            Aprobada por Contador
+        </span>
+        {% elif planilla.estado == 'pagada' %}
+        <span class="status-badge badge-green">
+            <span class="material-symbols-outlined">paid</span>
+            Pagada
+        </span>
+        {% endif %}
+    </div>
+    
+    <!-- Info Cards -->
+    <div class="info-grid">
+        <div class="info-card">
+            <div class="info-card-title">
+                <span class="material-symbols-outlined">info</span>
+                Información General
+            </div>
+            <div class="info-item">
+                <span class="info-label">Proyecto:</span>
+                <span class="info-value">{{ planilla.proyecto.nombre }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Período:</span>
+                <span class="info-value">{{ planilla.periodo_inicio|date:"d/m/Y" }} - {{ planilla.periodo_fin|date:"d/m/Y" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Tipo de Cambio:</span>
+                <span class="info-value">C$ {{ planilla.tipo_cambio|floatformat:4 }}</span>
+            </div>
+        </div>
+        
+        <div class="info-card">
+            <div class="info-card-title">
+                <span class="material-symbols-outlined">person</span>
+                Generación
+            </div>
+            <div class="info-item">
+                <span class="info-label">Generada por:</span>
+                <span class="info-value">{{ planilla.generada_por.get_full_name|default:planilla.generada_por.username }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Fecha:</span>
+                <span class="info-value">{{ planilla.fecha_generacion|date:"d/m/Y H:i" }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card blue">
+            <div class="stat-label">Total Córdobas</div>
+            <div class="stat-value">C$ {{ planilla.total_cordobas|floatformat:2 }}</div>
+        </div>
+        
+        <div class="stat-card green">
+            <div class="stat-label">Total Dólares</div>
+            <div class="stat-value">$ {{ planilla.total_dolares|floatformat:2 }}</div>
+        </div>
+        
+        <div class="stat-card purple">
+            <div class="stat-label">Cantidad Avalúos</div>
+            <div class="stat-value">{{ detalles.count }}</div>
+        </div>
+        
+        <div class="stat-card orange">
+            <div class="stat-label">Contratistas</div>
+            <div class="stat-value">{{ cantidad_contratistas }}</div>
+        </div>
+    </div>
+    
+    <!-- Timeline de Aprobaciones -->
+    <div class="timeline-card">
+        <h3 class="timeline-title">
+            <span class="material-symbols-outlined">timeline</span>
+            Flujo de Aprobación
+        </h3>
+        
+        <div class="timeline">
+            <!-- Generación -->
+            <div class="timeline-item">
+                <div class="timeline-marker active">
+                    <span class="material-symbols-outlined">add_circle</span>
+                </div>
+                <div class="timeline-content">
+                    <div class="timeline-header">
+                        <span class="timeline-status">Planilla Generada</span>
+                        <span class="timeline-date">{{ planilla.fecha_generacion|date:"d/m/Y H:i" }}</span>
+                    </div>
+                    <div class="timeline-user">
+                        Por: {{ planilla.generada_por.get_full_name|default:planilla.generada_por.username }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Aprobación Gerente -->
+            <div class="timeline-item">
+                <div class="timeline-marker {% if planilla.aprobada_gerente_por %}active{% else %}pending{% endif %}">
+                    <span class="material-symbols-outlined">{% if planilla.aprobada_gerente_por %}check_circle{% else %}radio_button_unchecked{% endif %}</span>
+                </div>
+                <div class="timeline-content">
+                    <div class="timeline-header">
+                        <span class="timeline-status">Aprobación Gerente</span>
+                        {% if planilla.fecha_aprobacion_gerente %}
+                        <span class="timeline-date">{{ planilla.fecha_aprobacion_gerente|date:"d/m/Y H:i" }}</span>
+                        {% endif %}
+                    </div>
+                    {% if planilla.aprobada_gerente_por %}
+                    <div class="timeline-user">
+                        Por: {{ planilla.aprobada_gerente_por.get_full_name|default:planilla.aprobada_gerente_por.username }}
+                    </div>
+                    {% if planilla.observaciones %}
+                    <div class="timeline-obs">
+                        <strong>Observaciones:</strong> {{ planilla.observaciones }}
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="timeline-user" style="color: #9ca3af;">Pendiente</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Aprobación Contador -->
+            <div class="timeline-item">
+                <div class="timeline-marker {% if planilla.aprobada_contador_por %}active{% else %}pending{% endif %}">
+                    <span class="material-symbols-outlined">{% if planilla.aprobada_contador_por %}verified{% else %}radio_button_unchecked{% endif %}</span>
+                </div>
+                <div class="timeline-content">
+                    <div class="timeline-header">
+                        <span class="timeline-status">Aprobación Contador</span>
+                        {% if planilla.fecha_aprobacion_contador %}
+                        <span class="timeline-date">{{ planilla.fecha_aprobacion_contador|date:"d/m/Y H:i" }}</span>
+                        {% endif %}
+                    </div>
+                    {% if planilla.aprobada_contador_por %}
+                    <div class="timeline-user">
+                        Por: {{ planilla.aprobada_contador_por.get_full_name|default:planilla.aprobada_contador_por.username }}
+                    </div>
+                    {% else %}
+                    <div class="timeline-user" style="color: #9ca3af;">Pendiente</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Pagada -->
+            <div class="timeline-item">
+                <div class="timeline-marker {% if planilla.estado == 'pagada' %}active{% else %}pending{% endif %}">
+                    <span class="material-symbols-outlined">{% if planilla.estado == 'pagada' %}paid{% else %}radio_button_unchecked{% endif %}</span>
+                </div>
+                <div class="timeline-content">
+                    <div class="timeline-header">
+                        <span class="timeline-status">Pago Realizado</span>
+                    </div>
+                    {% if planilla.estado == 'pagada' %}
+                    <div class="timeline-user">Planilla pagada</div>
+                    {% else %}
+                    <div class="timeline-user" style="color: #9ca3af;">Pendiente</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabla de Detalles -->
+    <div class="table-card">
+        <div class="table-header">
+            <h3>
+                <span class="material-symbols-outlined">list</span>
+                Detalles de la Planilla ({{ detalles.count }} avalúos)
+            </h3>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Código Avalúo</th>
+                        <th>Contratista</th>
+                        <th>Cédula</th>
+                        <th>Actividad</th>
+                        <th>Forma de Pago</th>
+                        <th>Monto C$</th>
+                        <th>Monto $</th>
+                        <th>Banco</th>
+                        <th>Cuenta</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detalle in detalles %}
+                    <tr>
+                        <td><strong>{{ detalle.avaluo.codigo }}</strong></td>
+                        <td>{{ detalle.contratista_nombre }}</td>
+                        <td>{{ detalle.contratista_cedula }}</td>
+                        <td>{{ detalle.actividad|truncatewords:10 }}</td>
+                        <td>{{ detalle.forma_pago }}</td>
+                        <td>C$ {{ detalle.monto_cordobas|floatformat:2 }}</td>
+                        <td>$ {{ detalle.monto_dolares|floatformat:2 }}</td>
+                        <td>{{ detalle.banco|default:"-" }}</td>
+                        <td>{{ detalle.numero_cuenta|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; color: #6b7280; padding: 40px;">
+                            No hay detalles en esta planilla
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div style="display: flex; justify-content: space-around; margin-top: 20px; padding: 16px; background: #f9fafb; border-radius: 8px;">
+            <div style="text-align: center;">
+                <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">TOTAL TRANSFERENCIA</div>
+                <div style="font-size: 18px; font-weight: 700; color: #059669;">C$ {{ total_transferencia_cordobas|floatformat:2 }}</div>
+                <div style="font-size: 14px; color: #6b7280;">$ {{ total_transferencia_dolares|floatformat:2 }}</div>
+            </div>
+            
+            <div style="text-align: center;">
+                <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">TOTAL EFECTIVO</div>
+                <div style="font-size: 18px; font-weight: 700; color: #0891b2;">C$ {{ total_efectivo_cordobas|floatformat:2 }}</div>
+                <div style="font-size: 14px; color: #6b7280;">$ {{ total_efectivo_dolares|floatformat:2 }}</div>
+            </div>
+            
+            <div style="text-align: center;">
+                <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">TOTAL CHEQUE</div>
+                <div style="font-size: 18px; font-weight: 700; color: #7c3aed;">C$ {{ total_cheque_cordobas|floatformat:2 }}</div>
+                <div style="font-size: 14px; color: #6b7280;">$ {{ total_cheque_dolares|floatformat:2 }}</div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<!-- Modal Aprobar Gerente -->
+<div class="modal-overlay" id="modalAprobarGerente">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <span class="material-symbols-outlined" style="color: #10b981;">check_circle</span>
+                Aprobar Planilla (Gerente)
+            </h3>
+        </div>
+        <form method="POST" action="{% url 'planillas_contratistas_aprobar_gerente' planilla.pk %}">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Observaciones (opcional)</label>
+                    <textarea name="observaciones" class="form-textarea" placeholder="Agrega observaciones sobre esta aprobación..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeModal('modalAprobarGerente')" class="btn btn-secondary">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-success">
+                    <span class="material-symbols-outlined">check_circle</span>
+                    Aprobar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Aprobar Contador -->
+<div class="modal-overlay" id="modalAprobarContador">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <span class="material-symbols-outlined" style="color: #8b5cf6;">verified</span>
+                Aprobar Planilla (Contador)
+            </h3>
+        </div>
+        <form method="POST" action="{% url 'planillas_contratistas_aprobar_contador' planilla.pk %}">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Observaciones (opcional)</label>
+                    <textarea name="observaciones" class="form-textarea" placeholder="Agrega observaciones sobre esta aprobación..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeModal('modalAprobarContador')" class="btn btn-secondary">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-success">
+                    <span class="material-symbols-outlined">verified</span>
+                    Aprobar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Marcar como Pagada -->
+<div class="modal-overlay" id="modalPagar">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <span class="material-symbols-outlined" style="color: #3b82f6;">paid</span>
+                Marcar como Pagada
+            </h3>
+        </div>
+        <form method="POST" action="{% url 'planillas_contratistas_marcar_pagada' planilla.pk %}">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p style="font-size: 14px; color: #374151; line-height: 1.6;">
+                    ¿Estás seguro de marcar esta planilla como pagada? Esto actualizará el estado de todos los avalúos incluidos.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeModal('modalPagar')" class="btn btn-secondary">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <span class="material-symbols-outlined">paid</span>
+                    Confirmar Pago
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Rechazar -->
+<div class="modal-overlay" id="modalRechazar">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <span class="material-symbols-outlined" style="color: #ef4444;">cancel</span>
+                Rechazar Planilla
+            </h3>
+        </div>
+        <form method="POST" action="#" id="formRechazar">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Motivo de Rechazo <span style="color: #ef4444;">*</span></label>
+                    <textarea name="motivo" class="form-textarea" placeholder="Explica el motivo del rechazo..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeModal('modalRechazar')" class="btn btn-secondary">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-danger">
+                    <span class="material-symbols-outlined">cancel</span>
+                    Rechazar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openAprobarModal(tipo) {
+    if (tipo === 'gerente') {
+        document.getElementById('modalAprobarGerente').classList.add('active');
+    } else if (tipo === 'contador') {
+        document.getElementById('modalAprobarContador').classList.add('active');
+    }
+}
+
+function openPagarModal() {
+    document.getElementById('modalPagar').classList.add('active');
+}
+
+function openRechazarModal() {
+    document.getElementById('modalRechazar').classList.add('active');
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+}
+
+// Cerrar modal al hacer click fuera
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.classList.remove('active');
+        }
+    });
+});
+
+// Cerrar modal con tecla ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.classList.remove('active');
+        });
+    }
+});
+
+// ============================================
+// CONFIGURACIÓN DE SWEETALERT2
+// ============================================
+
+const Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 5000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+        toast.addEventListener('mouseenter', Swal.stopTimer)
+        toast.addEventListener('mouseleave', Swal.resumeTimer)
+    }
+});
+
+// ============================================
+// MOSTRAR MENSAJES DE DJANGO
+// ============================================
+
+{% if messages %}
+    {% for message in messages %}
+        {% if message.tags == 'success' %}
+            Toast.fire({
+                icon: 'success',
+                title: '{{ message|escapejs }}',
+                background: '#10b981',
+                color: '#ffffff'
+            });
+        {% elif message.tags == 'error' %}
+            Toast.fire({
+                icon: 'error',
+                title: '{{ message|escapejs }}',
+                background: '#ef4444',
+                color: '#ffffff'
+            });
+        {% elif message.tags == 'warning' %}
+            Toast.fire({
+                icon: 'warning',
+                title: '{{ message|escapejs }}',
+                background: '#f59e0b',
+                color: '#ffffff'
+            });
+        {% elif message.tags == 'info' %}
+            Toast.fire({
+                icon: 'info',
+                title: '{{ message|escapejs }}',
+                background: '#3b82f6',
+                color: '#ffffff'
+            });
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
+// ============================================
+// CONFIRMACIÓN PARA APROBAR GERENTE
+// ============================================
+
+function confirmarAprobacionGerente() {
+    Swal.fire({
+        title: '¿Aprobar como Gerente?',
+        html: `
+            <div style="text-align: left; padding: 10px;">
+                <p style="margin-bottom: 12px;">Estás a punto de aprobar la planilla:</p>
+                <div style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                    <strong>📋 Planilla:</strong> {{ planilla.codigo }}<br>
+                    <strong>💰 Total:</strong> C$ {{ planilla.total_cordobas|floatformat:2 }}<br>
+                    <strong>📅 Período:</strong> {{ planilla.periodo_inicio|date:"d/m/Y" }} - {{ planilla.periodo_fin|date:"d/m/Y" }}
+                </div>
+                <p style="color: #6b7280; font-size: 14px;">Después de aprobar, la planilla pasará al contador para su revisión.</p>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: '✅ Sí, Aprobar',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('formAprobarGerente').submit();
+        }
+    });
+    return false;
+}
+
+// ============================================
+// CONFIRMACIÓN PARA APROBAR CONTADOR
+// ============================================
+
+function confirmarAprobacionContador() {
+    Swal.fire({
+        title: '¿Aprobar como Contador?',
+        html: `
+            <div style="text-align: left; padding: 10px;">
+                <p style="margin-bottom: 12px;">Estás a punto de aprobar la planilla:</p>
+                <div style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                    <strong>📋 Planilla:</strong> {{ planilla.codigo }}<br>
+                    <strong>💰 Total:</strong> C$ {{ planilla.total_cordobas|floatformat:2 }}<br>
+                    <strong>📅 Período:</strong> {{ planilla.periodo_inicio|date:"d/m/Y" }} - {{ planilla.periodo_fin|date:"d/m/Y" }}
+                </div>
+                <p style="color: #6b7280; font-size: 14px;">Después de aprobar, la planilla estará lista para ser marcada como pagada.</p>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: '✅ Sí, Aprobar',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('formAprobarContador').submit();
+        }
+    });
+    return false;
+}
+
+// ============================================
+// CONFIRMACIÓN PARA MARCAR COMO PAGADA
+// ============================================
+
+function confirmarPago() {
+    Swal.fire({
+        title: '¿Marcar como Pagada?',
+        html: `
+            <div style="text-align: left; padding: 10px;">
+                <p style="margin-bottom: 12px;">Estás a punto de marcar como pagada la planilla:</p>
+                <div style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                    <strong>📋 Planilla:</strong> {{ planilla.codigo }}<br>
+                    <strong>💰 Total:</strong> C$ {{ planilla.total_cordobas|floatformat:2 }}<br>
+                    <strong>💵 Total USD:</strong> $ {{ planilla.total_dolares|floatformat:2 }}<br>
+                    <strong>👥 Contratistas:</strong> {{ cantidad_contratistas }}
+                </div>
+                <p style="color: #dc2626; font-size: 14px; font-weight: 600;">⚠️ Esta acción actualizará el estado de todos los avalúos incluidos.</p>
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: '💰 Sí, Marcar como Pagada',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('formMarcarPagada').submit();
+        }
+    });
+    return false;
+}
+
+// ============================================
+// CONFIRMACIÓN PARA RECHAZAR
+// ============================================
+
+function confirmarRechazo() {
+    Swal.fire({
+        title: '¿Rechazar Planilla?',
+        html: `
+            <div style="text-align: left; padding: 10px;">
+                <p style="margin-bottom: 12px;">Ingresa el motivo del rechazo:</p>
+                <textarea 
+                    id="motivoRechazo" 
+                    class="swal2-textarea" 
+                    placeholder="Ejemplo: Falta soporte del avalúo AV1225-003..."
+                    style="width: 100%; min-height: 100px; font-size: 14px;"
+                ></textarea>
+            </div>
+        `,
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: '❌ Rechazar',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true,
+        preConfirm: () => {
+            const motivo = document.getElementById('motivoRechazo').value;
+            if (!motivo) {
+                Swal.showValidationMessage('Debes ingresar un motivo');
+                return false;
+            }
+            return motivo;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Crear input hidden con el motivo
+            const form = document.getElementById('formRechazar');
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'motivo_rechazo';
+            input.value = result.value;
+            form.appendChild(input);
+            form.submit();
+        }
+    });
+    return false;
+}
+
+</script>
+{% endblock %}

@@ -98,3 +98,35 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
 });
+
+// ===================================
+// FUNCIÓN PARA TOGGLE DEL SUBMENÚ
+// ===================================
+
+// Al final del archivo dashboard.js
+
+function toggleSubmenu(element) {
+    element.classList.toggle('open');
+    const submenu = element.nextElementSibling;
+    submenu.classList.toggle('open');
+    
+    // Cerrar otros submenus
+    const allParents = document.querySelectorAll('.nav-item-parent');
+    allParents.forEach(parent => {
+        if (parent !== element && parent.classList.contains('open')) {
+            parent.classList.remove('open');
+            parent.nextElementSibling.classList.remove('open');
+        }
+    });
+}
+
+// Auto-abrir si hay página activa
+document.addEventListener('DOMContentLoaded', function() {
+    const activeSubitem = document.querySelector('.nav-subitem.active');
+    if (activeSubitem) {
+        const submenu = activeSubitem.closest('.nav-submenu');
+        const parent = submenu.previousElementSibling;
+        parent.classList.add('open');
+        submenu.classList.add('open');
+    }
+});

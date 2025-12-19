@@ -1,0 +1,611 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Planilla {{ planilla.codigo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .info-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .info-card .card-header {
+        background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+        border-bottom: 2px solid #e5e7eb;
+        padding: 1.25rem;
+    }
+    
+    .info-card h5 {
+        color: #374151;
+        font-weight: 700;
+        font-size: 1rem;
+        margin: 0;
+    }
+    
+    .info-item label {
+        color: #6b7280;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+    
+    .info-item .value {
+        color: #111827;
+        font-weight: 600;
+        font-size: 0.9375rem;
+    }
+    
+    .status-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border: none;
+    }
+    
+    .badge {
+        padding: 0.625rem 1.25rem;
+        font-weight: 600;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .badge.bg-secondary { background: #6b7280 !important; }
+    .badge.bg-info { background: #3b82f6 !important; }
+    .badge.bg-warning { background: #f59e0b !important; color: #000; }
+    .badge.bg-success { background: #10b981 !important; }
+    .badge.bg-danger { background: #ef4444 !important; }
+    
+    .btn-aprobar {
+        width: 100%;
+        padding: 0.75rem;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s;
+        border: none;
+    }
+    
+    .btn-aprobar:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .btn-info {
+        background: #3b82f6;
+        color: white;
+    }
+    
+    .btn-info:hover {
+        background: #2563eb;
+        color: white;
+    }
+    
+    .btn-warning {
+        background: #f59e0b;
+        color: #000;
+    }
+    
+    .btn-warning:hover {
+        background: #d97706;
+    }
+    
+    .btn-success {
+        background: #10b981;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background: #059669;
+        color: white;
+    }
+    
+    .resumen-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .resumen-card .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+    }
+    
+    .resumen-table {
+        margin-bottom: 0;
+    }
+    
+    .resumen-table thead th {
+        background: #374151;
+        color: white;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        padding: 1rem;
+        border: none;
+    }
+    
+    .resumen-table tbody tr {
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .resumen-table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+    }
+    
+    .resumen-table tfoot {
+        background: #f3f4f6;
+        font-weight: 700;
+    }
+    
+    .resumen-table tfoot td {
+        padding: 1rem;
+        font-size: 1.125rem;
+        color: #111827;
+    }
+    
+    .tipo-cambio-box {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        border-left: 4px solid #3b82f6;
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+    }
+    
+    .detalle-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .detalle-card .card-header {
+        background: #1f2937;
+        color: white;
+        padding: 1.25rem;
+    }
+    
+    .contratista-block {
+        background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s;
+    }
+    
+    .contratista-block:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        transform: translateY(-2px);
+    }
+    
+    .contratista-header {
+        color: #667eea;
+        font-weight: 700;
+        font-size: 1.125rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .contrato-block {
+        background: white;
+        border-left: 4px solid #3b82f6;
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-left: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    
+    .contrato-header {
+        color: #3b82f6;
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .avaluos-table {
+        font-size: 0.875rem;
+        margin-bottom: 0;
+    }
+    
+    .avaluos-table thead {
+        background: #f9fafb;
+    }
+    
+    .avaluos-table thead th {
+        color: #6b7280;
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 0.75rem 1rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .avaluos-table tbody td {
+        padding: 0.875rem 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .avaluos-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .forma-pago-badge {
+        padding: 0.375rem 0.875rem;
+        font-size: 0.75rem;
+        border-radius: 6px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    
+    .forma-pago-badge.transferencia {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .forma-pago-badge.efectivo {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .forma-pago-badge.cheque {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .totales-row {
+        background: #f9fafb;
+        border-top: 2px solid #e5e7eb;
+        font-weight: 600;
+        color: #111827;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <!-- Encabezado -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-2 d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined">description</span>
+                    Planilla {{ planilla.codigo }}
+                </h1>
+                <p class="mb-0 opacity-90">{{ planilla.nombre }}</p>
+            </div>
+            <a href="{% url 'planillas_contratistas_lista' %}" class="btn btn-light">
+                <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 18px;">arrow_back</span>
+                Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Información y Estado -->
+    <div class="row mb-4">
+        <!-- Card Información -->
+        <div class="col-md-8">
+            <div class="card info-card">
+                <div class="card-header">
+                    <h5 class="d-flex align-items-center gap-2">
+                        <span class="material-symbols-outlined">info</span>
+                        Información de la Planilla
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label>Proyecto</label>
+                                <div class="value">{{ planilla.proyecto.nombre }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label>Período</label>
+                                <div class="value">
+                                    {{ planilla.periodo_inicio|date:"d/m/Y" }} - {{ planilla.periodo_fin|date:"d/m/Y" }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label>Creado por</label>
+                                <div class="value">{{ planilla.creado_por.get_full_name|default:planilla.creado_por.username }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label>Fecha de Creación</label>
+                                <div class="value">{{ planilla.creado_en|date:"d/m/Y H:i" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card Estado y Acciones -->
+        <div class="col-md-4">
+            <div class="card status-card">
+                <div class="card-body">
+                    <h5 class="mb-3 d-flex align-items-center gap-2">
+                        <span class="material-symbols-outlined">workflow</span>
+                        Estado y Acciones
+                    </h5>
+                    
+                    <!-- Estado -->
+                    <div class="mb-4">
+                        <label class="text-muted small fw-bold mb-2 d-block">ESTADO ACTUAL</label>
+                        {% if planilla.estado == 'borrador' %}
+                        <span class="badge bg-secondary">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">edit</span>
+                            Borrador
+                        </span>
+                        {% elif planilla.estado == 'aprobada_gerente' %}
+                        <span class="badge bg-info">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">verified_user</span>
+                            Aprobada Gerente
+                        </span>
+                        {% elif planilla.estado == 'aprobada_contador' %}
+                        <span class="badge bg-warning">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">check_circle</span>
+                            Aprobada Contador
+                        </span>
+                        {% elif planilla.estado == 'pagada' %}
+                        <span class="badge bg-success">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">payments</span>
+                            Pagada
+                        </span>
+                        {% elif planilla.estado == 'anulada' %}
+                        <span class="badge bg-danger">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">cancel</span>
+                            Anulada
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="d-flex flex-column gap-2">
+                        {% if planilla.estado == 'borrador' %}
+                        <form method="post" action="{% url 'planilla_contratista_aprobar_gerente' planilla.pk %}" onsubmit="return confirm('¿Aprobar esta planilla como GERENTE?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-info btn-aprobar">
+                                <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 18px;">check_circle</span>
+                                Aprobar Gerente
+                            </button>
+                        </form>
+                        {% endif %}
+
+                        {% if planilla.estado == 'borrador' or planilla.estado == 'aprobada_gerente' %}
+                        <form method="post" action="{% url 'planilla_contratista_aprobar_contador' planilla.pk %}" onsubmit="return confirm('¿Aprobar esta planilla como CONTADOR?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-warning btn-aprobar">
+                                <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 18px;">verified</span>
+                                Aprobar Contador
+                            </button>
+                        </form>
+                        {% endif %}
+
+                        {% if planilla.estado == 'aprobada_contador' %}
+                        <form method="post" action="{% url 'planilla_contratista_marcar_pagada' planilla.pk %}" onsubmit="return confirm('¿Marcar esta planilla como PAGADA?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success btn-aprobar">
+                                <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 18px;">payments</span>
+                                Marcar como Pagada
+                            </button>
+                        </form>
+                        {% endif %}
+
+                        <!-- Botón Exportar Excel -->
+                        <button class="btn btn-outline-success btn-aprobar" disabled>
+                            <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 18px;">download</span>
+                            Exportar Excel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESUMEN POR ÁREA -->
+    <div class="card resumen-card mb-4">
+        <div class="card-header">
+            <h5 class="mb-1 d-flex align-items-center gap-2">
+                <span class="material-symbols-outlined">summarize</span>
+                RESUMEN - PROYECTO {{ planilla.proyecto.nombre|upper }}
+            </h5>
+            <div class="small opacity-90">PLANILLA DE PAGOS</div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <strong>FECHA:</strong> {{ planilla.creado_en|date:"d \d\e F \d\e Y" }}
+                </div>
+                <div class="col-md-6 text-end">
+                    <strong>PERÍODO:</strong> {{ planilla.periodo_inicio|date:"d/m/Y" }} AL {{ planilla.periodo_fin|date:"d/m/Y" }}
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table resumen-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">N°</th>
+                            <th>Área</th>
+                            <th class="text-end" style="width: 200px;">Salario Total</th>
+                            <th class="text-end" style="width: 200px;">Total en Dólar Proyecto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="text-center"><strong>1</strong></td>
+                            <td><strong>SUB-CONTRATISTA</strong></td>
+                            <td class="text-end"><strong>C$ {{ planilla.total_cordobas|floatformat:2 }}</strong></td>
+                            <td class="text-end"><strong>$ {{ planilla.total_dolares|floatformat:2 }}</strong></td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2"><strong>TOTAL CÓRDOBAS</strong></td>
+                            <td colspan="2" class="text-end"><strong>C$ {{ planilla.total_cordobas|floatformat:2 }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2"><strong>TOTAL DÓLARES</strong></td>
+                            <td colspan="2" class="text-end"><strong>$ {{ planilla.total_dolares|floatformat:2 }}</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="tipo-cambio-box mt-3">
+                <strong>
+                    <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 18px;">currency_exchange</span>
+                    Tasa de Cambio BCN:
+                </strong>
+                <span class="fs-5 ms-2">{{ tipo_cambio|floatformat:4 }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- DETALLE POR CONTRATISTA → CONTRATO → AVALÚOS -->
+    <div class="card detalle-card">
+        <div class="card-header">
+            <h5 class="mb-0 d-flex align-items-center gap-2">
+                <span class="material-symbols-outlined">list</span>
+                DETALLE DE PAGOS - SUB-CONTRATISTA
+            </h5>
+        </div>
+        <div class="card-body p-4">
+            {% if contratistas_data %}
+                {% for contratista_data in contratistas_data %}
+                <!-- Contratista -->
+                <div class="contratista-block">
+                    <div class="contratista-header">
+                        <span class="material-symbols-outlined">person</span>
+                        {{ contratista_data.contratista.nombre_completo }}
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <span class="text-muted small">Cédula:</span>
+                            <strong class="ms-2">{{ contratista_data.contratista.numero_cedula }}</strong>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <span class="badge" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-size: 1rem; padding: 0.5rem 1rem;">
+                                Total: C$ {{ contratista_data.total_cordobas|floatformat:2 }} / $ {{ contratista_data.total_dolares|floatformat:2 }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Contratos del Contratista -->
+                    {% for contrato_data in contratista_data.contratos %}
+                    <div class="contrato-block">
+                        <div class="contrato-header">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">description</span>
+                            Contrato: {{ contrato_data.contrato.descripcion }}
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <span class="text-muted small">Período:</span>
+                                <span class="ms-2">{{ contrato_data.contrato.fecha_inicio|date:"d/m/Y" }} - {{ contrato_data.contrato.fecha_fin|date:"d/m/Y" }}</span>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <strong class="text-primary">Subtotal: C$ {{ contrato_data.subtotal_cordobas|floatformat:2 }}</strong>
+                            </div>
+                        </div>
+
+                        <!-- Avalúos del Contrato -->
+                        <div class="table-responsive">
+                            <table class="table avaluos-table">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Concepto</th>
+                                        <th>Fecha Pago</th>
+                                        <th class="text-center">% Avance</th>
+                                        <th class="text-end">Monto C$</th>
+                                        <th class="text-end">Monto USD</th>
+                                        <th>Forma Pago</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for avaluo in contrato_data.avaluos %}
+                                    <tr>
+                                        <td><code>{{ avaluo.codigo }}</code></td>
+                                        <td>{{ avaluo.concepto|truncatewords:8 }}</td>
+                                        <td>{{ avaluo.fecha_pago|date:"d/m/Y" }}</td>
+                                        <td class="text-center"><strong>{{ avaluo.porcentaje_avance }}%</strong></td>
+                                        <td class="text-end">C$ {{ avaluo.monto_cordobas|floatformat:2 }}</td>
+                                        <td class="text-end">$ {{ avaluo.monto_dolares|floatformat:2 }}</td>
+                                        <td>
+                                            {% if avaluo.forma_pago == 'transferencia' %}
+                                            <span class="forma-pago-badge transferencia">
+                                                <span class="material-symbols-outlined" style="font-size: 14px;">account_balance</span>
+                                                Transferencia
+                                            </span>
+                                            {% elif avaluo.forma_pago == 'efectivo' %}
+                                            <span class="forma-pago-badge efectivo">
+                                                <span class="material-symbols-outlined" style="font-size: 14px;">payments</span>
+                                                Efectivo
+                                            </span>
+                                            {% elif avaluo.forma_pago == 'cheque' %}
+                                            <span class="forma-pago-badge cheque">
+                                                <span class="material-symbols-outlined" style="font-size: 14px;">receipt</span>
+                                                Cheque
+                                            </span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-warning d-flex align-items-center gap-3">
+                    <span class="material-symbols-outlined" style="font-size: 32px;">warning</span>
+                    <div>
+                        <strong>No hay detalles en esta planilla.</strong>
+                        <p class="mb-0 mt-1">Verifica que existan avalúos aprobados en el período seleccionado.</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -326,18 +326,159 @@ class LogoutTemplateView(View):
         messages.success(request, 'Sesión cerrada exitosamente.')
         return redirect('login')
 
-
 @method_decorator(login_required(login_url='login'), name='dispatch')
 class DashboardView(View):
-    """Vista del dashboard principal"""
+    """Vista del dashboard principal con estadísticas reales"""
     template_name = 'usuarios/dashboard.html'
     
     def get(self, request):
+        from django.db.models import Sum, Count, Q
+        from decimal import Decimal
+        from datetime import date, datetime
+        from apps.trabajadores.models import Trabajador
+        from apps.proyectos.models import Proyecto
+        from apps.planillas.models import Planilla
+        from apps.asistencias.models import Asistencia
+        from apps.contratistas.models import Contratista, ContratoProyecto, DetallePlanillaContratista
+        
+        # ==========================================
+        # ESTADÍSTICAS DE TRABAJADORES
+        # ==========================================
+        total_trabajadores = Trabajador.objects.filter(eliminado=False).count()
+        trabajadores_activos = Trabajador.objects.filter(
+            eliminado=False,
+            estado='activo'
+        ).count()
+        trabajadores_asegurados = Trabajador.objects.filter(
+            eliminado=False,
+            asegurado=True
+        ).count()
+        
+        # ==========================================
+        # ESTADÍSTICAS DE PROYECTOS
+        # ==========================================
+        total_proyectos = Proyecto.objects.filter(eliminado=False).count()
+        proyectos_activos = Proyecto.objects.filter(
+            eliminado=False,
+            estado='ejecucion'
+        ).count()
+        proyectos_pausados = Proyecto.objects.filter(
+            eliminado=False,
+            estado='pausado'
+        ).count()
+        proyectos_finalizados = Proyecto.objects.filter(
+            eliminado=False,
+            estado='finalizado'
+        ).count()
+        
+        # ==========================================
+        # ESTADÍSTICAS DE ASISTENCIAS HOY
+        # ==========================================
+        hoy = date.today()
+        asistencias_hoy = Asistencia.objects.filter(
+            fecha=hoy
+        ).count()
+        
+        trabajadores_presentes_hoy = Asistencia.objects.filter(
+            fecha=hoy,
+            hora_entrada__isnull=False
+        ).values('trabajador').distinct().count()
+        
+        # ==========================================
+        # ESTADÍSTICAS DE PLANILLAS
+        # ==========================================
+        planillas_pendientes = Planilla.objects.filter(
+            eliminado=False,
+            estado__in=['borrador', 'aprobada_gerente']
+        ).count()
+        
+        planillas_pagadas_mes = Planilla.objects.filter(
+            eliminado=False,
+            estado='pagada',
+            fecha_generacion__month=hoy.month,
+            fecha_generacion__year=hoy.year
+        ).count()
+        
+        total_pagado_mes = Planilla.objects.filter(
+            eliminado=False,
+            estado='pagada',
+            fecha_generacion__month=hoy.month,
+            fecha_generacion__year=hoy.year
+        ).aggregate(
+            total=Sum('total_cordobas')
+        )['total'] or Decimal('0.00')
+        
+        # ==========================================
+        # ESTADÍSTICAS DE CONTRATISTAS
+        # ==========================================
+        total_contratistas = Contratista.objects.filter(
+            eliminado=False,
+            activo=True
+        ).count()
+        
+        total_contratos = ContratoProyecto.objects.filter(
+            eliminado=False
+        ).count()
+        
+        # Total pagado a contratistas (desde planillas pagadas)
+        total_pagado_contratistas = DetallePlanillaContratista.objects.filter(
+            planilla__estado='pagada'
+        ).aggregate(
+            total=Sum('monto_cordobas')
+        )['total'] or Decimal('0.00')
+        
+        # ==========================================
+        # PROYECTOS RECIENTES (Últimos 5)
+        # ==========================================
+        proyectos_recientes = Proyecto.objects.filter(
+            eliminado=False
+        ).select_related('supervisor').order_by('-fecha_creacion')[:5]
+        
+        # ==========================================
+        # PLANILLAS PENDIENTES (Últimas 5)
+        # ==========================================
+        planillas_pendientes_lista = Planilla.objects.filter(
+            eliminado=False,
+            estado__in=['borrador', 'aprobada_gerente']
+        ).select_related('proyecto').order_by('-fecha_generacion')[:5]
+        
+        # ==========================================
+        # CONTEXTO
+        # ==========================================
         context = {
             'usuario': request.user,
+            
+            # Trabajadores
+            'total_trabajadores': total_trabajadores,
+            'trabajadores_activos': trabajadores_activos,
+            'trabajadores_asegurados': trabajadores_asegurados,
+            
+            # Proyectos
+            'total_proyectos': total_proyectos,
+            'proyectos_activos': proyectos_activos,
+            'proyectos_pausados': proyectos_pausados,
+            'proyectos_finalizados': proyectos_finalizados,
+            
+            # Asistencias
+            'asistencias_hoy': asistencias_hoy,
+            'trabajadores_presentes_hoy': trabajadores_presentes_hoy,
+            
+            # Planillas
+            'planillas_pendientes': planillas_pendientes,
+            'planillas_pagadas_mes': planillas_pagadas_mes,
+            'total_pagado_mes': total_pagado_mes,
+            
+            # Contratistas
+            'total_contratistas': total_contratistas,
+            'total_contratos': total_contratos,
+            'total_pagado_contratistas': total_pagado_contratistas,
+            
+            # Listas
+            'proyectos_recientes': proyectos_recientes,
+            'planillas_pendientes_lista': planillas_pendientes_lista,
         }
+        
         return render(request, self.template_name, context)
-
 
 @method_decorator(login_required(login_url='login'), name='dispatch')
 class PerfilTemplateView(View):

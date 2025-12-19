@@ -812,4 +812,3 @@ class DetallePlanillaContratista(models.Model):
             self.moneda_cuenta = contratista.moneda_cuenta
         
         super().save(*args, **kwargs)
-        

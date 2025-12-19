@@ -3,113 +3,938 @@
 
 {% block title %}Dashboard - Sistema de Planillas{% endblock %}
 
-{% block content %}
-<div class="page-header">
-    <div>
-        <h1>Dashboard</h1>
-        <p class="page-subtitle">Panel de control general</p>
-    </div>
-</div>
+{% block extra_css %}
+<style>
+    /* ============================================
+       VARIABLES Y RESET
+    ============================================ */
+    :root {
+        --primary: #667eea;
+        --primary-dark: #5568d3;
+        --secondary: #764ba2;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --info: #3b82f6;
+        --purple: #8b5cf6;
+        --gray-50: #f9fafb;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-400: #9ca3af;
+        --gray-500: #6b7280;
+        --gray-600: #4b5563;
+        --gray-700: #374151;
+        --gray-800: #1f2937;
+        --gray-900: #111827;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
 
-<div class="content-wrapper">
-    <!-- Mensaje de bienvenida -->
-    <div class="welcome-card">
-        <div>
-            <h2>¡Bienvenido, {{ user.nombre_completo }}!</h2>
+    /* ============================================
+       LAYOUT PRINCIPAL
+    ============================================ */
+    .dashboard-wrapper {
+        padding: 30px;
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    /* ============================================
+       ENCABEZADO
+    ============================================ */
+    .dashboard-header {
+        margin-bottom: 32px;
+    }
+
+    .dashboard-header h1 {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin: 0 0 8px 0;
+    }
+
+    .dashboard-subtitle {
+        font-size: 16px;
+        color: var(--gray-500);
+    }
+
+    .welcome-banner {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
+        padding: 24px 32px;
+        border-radius: 16px;
+        margin-bottom: 32px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .welcome-content h2 {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0 0 8px 0;
+    }
+
+    .welcome-content p {
+        font-size: 15px;
+        opacity: 0.95;
+        margin: 0;
+    }
+
+    .welcome-badge {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 14px;
+        backdrop-filter: blur(10px);
+    }
+
+    /* ============================================
+       GRID DE TARJETAS DE ESTADÍSTICAS
+    ============================================ */
+    .stats-section {
+        margin-bottom: 32px;
+    }
+
+    .section-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .section-title .material-symbols-outlined {
+        font-size: 24px;
+        color: var(--primary);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        margin-bottom: 32px;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--gray-200);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: var(--primary);
+        transition: width 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .stat-card:hover::before {
+        width: 8px;
+    }
+
+    .stat-card.blue::before {
+        background: var(--info);
+    }
+
+    .stat-card.green::before {
+        background: var(--success);
+    }
+
+    .stat-card.orange::before {
+        background: var(--warning);
+    }
+
+    .stat-card.purple::before {
+        background: var(--purple);
+    }
+
+    .stat-card.primary::before {
+        background: var(--primary);
+    }
+
+    .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+    }
+
+    .stat-icon.blue {
+        background: #dbeafe;
+        color: var(--info);
+    }
+
+    .stat-icon.green {
+        background: #d1fae5;
+        color: var(--success);
+    }
+
+    .stat-icon.orange {
+        background: #fef3c7;
+        color: var(--warning);
+    }
+
+    .stat-icon.purple {
+        background: #ede9fe;
+        color: var(--purple);
+    }
+
+    .stat-icon.primary {
+        background: #e0e7ff;
+        color: var(--primary);
+    }
+
+    .stat-content {
+        flex: 1;
+    }
+
+    .stat-title {
+        font-size: 14px;
+        color: var(--gray-600);
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
+
+    .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 4px;
+    }
+
+    .stat-description {
+        font-size: 13px;
+        color: var(--gray-500);
+    }
+
+    .stat-footer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--gray-100);
+    }
+
+    .stat-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .stat-badge.success {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .stat-badge.info {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    /* ============================================
+       SECCIONES DE CONTENIDO
+    ============================================ */
+    .content-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+
+    .content-section {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--gray-200);
+    }
+
+    .content-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid var(--gray-100);
+    }
+
+    .content-section-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--gray-900);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .content-section-title .material-symbols-outlined {
+        font-size: 22px;
+        color: var(--primary);
+    }
+
+    .view-all-link {
+        font-size: 14px;
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s ease;
+    }
+
+    .view-all-link:hover {
+        color: var(--primary-dark);
+        gap: 8px;
+    }
+
+    /* ============================================
+       TABLA DE PROYECTOS
+    ============================================ */
+    .projects-table {
+        width: 100%;
+    }
+
+    .project-row {
+        display: flex;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--gray-100);
+        transition: background 0.2s ease;
+    }
+
+    .project-row:hover {
+        background: var(--gray-50);
+        margin: 0 -12px;
+        padding-left: 12px;
+        padding-right: 12px;
+        border-radius: 8px;
+    }
+
+    .project-row:last-child {
+        border-bottom: none;
+    }
+
+    .project-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 18px;
+        margin-right: 12px;
+        flex-shrink: 0;
+    }
+
+    .project-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .project-name {
+        font-weight: 600;
+        color: var(--gray-900);
+        font-size: 14px;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .project-meta {
+        font-size: 12px;
+        color: var(--gray-500);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .project-status {
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .project-status.activo {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .project-status.pausado {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .project-status.finalizado {
+        background: #e5e7eb;
+        color: #374151;
+    }
+
+    /* ============================================
+       LISTA DE PLANILLAS PENDIENTES
+    ============================================ */
+    .planillas-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .planilla-item {
+        padding: 16px;
+        border: 1px solid var(--gray-200);
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        background: var(--gray-50);
+    }
+
+    .planilla-item:hover {
+        border-color: var(--primary);
+        box-shadow: var(--shadow-sm);
+        background: white;
+    }
+
+    .planilla-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 8px;
+    }
+
+    .planilla-code {
+        font-weight: 700;
+        color: var(--primary);
+        font-size: 14px;
+    }
+
+    .planilla-estado {
+        padding: 3px 10px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .planilla-estado.borrador {
+        background: #e5e7eb;
+        color: #374151;
+    }
+
+    .planilla-estado.aprobada_gerente {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .planilla-proyecto {
+        font-size: 13px;
+        color: var(--gray-600);
+        margin-bottom: 8px;
+    }
+
+    .planilla-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: var(--gray-500);
+    }
+
+    .planilla-monto {
+        font-weight: 700;
+        color: var(--success);
+    }
+
+    /* ============================================
+       ACCIONES RÁPIDAS
+    ============================================ */
+    .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-top: 24px;
+    }
+
+    .quick-action-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        border: 2px solid var(--gray-200);
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 12px;
+    }
+
+    .quick-action-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .quick-action-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 28px;
+    }
+
+    .quick-action-title {
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--gray-900);
+        margin: 0;
+    }
+
+    .quick-action-description {
+        font-size: 13px;
+        color: var(--gray-500);
+        margin: 0;
+    }
+
+    /* ============================================
+       ESTADO VACÍO
+    ============================================ */
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--gray-400);
+    }
+
+    .empty-state .material-symbols-outlined {
+        font-size: 48px;
+        opacity: 0.3;
+        margin-bottom: 12px;
+    }
+
+    .empty-state p {
+        font-size: 14px;
+        margin: 0;
+    }
+
+    /* ============================================
+       RESPONSIVE
+    ============================================ */
+    @media (max-width: 1024px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-wrapper {
+            padding: 16px;
+        }
+
+        .welcome-banner {
+            flex-direction: column;
+            text-align: center;
+            gap: 16px;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .quick-actions-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+    
+    <!-- ============================================
+         BANNER DE BIENVENIDA
+    ============================================ -->
+    <div class="welcome-banner">
+        <div class="welcome-content">
+            <h2>¡Bienvenido, {{ usuario.nombre_completo }}!</h2>
             <p>Este es tu panel de control del Sistema de Planillas</p>
         </div>
         <div class="welcome-badge">
-            {{ user.get_rol_display }}
+            {{ usuario.get_rol_display }}
         </div>
     </div>
 
-    <!-- Cards de estadísticas -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon blue">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                </svg>
-            </div>
-            <div class="stat-info">
-                <h3>Trabajadores</h3>
-                <p class="stat-number">0</p>
-                <span class="stat-label">Total registrados</span>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon green">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                </svg>
-            </div>
-            <div class="stat-info">
-                <h3>Proyectos Activos</h3>
-                <p class="stat-number">0</p>
-                <span class="stat-label">En ejecución</span>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon orange">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-            </div>
-            <div class="stat-info">
-                <h3>Asistencias Hoy</h3>
-                <p class="stat-number">0</p>
-                <span class="stat-label">Registros del día</span>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon purple">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="1" x2="12" y2="23"></line>
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                </svg>
-            </div>
-            <div class="stat-info">
-                <h3>Planillas Pendientes</h3>
-                <p class="stat-number">0</p>
-                <span class="stat-label">Por procesar</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Acceso rápido a proyectos -->
-    <div class="quick-actions">
-        <h3>Acceso Rápido</h3>
-        <div class="actions-grid">
-            <a href="{% url 'proyectos_lista' %}" class="action-card">
-                <div class="action-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                    </svg>
+    <!-- ============================================
+         ACCIONES RÁPIDAS
+    ============================================ -->
+    <div class="stats-section">
+        <h3 class="section-title">
+            <span class="material-symbols-outlined">bolt</span>
+            Acceso Rápido
+        </h3>
+        <div class="quick-actions-grid">
+            <a href="{% url 'proyectos_lista' %}" class="quick-action-card">
+                <div class="quick-action-icon">
+                    <span class="material-symbols-outlined">business</span>
                 </div>
-                <h4>Ver Proyectos</h4>
-                <p>Gestiona los proyectos activos</p>
+                <h4 class="quick-action-title">Ver Proyectos</h4>
+                <p class="quick-action-description">Gestiona proyectos activos</p>
             </a>
-            
-            {% if user.es_administrador %}
-            <a href="{% url 'proyecto_crear' %}" class="action-card">
-                <div class="action-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
+
+            {% if usuario.es_administrador %}
+            <a href="{% url 'proyecto_crear' %}" class="quick-action-card">
+                <div class="quick-action-icon">
+                    <span class="material-symbols-outlined">add_circle</span>
                 </div>
-                <h4>Nuevo Proyecto</h4>
-                <p>Crear un proyecto nuevo</p>
+                <h4 class="quick-action-title">Nuevo Proyecto</h4>
+                <p class="quick-action-description">Crear proyecto nuevo</p>
             </a>
             {% endif %}
+
+            <a href="{% url 'trabajadores_lista' %}" class="quick-action-card">
+                <div class="quick-action-icon">
+                    <span class="material-symbols-outlined">group</span>
+                </div>
+                <h4 class="quick-action-title">Trabajadores</h4>
+                <p class="quick-action-description">Ver lista de trabajadores</p>
+            </a>
+
+            <a href="{% url 'planillas_lista' %}" class="quick-action-card">
+                <div class="quick-action-icon">
+                    <span class="material-symbols-outlined">receipt_long</span>
+                </div>
+                <h4 class="quick-action-title">Planillas</h4>
+                <p class="quick-action-description">Gestionar planillas</p>
+            </a>
+
+            <a href="{% url 'contratistas_lista' %}" class="quick-action-card">
+                <div class="quick-action-icon">
+                    <span class="material-symbols-outlined">engineering</span>
+                </div>
+                <h4 class="quick-action-title">Contratistas</h4>
+                <p class="quick-action-description">Ver contratistas</p>
+            </a>
+
+            <a href="{% url 'planillas_contratistas_lista' %}" class="quick-action-card">
+                <div class="quick-action-icon">
+                    <span class="material-symbols-outlined">payments</span>
+                </div>
+                <h4 class="quick-action-title">Pagos Contratistas</h4>
+                <p class="quick-action-description">Planillas de contratistas</p>
+            </a>
         </div>
     </div>
+
+    <!-- ============================================
+         ESTADÍSTICAS DE TRABAJADORES
+    ============================================ -->
+    <div class="stats-section">
+        <h3 class="section-title">
+            <span class="material-symbols-outlined">group</span>
+            Trabajadores
+        </h3>
+        <div class="stats-grid">
+            <div class="stat-card blue">
+                <div class="stat-header">
+                    <div class="stat-icon blue">
+                        <span class="material-symbols-outlined">person</span>
+                    </div>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-title">Total Trabajadores</div>
+                    <div class="stat-value">{{ total_trabajadores }}</div>
+                    <div class="stat-description">Registrados en el sistema</div>
+                </div>
+                <div class="stat-footer">
+                    <span class="stat-badge success">{{ trabajadores_activos }} activos</span>
+                    <span class="stat-badge info">{{ trabajadores_asegurados }} asegurados</span>
+                </div>
+            </div>
+
+            <div class="stat-card green">
+                <div class="stat-header">
+                    <div class="stat-icon green">
+                        <span class="material-symbols-outlined">check_circle</span>
+                    </div>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-title">Asistencias Hoy</div>
+                    <div class="stat-value">{{ asistencias_hoy }}</div>
+                    <div class="stat-description">{{ trabajadores_presentes_hoy }} trabajadores presentes</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         ESTADÍSTICAS DE PROYECTOS
+    ============================================ -->
+    <div class="stats-section">
+        <h3 class="section-title">
+            <span class="material-symbols-outlined">business</span>
+            Proyectos
+        </h3>
+        <div class="stats-grid">
+            <div class="stat-card primary">
+                <div class="stat-header">
+                    <div class="stat-icon primary">
+                        <span class="material-symbols-outlined">folder</span>
+                    </div>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-title">Total Proyectos</div>
+                    <div class="stat-value">{{ total_proyectos }}</div>
+                    <div class="stat-description">En el sistema</div>
+                </div>
+            </div>
+
+            <div class="stat-card green">
+                <div class="stat-header">
+                    <div class="stat-icon green">
+                        <span class="material-symbols-outlined">play_circle</span>
+                    </div>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-title">Proyectos Activos</div>
+                    <div class="stat-value">{{ proyectos_activos }}</div>
+                    <div class="stat-description">En ejecución</div>
+                </div>
+            </div>
+
+            <div class="stat-card orange">
+                <div class="stat-header">
+                    <div class="stat-icon orange">
+                        <span class="material-symbols-outlined">pause_circle</span>
+                    </div>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-title">Proyectos Pausados</div>
+                    <div class="stat-value">{{ proyectos_pausados }}</div>
+                    <div class="stat-description">Temporalmente suspendidos</div>
+                </div>
+            </div>
+
+            <div class="stat-card blue">
+                <div class="stat-header">
+                    <div class="stat-icon blue">
+                        <span class="material-symbols-outlined">check</span>
+                    </div>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-title">Proyectos Finalizados</div>
+                    <div class="stat-value">{{ proyectos_finalizados }}</div>
+                    <div class="stat-description">Completados</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         ESTADÍSTICAS DE PLANILLAS Y PAGOS
+    ============================================ -->
+    <div class="stats-section">
+        <h3 class="section-title">
+            <span class="material-symbols-outlined">receipt_long</span>
+            Planillas y Pagos
+        </h3>
+        <div class="stats-grid">
+            <div class="stat-card orange">
+                <div class="stat-header">
+                    <div class="stat-icon orange">
+                        <span class="material-symbols-outlined">pending_actions</span>
+                    </div>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-title">Planillas Pendientes</div>
+                    <div class="stat-value">{{ planillas_pendientes }}</div>
+                    <div class="stat-description">Requieren aprobación</div>
+                </div>
+            </div>
+
+            <div class="stat-card green">
+                <div class="stat-header">
+                    <div class="stat-icon green">
+                        <span class="material-symbols-outlined">payments</span>
+                    </div>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-title">Pagado Este Mes</div>
+                    <div class="stat-value">C$ {{ total_pagado_mes|floatformat:2 }}</div>
+                    <div class="stat-description">{{ planillas_pagadas_mes }} planillas pagadas</div>
+                </div>
+            </div>
+
+            <div class="stat-card purple">
+                <div class="stat-header">
+                    <div class="stat-icon purple">
+                        <span class="material-symbols-outlined">engineering</span>
+                    </div>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-title">Total Contratistas</div>
+                    <div class="stat-value">{{ total_contratistas }}</div>
+                    <div class="stat-description">{{ total_contratos }} contratos</div>
+                </div>
+            </div>
+
+            <div class="stat-card blue">
+                <div class="stat-header">
+                    <div class="stat-icon blue">
+                        <span class="material-symbols-outlined">account_balance_wallet</span>
+                    </div>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-title">Pagado a Contratistas</div>
+                    <div class="stat-value">C$ {{ total_pagado_contratistas|floatformat:2 }}</div>
+                    <div class="stat-description">Total acumulado</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         CONTENIDO PRINCIPAL (PROYECTOS Y PLANILLAS)
+    ============================================ -->
+    <div class="content-grid">
+        <!-- Proyectos Recientes -->
+        <div class="content-section">
+            <div class="content-section-header">
+                <h3 class="content-section-title">
+                    <span class="material-symbols-outlined">folder_open</span>
+                    Proyectos Recientes
+                </h3>
+                <a href="{% url 'proyectos_lista' %}" class="view-all-link">
+                    Ver todos
+                    <span class="material-symbols-outlined" style="font-size: 16px;">arrow_forward</span>
+                </a>
+            </div>
+
+            <div class="projects-table">
+                {% if proyectos_recientes %}
+                    {% for proyecto in proyectos_recientes %}
+                    <div class="project-row">
+                        <div class="project-icon">
+                            <span class="material-symbols-outlined">business</span>
+                        </div>
+                        <div class="project-info">
+                            <div class="project-name">{{ proyecto.nombre }}</div>
+                            <div class="project-meta">
+                                <span>
+                                    <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">person</span>
+                                    {{ proyecto.supervisor.nombre_completo|default:"Sin supervisor" }}
+                                </span>
+                                <span>
+                                    <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">location_on</span>
+                                    {{ proyecto.ubicacion|truncatewords:3 }}
+                                </span>
+                            </div>
+                        </div>
+                        <span class="project-status {{ proyecto.estado }}">
+                            {% if proyecto.estado == 'ejecucion' %}Activo
+                            {% elif proyecto.estado == 'pausado' %}Pausado
+                            {% elif proyecto.estado == 'finalizado' %}Finalizado
+                            {% else %}{{ proyecto.get_estado_display }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <span class="material-symbols-outlined">inbox</span>
+                        <p>No hay proyectos recientes</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Planillas Pendientes -->
+        <div class="content-section">
+            <div class="content-section-header">
+                <h3 class="content-section-title">
+                    <span class="material-symbols-outlined">schedule</span>
+                    Planillas Pendientes
+                </h3>
+                <a href="{% url 'planillas_lista' %}" class="view-all-link">
+                    Ver todas
+                    <span class="material-symbols-outlined" style="font-size: 16px;">arrow_forward</span>
+                </a>
+            </div>
+
+            <div class="planillas-list">
+                {% if planillas_pendientes_lista %}
+                    {% for planilla in planillas_pendientes_lista %}
+                    <div class="planilla-item">
+                        <div class="planilla-header">
+                            <div class="planilla-code">{{ planilla.codigo }}</div>
+                            <span class="planilla-estado {{ planilla.estado }}">
+                                {% if planilla.estado == 'borrador' %}Borrador
+                                {% elif planilla.estado == 'aprobada_gerente' %}Aprobada Gerente
+                                {% else %}{{ planilla.get_estado_display }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="planilla-proyecto">
+                            <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">business</span>
+                            {{ planilla.proyecto.nombre }}
+                        </div>
+                        <div class="planilla-footer">
+                            <span>{{ planilla.fecha_generacion|date:"d/m/Y" }}</span>
+                            <span class="planilla-monto">C$ {{ planilla.total_cordobas|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <p>No hay planillas pendientes</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
