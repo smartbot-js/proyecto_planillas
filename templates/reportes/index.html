@@ -1,0 +1,387 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Reportes - Sistema de Planillas{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ============================================
+       ESTILOS DEL MÓDULO DE REPORTES - MEJORADO
+    ============================================ */
+    
+    /* Header de página */
+    .page-header {
+        margin-bottom: 32px;
+    }
+
+    .page-header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 8px 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .page-subtitle {
+        font-size: 15px;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    /* Estadísticas superiores */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 20px;
+        margin-bottom: 32px;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        transition: all 0.2s ease;
+    }
+
+    .stat-card:hover {
+        border-color: #667eea;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-label {
+        font-size: 13px;
+        color: #6b7280;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    /* Grid de tarjetas de reportes */
+    .reportes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+
+    .reporte-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 24px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .reporte-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: #667eea;
+        transition: width 0.3s ease;
+    }
+
+    .reporte-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.1);
+        border-color: #667eea;
+    }
+
+    .reporte-card:hover::before {
+        width: 8px;
+    }
+
+    .reporte-card.primary::before { background: #667eea; }
+    .reporte-card.success::before { background: #10b981; }
+    .reporte-card.warning::before { background: #f59e0b; }
+    .reporte-card.info::before { background: #3b82f6; }
+    .reporte-card.purple::before { background: #8b5cf6; }
+
+    .reporte-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .reporte-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+
+    .reporte-icon.primary {
+        background: #e0e7ff;
+        color: #667eea;
+    }
+
+    .reporte-icon.success {
+        background: #d1fae5;
+        color: #10b981;
+    }
+
+    .reporte-icon.warning {
+        background: #fef3c7;
+        color: #f59e0b;
+    }
+
+    .reporte-icon.info {
+        background: #dbeafe;
+        color: #3b82f6;
+    }
+
+    .reporte-icon.purple {
+        background: #ede9fe;
+        color: #8b5cf6;
+    }
+
+    .reporte-content {
+        flex: 1;
+    }
+
+    .reporte-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 8px 0;
+    }
+
+    .reporte-description {
+        font-size: 14px;
+        color: #6b7280;
+        margin: 0;
+        line-height: 1.6;
+    }
+
+    .reporte-footer {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #f3f4f6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .reporte-meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .reporte-meta .material-symbols-outlined {
+        font-size: 16px;
+    }
+
+    .reporte-arrow {
+        color: #667eea;
+        font-size: 20px;
+        transition: transform 0.3s ease;
+    }
+
+    .reporte-card:hover .reporte-arrow {
+        transform: translateX(4px);
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .reportes-grid {
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        }
+    }
+
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .reportes-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .page-header h1 {
+            font-size: 24px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    
+    <!-- Header -->
+    <div class="page-header">
+        <h1>
+            <span class="material-symbols-outlined" style="font-size: 32px; color: #667eea;">analytics</span>
+            Reportes
+        </h1>
+        <p class="page-subtitle">Reportes consolidados del sistema de planillas</p>
+    </div>
+
+    <!-- Estadísticas rápidas -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-label">Proyectos Registrados</span>
+            <div class="stat-value">{{ total_proyectos }}</div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Planillas de Trabajadores</span>
+            <div class="stat-value">{{ total_planillas }}</div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Planillas de Contratistas</span>
+            <div class="stat-value">{{ total_planillas_contratistas }}</div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Tipo de Cambio Actual</span>
+            <div class="stat-value">{{ tipo_cambio }}</div>
+        </div>
+    </div>
+
+    <!-- Grid de reportes disponibles -->
+    <div class="reportes-grid">
+        
+        <!-- 1. Reporte por Proyecto -->
+        <a href="{% url 'reporte_proyecto' %}" class="reporte-card primary">
+            <div class="reporte-header">
+                <div class="reporte-icon primary">
+                    <span class="material-symbols-outlined">business</span>
+                </div>
+                <div class="reporte-content">
+                    <h3 class="reporte-title">Reporte por Proyecto</h3>
+                    <p class="reporte-description">
+                        Planilla detallada por proyecto incluyendo trabajadores, contratistas y resumen por área.
+                    </p>
+                </div>
+            </div>
+            <div class="reporte-footer">
+                <span class="reporte-meta">
+                    <span class="material-symbols-outlined">filter_alt</span>
+                    Filtrable
+                </span>
+                <span class="material-symbols-outlined reporte-arrow">arrow_forward</span>
+            </div>
+        </a>
+
+        <!-- 2. Consolidado de Proyectos -->
+        <a href="{% url 'reporte_consolidado' %}" class="reporte-card success">
+            <div class="reporte-header">
+                <div class="reporte-icon success">
+                    <span class="material-symbols-outlined">table_chart</span>
+                </div>
+                <div class="reporte-content">
+                    <h3 class="reporte-title">Consolidado de Proyectos</h3>
+                    <p class="reporte-description">
+                        Vista consolidada de todos los proyectos con montos y variaciones entre periodos.
+                    </p>
+                </div>
+            </div>
+            <div class="reporte-footer">
+                <span class="reporte-meta">
+                    <span class="material-symbols-outlined">compare_arrows</span>
+                    Con comparativas
+                </span>
+                <span class="material-symbols-outlined reporte-arrow">arrow_forward</span>
+            </div>
+        </a>
+
+        <!-- 3. Planilla Administrativa -->
+        <a href="{% url 'reporte_administrativa' %}" class="reporte-card warning">
+            <div class="reporte-header">
+                <div class="reporte-icon warning">
+                    <span class="material-symbols-outlined">admin_panel_settings</span>
+                </div>
+                <div class="reporte-content">
+                    <h3 class="reporte-title">Planilla Administrativa</h3>
+                    <p class="reporte-description">
+                        Personal administrativo general no asociado a proyectos específicos.
+                    </p>
+                </div>
+            </div>
+            <div class="reporte-footer">
+                <span class="reporte-meta">
+                    <span class="material-symbols-outlined">group</span>
+                    Staff administrativo
+                </span>
+                <span class="material-symbols-outlined reporte-arrow">arrow_forward</span>
+            </div>
+        </a>
+
+        <!-- 4. Gastos Varios y Reembolsos -->
+        <a href="{% url 'reporte_gastos_varios' %}" class="reporte-card info">
+            <div class="reporte-header">
+                <div class="reporte-icon info">
+                    <span class="material-symbols-outlined">receipt</span>
+                </div>
+                <div class="reporte-content">
+                    <h3 class="reporte-title">Gastos Varios y Reembolsos</h3>
+                    <p class="reporte-description">
+                        Reembolsos y gastos diversos organizados por categorías para análisis.
+                    </p>
+                </div>
+            </div>
+            <div class="reporte-footer">
+                <span class="reporte-meta">
+                    <span class="material-symbols-outlined">category</span>
+                    Por categorías
+                </span>
+                <span class="material-symbols-outlined reporte-arrow">arrow_forward</span>
+            </div>
+        </a>
+
+        <!-- 5. Planilla Total -->
+        <a href="{% url 'reporte_planilla_total' %}" class="reporte-card purple">
+            <div class="reporte-header">
+                <div class="reporte-icon purple">
+                    <span class="material-symbols-outlined">summarize</span>
+                </div>
+                <div class="reporte-content">
+                    <h3 class="reporte-title">Planilla Total Consolidada</h3>
+                    <p class="reporte-description">
+                        Resumen integral de proyectos, administrativos y gastos con porcentaje de participación.
+                    </p>
+                </div>
+            </div>
+            <div class="reporte-footer">
+                <span class="reporte-meta">
+                    <span class="material-symbols-outlined">pie_chart</span>
+                    Vista completa
+                </span>
+                <span class="material-symbols-outlined reporte-arrow">arrow_forward</span>
+            </div>
+        </a>
+
+    </div>
+
+</div>
+{% endblock %}

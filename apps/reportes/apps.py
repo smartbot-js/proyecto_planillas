@@ -1,6 +1,12 @@
+"""
+Configuración de la aplicación de Reportes
+apps/reportes/apps.py
+"""
 from django.apps import AppConfig
 
 
 class ReportesConfig(AppConfig):
-    default_auto_field = "django.db.models.BigAutoField"
-    name = "reportes"
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'apps.reportes'
+    verbose_name = 'Reportes'
+    

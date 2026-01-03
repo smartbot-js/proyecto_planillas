@@ -76,9 +76,16 @@
                         </a>
                     </div>
                 </div>        
-                <a href="{% url 'asistencias_reportes' %}" class="nav-item {% if 'asistencias/reportes' in request.path %}active{% endif %}" title="Reportes">
-                    <span class="material-symbols-outlined">assessment</span>
+                <!-- ✅ NUEVO: Módulo de Reportes -->
+                <a href="{% url 'reportes_index' %}" class="nav-item {% if 'reportes' in request.path and 'asistencias' not in request.path %}active{% endif %}" title="Reportes">
+                    <span class="material-symbols-outlined">analytics</span>
                     <span>Reportes</span>
+                </a>
+
+                <!-- Reportes de Asistencias (mantener el existente) -->
+                <a href="{% url 'asistencias_reportes' %}" class="nav-item {% if 'asistencias/reportes' in request.path %}active{% endif %}" title="Reportes de Asistencias">
+                    <!-- <span class="material-symbols-outlined">assessment</span>
+                    <span>Reportes Asistencias</span> -->
                 </a>
             </nav>
             
