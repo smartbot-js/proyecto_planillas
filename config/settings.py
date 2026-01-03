@@ -29,13 +29,19 @@ DEBUG = True
 # ALLOWED_HOSTS = ["*"]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://d17616683f96.ngrok-free.app"
+    "https://d17616683f96.ngrok-free.app",
+    "https://34.68.203.103/"
 ]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
 
 ALLOWED_HOSTS = [
     ".ngrok-free.app",
     "localhost",
     "127.0.0.1",
+    "34.68.203.103"
 ]
 
 
