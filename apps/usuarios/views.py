@@ -11,6 +11,7 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
@@ -120,7 +121,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(trabajadores, many=True)
         return Response(serializer.data)
 
-
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginView(APIView):
     """Vista API para autenticación"""
     permission_classes = [permissions.AllowAny]
@@ -142,7 +143,7 @@ class LoginView(APIView):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+@method_decorator(csrf_exempt, name='dispatch')
 class LogoutView(APIView):
     """Vista API para cerrar sesión"""
     permission_classes = [permissions.IsAuthenticated]

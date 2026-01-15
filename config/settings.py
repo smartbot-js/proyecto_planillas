@@ -199,3 +199,11 @@ AUTH_USER_MODEL = 'usuarios.Usuario'
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+# ============================================================
+# CONFIGURACIÓN DE AUTENTICACIÓN
+# ============================================================
+
+LOGIN_URL = '/login/'  # ✅ Tu URL de login real
+LOGIN_REDIRECT_URL = '/dashboard/'  # ✅ A dónde redirigir después de login exitoso
+LOGOUT_REDIRECT_URL = '/login/'  # ✅ A dónde redirigir después de logout
