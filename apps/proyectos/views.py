@@ -998,14 +998,12 @@ class ProyectoViewSet(viewsets.ModelViewSet):
         if user.es_administrador():
             proyectos = Proyecto.objects.filter(
                 eliminado=False,
-                activo=True
-            ).select_related('supervisor').order_by('-fecha_creacion')
+                ).select_related('supervisor').order_by('-fecha_creacion')
         else:
             # Solo proyectos donde es supervisor
             proyectos = Proyecto.objects.filter(
                 supervisor=user,
                 eliminado=False,
-                activo=True
             ).select_related('supervisor').order_by('-fecha_creacion')
         
         # Serializar
