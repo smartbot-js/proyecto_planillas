@@ -222,3 +222,74 @@ class ProyectoDetalleSerializer(serializers.ModelSerializer):
     def get_dias_restantes(self, obj):
         return obj.dias_restantes()
     
+class MisProyectosSerializer(serializers.ModelSerializer):
+    """
+    Serializer ligero para el endpoint mis-proyectos
+    Solo retorna los campos esenciales para la app móvil
+    """
+    supervisor_nombre = serializers.CharField(
+        source='supervisor.nombre_completo',
+        read_only=True
+    )
+    estado_display = serializers.CharField(
+        source='get_estado_display',
+        read_only=True
+    )
+    trabajadores_count = serializers.SerializerMethodField()
+    asistencias_hoy = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Proyecto
+        fields = [
+            'id',
+            'nombre',
+            'descripcion',
+            'ubicacion',
+            'ubicacion_coordenadas',
+            'latitud',
+            'longitud',
+            'radio_geovalla',
+            'estado',
+            'estado_display',
+            'supervisor',
+            'supervisor_nombre',
+            'fecha_inicio',
+            'fecha_fin_estimada',
+            'porcentaje_avance_general',
+            'trabajadores_count',
+            'asistencias_hoy',
+            # Horarios por día
+            'hora_inicio_lunes',
+            'hora_fin_lunes',
+            'hora_inicio_martes',
+            'hora_fin_martes',
+            'hora_inicio_miercoles',
+            'hora_fin_miercoles',
+            'hora_inicio_jueves',
+            'hora_fin_jueves',
+            'hora_inicio_viernes',
+            'hora_fin_viernes',
+            'hora_inicio_sabado',
+            'hora_fin_sabado',
+            'hora_inicio_domingo',
+            'hora_fin_domingo',
+            'minutos_tolerancia_entrada',
+            'minutos_tolerancia_salida',
+            'dias_laborales',
+        ]
+    
+    def get_trabajadores_count(self, obj):
+        """Cantidad de trabajadores asignados"""
+        return obj.trabajadores.filter(eliminado=False, estado='activo').count()
+    
+    def get_asistencias_hoy(self, obj):
+        """Cantidad de asistencias registradas hoy"""
+        from django.utils import timezone
+        from apps.asistencias.models import Asistencia
+        
+        return Asistencia.objects.filter(
+            proyecto=obj,
+            fecha=timezone.now().date(),
+            eliminado=False
+        ).count()
+        

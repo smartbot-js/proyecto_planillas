@@ -268,39 +268,101 @@ class Proyecto(models.Model):
         help_text='Radio permitido en metros para validación de asistencias'
     )
     
-    # Horarios laborales por día
-    hora_inicio_lunes_jueves = models.TimeField(
-        default='07:00',
-        help_text='Hora de inicio Lunes a Jueves'
+    # ============================================================
+    # HORARIOS INDIVIDUALES POR DÍA (FORMATO 12H - CharField)
+    # ============================================================
+
+    # LUNES
+    hora_inicio_lunes = models.CharField(
+        max_length=10,
+        default='08:00 AM',
+        help_text='Hora de inicio Lunes (formato 12h: 08:00 AM)'
     )
-    hora_fin_lunes_jueves = models.TimeField(
-        default='16:30',
-        help_text='Hora de fin Lunes a Jueves (4:30 PM)'
+    hora_fin_lunes = models.CharField(
+        max_length=10,
+        default='05:00 PM',
+        help_text='Hora de fin Lunes (formato 12h: 05:00 PM)'
     )
 
-    hora_inicio_viernes = models.TimeField(
-        default='07:00',
-        help_text='Hora de inicio Viernes'
+    # MARTES
+    hora_inicio_martes = models.CharField(
+        max_length=10,
+        default='08:00 AM',
+        help_text='Hora de inicio Martes (formato 12h)'
     )
-    hora_fin_viernes = models.TimeField(
-        default='17:00',
-        help_text='Hora de fin Viernes (5:00 PM)'
-    )
-
-    hora_inicio_sabado = models.TimeField(
-        default='07:00',
-        help_text='Hora de inicio Sábado'
-    )
-    hora_fin_sabado = models.TimeField(
-        default='12:00',
-        help_text='Hora de fin Sábado (12:00 PM)'
+    hora_fin_martes = models.CharField(
+        max_length=10,
+        default='05:00 PM',
+        help_text='Hora de fin Martes (formato 12h)'
     )
 
+    # MIÉRCOLES
+    hora_inicio_miercoles = models.CharField(
+        max_length=10,
+        default='08:00 AM',
+        help_text='Hora de inicio Miércoles (formato 12h)'
+    )
+    hora_fin_miercoles = models.CharField(
+        max_length=10,
+        default='05:00 PM',
+        help_text='Hora de fin Miércoles (formato 12h)'
+    )
+
+    # JUEVES
+    hora_inicio_jueves = models.CharField(
+        max_length=10,
+        default='08:00 AM',
+        help_text='Hora de inicio Jueves (formato 12h)'
+    )
+    hora_fin_jueves = models.CharField(
+        max_length=10,
+        default='05:00 PM',
+        help_text='Hora de fin Jueves (formato 12h)'
+    )
+
+    # VIERNES
+    hora_inicio_viernes = models.CharField(
+        max_length=10,
+        default='08:00 AM',
+        help_text='Hora de inicio Viernes (formato 12h)'
+    )
+    hora_fin_viernes = models.CharField(
+        max_length=10,
+        default='02:00 PM',
+        help_text='Hora de fin Viernes (formato 12h)'
+    )
+
+    # SÁBADO
+    hora_inicio_sabado = models.CharField(
+        max_length=10,
+        default='08:00 AM',
+        help_text='Hora de inicio Sábado (formato 12h)'
+    )
+    hora_fin_sabado = models.CharField(
+        max_length=10,
+        default='12:00 PM',
+        help_text='Hora de fin Sábado (formato 12h)'
+    )
+
+    # DOMINGO
+    hora_inicio_domingo = models.CharField(
+        max_length=10,
+        default='',
+        blank=True,
+        help_text='Hora de inicio Domingo (formato 12h, opcional)'
+    )
+    hora_fin_domingo = models.CharField(
+        max_length=10,
+        default='',
+        blank=True,
+        help_text='Hora de fin Domingo (formato 12h, opcional)'
+    )
+
+    # TOLERANCIAS
     minutos_tolerancia_entrada = models.IntegerField(
         default=15,
         help_text='Minutos de tolerancia para entrada'
     )
-
     minutos_tolerancia_salida = models.IntegerField(
         default=10,
         help_text='Minutos de tolerancia para salida temprana'

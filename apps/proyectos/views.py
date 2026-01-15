@@ -15,6 +15,7 @@ from apps.usuarios.models import Usuario
 from apps.trabajadores.models import Trabajador
 from apps.asistencias.models import Asistencia # <--- 1. IMPORTAR ASISTENCIA
 from apps.trabajadores.models import Trabajador, HistorialProyecto
+from datetime import time
 
 class ProyectoListView(LoginRequiredMixin, ListView):
     """Vista para listar todos los proyectos"""
@@ -215,42 +216,48 @@ class ProyectoCreateView(LoginRequiredMixin, View):
             proyecto.valor_avaluo_acumulado = request.POST.get('valor_avaluo_acumulado', 0)
             
             # ============================================================
-            # ✨ NUEVO: HORARIOS Y DÍAS LABORALES
+            # ✨ HORARIOS INDIVIDUALES POR DÍA (FORMATO 12H)
             # ============================================================
-            from datetime import time
-            
-            # Hora de entrada (default: 08:00)
-            hora_entrada_str = request.POST.get('hora_entrada_esperada', '08:00')
-            if hora_entrada_str:
-                try:
-                    hora_entrada = time.fromisoformat(hora_entrada_str)
-                    proyecto.hora_entrada_esperada = hora_entrada
-                except:
-                    proyecto.hora_entrada_esperada = time(8, 0)  # Default
-            
-            # Hora de salida (default: 17:00)
-            hora_salida_str = request.POST.get('hora_salida_esperada', '17:00')
-            if hora_salida_str:
-                try:
-                    hora_salida = time.fromisoformat(hora_salida_str)
-                    proyecto.hora_salida_esperada = hora_salida
-                except:
-                    proyecto.hora_salida_esperada = time(17, 0)  # Default
-            
-            # Minutos de tolerancia (default: 15)
-            proyecto.minutos_tolerancia = int(request.POST.get('minutos_tolerancia', 15))
-            
-            # Horas de jornada (default: 8.0)
-            proyecto.horas_jornada = float(request.POST.get('horas_jornada', 8.0))
-            
-            # Días laborales (checkboxes múltiples)
+
+            # LUNES
+            proyecto.hora_inicio_lunes = request.POST.get('hora_inicio_lunes', '08:00 AM')
+            proyecto.hora_fin_lunes = request.POST.get('hora_fin_lunes', '05:00 PM')
+
+            # MARTES
+            proyecto.hora_inicio_martes = request.POST.get('hora_inicio_martes', '08:00 AM')
+            proyecto.hora_fin_martes = request.POST.get('hora_fin_martes', '05:00 PM')
+
+            # MIÉRCOLES
+            proyecto.hora_inicio_miercoles = request.POST.get('hora_inicio_miercoles', '08:00 AM')
+            proyecto.hora_fin_miercoles = request.POST.get('hora_fin_miercoles', '05:00 PM')
+
+            # JUEVES
+            proyecto.hora_inicio_jueves = request.POST.get('hora_inicio_jueves', '08:00 AM')
+            proyecto.hora_fin_jueves = request.POST.get('hora_fin_jueves', '05:00 PM')
+
+            # VIERNES
+            proyecto.hora_inicio_viernes = request.POST.get('hora_inicio_viernes', '08:00 AM')
+            proyecto.hora_fin_viernes = request.POST.get('hora_fin_viernes', '02:00 PM')
+
+            # SÁBADO
+            proyecto.hora_inicio_sabado = request.POST.get('hora_inicio_sabado', '08:00 AM')
+            proyecto.hora_fin_sabado = request.POST.get('hora_fin_sabado', '12:00 PM')
+
+            # DOMINGO (opcional)
+            proyecto.hora_inicio_domingo = request.POST.get('hora_inicio_domingo', '')
+            proyecto.hora_fin_domingo = request.POST.get('hora_fin_domingo', '')
+
+            # TOLERANCIAS
+            proyecto.minutos_tolerancia_entrada = int(request.POST.get('minutos_tolerancia_entrada', 15))
+            proyecto.minutos_tolerancia_salida = int(request.POST.get('minutos_tolerancia_salida', 10))
+
+            # DÍAS LABORALES (checkboxes)
             dias_laborales = request.POST.getlist('dias_laborales')
             if dias_laborales:
-                # Convertir lista a string separado por comas
                 proyecto.dias_laborales = ','.join(dias_laborales)
             else:
-                # Default: Lunes a Viernes
-                proyecto.dias_laborales = '1,2,3,4,5'
+                proyecto.dias_laborales = '1,2,3,4,5,6'  # Lunes a Sábado por defecto
+            # ============================================================
             # ============================================================
             
             # Archivos (EXISTENTE - NO CAMBIAR)
@@ -524,40 +531,62 @@ class ProyectoEditarView(LoginRequiredMixin, View):
             proyecto.valor_avaluo_acumulado = request.POST.get('valor_avaluo_acumulado', 0)
             
             # ============================================================
-            # ✨ NUEVO: ACTUALIZAR HORARIOS Y DÍAS LABORALES
+            # ✨ ACTUALIZAR HORARIOS INDIVIDUALES POR DÍA (FORMATO 12H)
             # ============================================================
-            from datetime import time
-            
-            # Hora de entrada
-            hora_entrada_str = request.POST.get('hora_entrada_esperada')
-            if hora_entrada_str:
-                try:
-                    proyecto.hora_entrada_esperada = time.fromisoformat(hora_entrada_str)
-                except:
-                    pass  # Mantener valor actual
-            
-            # Hora de salida
-            hora_salida_str = request.POST.get('hora_salida_esperada')
-            if hora_salida_str:
-                try:
-                    proyecto.hora_salida_esperada = time.fromisoformat(hora_salida_str)
-                except:
-                    pass  # Mantener valor actual
-            
-            # Minutos de tolerancia
-            minutos_tolerancia = request.POST.get('minutos_tolerancia')
-            if minutos_tolerancia:
-                proyecto.minutos_tolerancia = int(minutos_tolerancia)
-            
-            # Horas de jornada
-            horas_jornada = request.POST.get('horas_jornada')
-            if horas_jornada:
-                proyecto.horas_jornada = float(horas_jornada)
-            
-            # Días laborales
+
+            # LUNES
+            if request.POST.get('hora_inicio_lunes'):
+                proyecto.hora_inicio_lunes = request.POST.get('hora_inicio_lunes')
+            if request.POST.get('hora_fin_lunes'):
+                proyecto.hora_fin_lunes = request.POST.get('hora_fin_lunes')
+
+            # MARTES
+            if request.POST.get('hora_inicio_martes'):
+                proyecto.hora_inicio_martes = request.POST.get('hora_inicio_martes')
+            if request.POST.get('hora_fin_martes'):
+                proyecto.hora_fin_martes = request.POST.get('hora_fin_martes')
+
+            # MIÉRCOLES
+            if request.POST.get('hora_inicio_miercoles'):
+                proyecto.hora_inicio_miercoles = request.POST.get('hora_inicio_miercoles')
+            if request.POST.get('hora_fin_miercoles'):
+                proyecto.hora_fin_miercoles = request.POST.get('hora_fin_miercoles')
+
+            # JUEVES
+            if request.POST.get('hora_inicio_jueves'):
+                proyecto.hora_inicio_jueves = request.POST.get('hora_inicio_jueves')
+            if request.POST.get('hora_fin_jueves'):
+                proyecto.hora_fin_jueves = request.POST.get('hora_fin_jueves')
+
+            # VIERNES
+            if request.POST.get('hora_inicio_viernes'):
+                proyecto.hora_inicio_viernes = request.POST.get('hora_inicio_viernes')
+            if request.POST.get('hora_fin_viernes'):
+                proyecto.hora_fin_viernes = request.POST.get('hora_fin_viernes')
+
+            # SÁBADO
+            if request.POST.get('hora_inicio_sabado'):
+                proyecto.hora_inicio_sabado = request.POST.get('hora_inicio_sabado')
+            if request.POST.get('hora_fin_sabado'):
+                proyecto.hora_fin_sabado = request.POST.get('hora_fin_sabado')
+
+            # DOMINGO
+            if request.POST.get('hora_inicio_domingo'):
+                proyecto.hora_inicio_domingo = request.POST.get('hora_inicio_domingo')
+            if request.POST.get('hora_fin_domingo'):
+                proyecto.hora_fin_domingo = request.POST.get('hora_fin_domingo')
+
+            # TOLERANCIAS
+            if request.POST.get('minutos_tolerancia_entrada'):
+                proyecto.minutos_tolerancia_entrada = int(request.POST.get('minutos_tolerancia_entrada'))
+            if request.POST.get('minutos_tolerancia_salida'):
+                proyecto.minutos_tolerancia_salida = int(request.POST.get('minutos_tolerancia_salida'))
+
+            # DÍAS LABORALES
             dias_laborales = request.POST.getlist('dias_laborales')
             if dias_laborales:
                 proyecto.dias_laborales = ','.join(dias_laborales)
+            # ============================================================
             # ============================================================
             
             # Archivos (EXISTENTE - NO CAMBIAR)
@@ -904,12 +933,16 @@ class ProyectoAsignarTrabajadoresView(LoginRequiredMixin, View):
             messages.error(request, f'❌ Error al actualizar trabajadores: {str(e)}')
 
         return redirect('proyecto_detalle', pk=pk)
+
 # ============================================
 # API VIEWS (Para tu app móvil)
 # ============================================
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from .serializers import ProyectoSerializer
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework import status
+from .serializers import ProyectoSerializer, MisProyectosSerializer
 
 
 class ProyectoViewSet(viewsets.ModelViewSet):
@@ -938,6 +971,55 @@ class ProyectoViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         """Registrar auditoría al actualizar"""
         serializer.save(modificado_por=self.request.user)
+
+    # ============================================================
+    # ✅ NUEVO ENDPOINT: MIS PROYECTOS
+    # ============================================================
+    @action(detail=False, methods=['get'], url_path='mis-proyectos')
+    def mis_proyectos(self, request):
+        """
+        Endpoint específico para obtener los proyectos del supervisor logueado
+        
+        GET /api/proyectos/mis-proyectos/
+        
+        Returns:
+            - Si es supervisor: Solo sus proyectos asignados
+            - Si es administrador: Todos los proyectos
+            
+        Response:
+            {
+                "count": 2,
+                "proyectos": [...]
+            }
+        """
+        user = request.user
+        
+        # Filtrar proyectos según el rol
+        if user.es_administrador():
+            proyectos = Proyecto.objects.filter(
+                eliminado=False,
+                activo=True
+            ).select_related('supervisor').order_by('-fecha_creacion')
+        else:
+            # Solo proyectos donde es supervisor
+            proyectos = Proyecto.objects.filter(
+                supervisor=user,
+                eliminado=False,
+                activo=True
+            ).select_related('supervisor').order_by('-fecha_creacion')
+        
+        # Serializar
+        serializer = MisProyectosSerializer(proyectos, many=True)
+        
+        return Response({
+            'count': proyectos.count(),
+            'proyectos': serializer.data,
+            'usuario': {
+                'id': user.id,
+                'nombre': user.nombre_completo,
+                'rol': user.get_rol_display()
+            }
+        }, status=status.HTTP_200_OK)
 
 # ============================================================
 # VISTA AJAX PARA CREAR CONTRATISTA DESDE FORMULARIO DE PROYECTO

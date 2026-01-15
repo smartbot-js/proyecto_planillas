@@ -601,6 +601,185 @@
     background: #e2e8f0;
     margin: 4px 0;
 }
+/* ============================================================================
+   ESTILOS PARA HORARIOS INDIVIDUALES POR DÍA
+   ============================================================================ */
+
+/* Contenedor de cada día */
+.horario-dia-individual {
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+}
+
+.horario-dia-individual:hover {
+    border-color: #bfdbfe;
+    background: #f0f9ff;
+}
+
+/* Header del día con checkbox */
+.dia-checkbox-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.dia-checkbox-header input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.dia-checkbox-header label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    margin: 0;
+    flex: 1;
+}
+
+.dia-checkbox-header label .material-symbols-outlined {
+    color: #3b82f6;
+    font-size: 22px;
+}
+
+.dia-checkbox-header label strong {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+}
+
+/* Inputs de horarios */
+.horario-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 16px;
+    align-items: end;
+}
+
+.horario-inputs .form-group {
+    margin-bottom: 0;
+}
+
+.horario-inputs .form-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+
+/* Input de hora con formato 12h */
+.hora-input-12h {
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+
+/* Indicador de horas calculadas */
+.horas-calculadas {
+    background: #3b82f6;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    text-align: center;
+    min-width: 60px;
+}
+
+/* Día desactivado (checkbox sin marcar) */
+.horario-dia-individual.disabled {
+    opacity: 0.5;
+    background: #f3f4f6;
+}
+
+.horario-dia-individual.disabled .horario-inputs {
+    display: none;
+}
+
+/* Resumen semanal */
+.horario-resumen {
+    background: white;
+    border: 2px solid #dbeafe;
+    border-radius: 10px;
+    padding: 16px;
+}
+
+.horario-resumen-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#resumen-horarios-semanal {
+    display: grid;
+    gap: 8px;
+}
+
+.resumen-dia-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f8fafc;
+    border-radius: 6px;
+}
+
+.resumen-dia-nombre {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.resumen-dia-horario {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.resumen-dia-horas {
+    font-size: 13px;
+    font-weight: 700;
+    color: #3b82f6;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .horario-inputs {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .horas-calculadas {
+        width: 100%;
+        padding: 10px;
+    }
+    
+    .dia-checkbox-header label strong {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .horario-dia-individual {
+        padding: 12px;
+    }
+    
+    .dia-checkbox-header {
+        flex-wrap: wrap;
+    }
+}
 </style>
 {% endblock %}
 
@@ -1040,97 +1219,212 @@
                             <div class="section-icon">
                                 <span class="material-symbols-outlined">schedule</span>
                             </div>
-                            <h3 class="section-title">Horarios y Días Laborales</h3>
+                            <h3 class="section-title">Horarios por Día de la Semana</h3>
                         </div>
-
+                    
                         <div class="horarios-info-banner">
                             <span class="material-symbols-outlined">info</span>
                             <div class="horarios-info-content">
-                                <strong>Configura el horario laboral de este proyecto</strong>
-                                <p>Estos horarios se usarán para calcular automáticamente llegadas tarde y horas extras.</p>
+                                <strong>Configura el horario para cada día (Formato 12 horas)</strong>
+                                <p>Escribe la hora como: 08:00 AM, 02:00 PM, etc. Marca los días laborales con el checkbox.</p>
                             </div>
                         </div>
-
-                        <div class="form-grid cols-2">
-                            <div class="form-group">
-                                <label for="hora_entrada_esperada">Hora de Entrada <span class="required">*</span></label>
-                                <input type="time" name="hora_entrada_esperada" class="form-control" value="08:00" required id="hora_entrada_esperada">
-                                <small class="form-help">Hora en que deben llegar los trabajadores</small>
+                    
+                        <!-- LUNES -->
+                        <div class="horario-dia-individual">
+                            <div class="dia-checkbox-header">
+                                <input type="checkbox" name="dias_laborales" value="1" id="dia_lunes" checked onchange="toggleHorarioDia('lunes')">
+                                <label for="dia_lunes">
+                                    <span class="material-symbols-outlined">calendar_today</span>
+                                    <strong>Lunes</strong>
+                                </label>
                             </div>
-                            <div class="form-group">
-                                <label for="hora_salida_esperada">Hora de Salida <span class="required">*</span></label>
-                                <input type="time" name="hora_salida_esperada" class="form-control" value="17:00" required id="hora_salida_esperada">
-                                <small class="form-help">Hora en que termina la jornada</small>
-                            </div>
-                        </div>
-
-                        <div class="form-grid cols-2">
-                            <div class="form-group">
-                                <label for="minutos_tolerancia">Minutos de Tolerancia <span class="required">*</span></label>
-                                <div class="tolerance-input-group">
-                                    <input type="number" name="minutos_tolerancia" class="form-control" value="15" min="0" max="60" step="1" required id="minutos_tolerancia">
-                                    <span class="tolerance-label">minutos</span>
+                            <div class="horario-inputs" id="horario_lunes">
+                                <div class="form-group">
+                                    <label>Hora Inicio</label>
+                                    <input type="text" name="hora_inicio_lunes" class="form-control hora-input-12h" 
+                                           value="08:00 AM" placeholder="08:00 AM" data-dia="lunes">
                                 </div>
+                                <div class="form-group">
+                                    <label>Hora Fin</label>
+                                    <input type="text" name="hora_fin_lunes" class="form-control hora-input-12h" 
+                                           value="05:00 PM" placeholder="05:00 PM" data-dia="lunes">
+                                </div>
+                                <div class="horas-calculadas" id="horas_lunes">9h</div>
+                            </div>
+                        </div>
+                    
+                        <!-- MARTES -->
+                        <div class="horario-dia-individual">
+                            <div class="dia-checkbox-header">
+                                <input type="checkbox" name="dias_laborales" value="2" id="dia_martes" checked onchange="toggleHorarioDia('martes')">
+                                <label for="dia_martes">
+                                    <span class="material-symbols-outlined">calendar_today</span>
+                                    <strong>Martes</strong>
+                                </label>
+                            </div>
+                            <div class="horario-inputs" id="horario_martes">
+                                <div class="form-group">
+                                    <label>Hora Inicio</label>
+                                    <input type="text" name="hora_inicio_martes" class="form-control hora-input-12h" 
+                                           value="08:00 AM" placeholder="08:00 AM" data-dia="martes">
+                                </div>
+                                <div class="form-group">
+                                    <label>Hora Fin</label>
+                                    <input type="text" name="hora_fin_martes" class="form-control hora-input-12h" 
+                                           value="05:00 PM" placeholder="05:00 PM" data-dia="martes">
+                                </div>
+                                <div class="horas-calculadas" id="horas_martes">9h</div>
+                            </div>
+                        </div>
+                    
+                        <!-- MIÉRCOLES -->
+                        <div class="horario-dia-individual">
+                            <div class="dia-checkbox-header">
+                                <input type="checkbox" name="dias_laborales" value="3" id="dia_miercoles" checked onchange="toggleHorarioDia('miercoles')">
+                                <label for="dia_miercoles">
+                                    <span class="material-symbols-outlined">calendar_today</span>
+                                    <strong>Miércoles</strong>
+                                </label>
+                            </div>
+                            <div class="horario-inputs" id="horario_miercoles">
+                                <div class="form-group">
+                                    <label>Hora Inicio</label>
+                                    <input type="text" name="hora_inicio_miercoles" class="form-control hora-input-12h" 
+                                           value="08:00 AM" placeholder="08:00 AM" data-dia="miercoles">
+                                </div>
+                                <div class="form-group">
+                                    <label>Hora Fin</label>
+                                    <input type="text" name="hora_fin_miercoles" class="form-control hora-input-12h" 
+                                           value="05:00 PM" placeholder="05:00 PM" data-dia="miercoles">
+                                </div>
+                                <div class="horas-calculadas" id="horas_miercoles">9h</div>
+                            </div>
+                        </div>
+                    
+                        <!-- JUEVES -->
+                        <div class="horario-dia-individual">
+                            <div class="dia-checkbox-header">
+                                <input type="checkbox" name="dias_laborales" value="4" id="dia_jueves" checked onchange="toggleHorarioDia('jueves')">
+                                <label for="dia_jueves">
+                                    <span class="material-symbols-outlined">calendar_today</span>
+                                    <strong>Jueves</strong>
+                                </label>
+                            </div>
+                            <div class="horario-inputs" id="horario_jueves">
+                                <div class="form-group">
+                                    <label>Hora Inicio</label>
+                                    <input type="text" name="hora_inicio_jueves" class="form-control hora-input-12h" 
+                                           value="08:00 AM" placeholder="08:00 AM" data-dia="jueves">
+                                </div>
+                                <div class="form-group">
+                                    <label>Hora Fin</label>
+                                    <input type="text" name="hora_fin_jueves" class="form-control hora-input-12h" 
+                                           value="05:00 PM" placeholder="05:00 PM" data-dia="jueves">
+                                </div>
+                                <div class="horas-calculadas" id="horas_jueves">9h</div>
+                            </div>
+                        </div>
+                    
+                        <!-- VIERNES -->
+                        <div class="horario-dia-individual">
+                            <div class="dia-checkbox-header">
+                                <input type="checkbox" name="dias_laborales" value="5" id="dia_viernes" checked onchange="toggleHorarioDia('viernes')">
+                                <label for="dia_viernes">
+                                    <span class="material-symbols-outlined">calendar_today</span>
+                                    <strong>Viernes</strong>
+                                </label>
+                            </div>
+                            <div class="horario-inputs" id="horario_viernes">
+                                <div class="form-group">
+                                    <label>Hora Inicio</label>
+                                    <input type="text" name="hora_inicio_viernes" class="form-control hora-input-12h" 
+                                           value="08:00 AM" placeholder="08:00 AM" data-dia="viernes">
+                                </div>
+                                <div class="form-group">
+                                    <label>Hora Fin</label>
+                                    <input type="text" name="hora_fin_viernes" class="form-control hora-input-12h" 
+                                           value="02:00 PM" placeholder="02:00 PM" data-dia="viernes">
+                                </div>
+                                <div class="horas-calculadas" id="horas_viernes">6h</div>
+                            </div>
+                        </div>
+                    
+                        <!-- SÁBADO -->
+                        <div class="horario-dia-individual">
+                            <div class="dia-checkbox-header">
+                                <input type="checkbox" name="dias_laborales" value="6" id="dia_sabado" checked onchange="toggleHorarioDia('sabado')">
+                                <label for="dia_sabado">
+                                    <span class="material-symbols-outlined">calendar_today</span>
+                                    <strong>Sábado</strong>
+                                </label>
+                            </div>
+                            <div class="horario-inputs" id="horario_sabado">
+                                <div class="form-group">
+                                    <label>Hora Inicio</label>
+                                    <input type="text" name="hora_inicio_sabado" class="form-control hora-input-12h" 
+                                           value="08:00 AM" placeholder="08:00 AM" data-dia="sabado">
+                                </div>
+                                <div class="form-group">
+                                    <label>Hora Fin</label>
+                                    <input type="text" name="hora_fin_sabado" class="form-control hora-input-12h" 
+                                           value="12:00 PM" placeholder="12:00 PM" data-dia="sabado">
+                                </div>
+                                <div class="horas-calculadas" id="horas_sabado">4h</div>
+                            </div>
+                        </div>
+                    
+                        <!-- DOMINGO -->
+                        <div class="horario-dia-individual">
+                            <div class="dia-checkbox-header">
+                                <input type="checkbox" name="dias_laborales" value="7" id="dia_domingo" onchange="toggleHorarioDia('domingo')">
+                                <label for="dia_domingo">
+                                    <span class="material-symbols-outlined">calendar_today</span>
+                                    <strong>Domingo</strong>
+                                </label>
+                            </div>
+                            <div class="horario-inputs" id="horario_domingo" style="display: none;">
+                                <div class="form-group">
+                                    <label>Hora Inicio</label>
+                                    <input type="text" name="hora_inicio_domingo" class="form-control hora-input-12h" 
+                                           value="08:00 AM" placeholder="08:00 AM" data-dia="domingo">
+                                </div>
+                                <div class="form-group">
+                                    <label>Hora Fin</label>
+                                    <input type="text" name="hora_fin_domingo" class="form-control hora-input-12h" 
+                                           value="12:00 PM" placeholder="12:00 PM" data-dia="domingo">
+                                </div>
+                                <div class="horas-calculadas" id="horas_domingo">0h</div>
+                            </div>
+                        </div>
+                    
+                        <!-- TOLERANCIAS -->
+                        <div class="form-grid cols-2" style="margin-top: 24px;">
+                            <div class="form-group">
+                                <label for="minutos_tolerancia_entrada">
+                                    Tolerancia de Entrada (minutos) <span class="required">*</span>
+                                </label>
+                                <input type="number" name="minutos_tolerancia_entrada" id="minutos_tolerancia_entrada"
+                                       class="form-control" value="15" min="0" max="60" required>
                                 <small class="form-help">Minutos permitidos de retraso</small>
                             </div>
                             <div class="form-group">
-                                <label for="horas_jornada">Horas por Jornada <span class="required">*</span></label>
-                                <div class="tolerance-input-group">
-                                    <input type="number" name="horas_jornada" class="form-control" value="8.0" min="1" max="24" step="0.5" required id="horas_jornada">
-                                    <span class="tolerance-label">horas</span>
-                                </div>
-                                <small class="form-help">Horas diarias de trabajo</small>
+                                <label for="minutos_tolerancia_salida">
+                                    Tolerancia de Salida (minutos) <span class="required">*</span>
+                                </label>
+                                <input type="number" name="minutos_tolerancia_salida" id="minutos_tolerancia_salida"
+                                       class="form-control" value="10" min="0" max="60" required>
+                                <small class="form-help">Minutos permitidos de salida temprana</small>
                             </div>
                         </div>
-
-                        <div class="form-group">
-                            <label>Días Laborales <span class="required">*</span></label>
-                            <div class="dias-laborales-grid">
-                                <div class="dia-checkbox" onclick="toggleDia(this, '1')">
-                                    <input type="checkbox" name="dias_laborales" value="1" id="dia_lunes" checked>
-                                    <label for="dia_lunes">L Lunes</label>
-                                </div>
-                                <div class="dia-checkbox" onclick="toggleDia(this, '2')">
-                                    <input type="checkbox" name="dias_laborales" value="2" id="dia_martes" checked>
-                                    <label for="dia_martes">M Martes</label>
-                                </div>
-                                <div class="dia-checkbox" onclick="toggleDia(this, '3')">
-                                    <input type="checkbox" name="dias_laborales" value="3" id="dia_miercoles" checked>
-                                    <label for="dia_miercoles">M Miércoles</label>
-                                </div>
-                                <div class="dia-checkbox" onclick="toggleDia(this, '4')">
-                                    <input type="checkbox" name="dias_laborales" value="4" id="dia_jueves" checked>
-                                    <label for="dia_jueves">J Jueves</label>
-                                </div>
-                                <div class="dia-checkbox" onclick="toggleDia(this, '5')">
-                                    <input type="checkbox" name="dias_laborales" value="5" id="dia_viernes" checked>
-                                    <label for="dia_viernes">V Viernes</label>
-                                </div>
-                                <div class="dia-checkbox" onclick="toggleDia(this, '6')">
-                                    <input type="checkbox" name="dias_laborales" value="6" id="dia_sabado">
-                                    <label for="dia_sabado">S Sábado</label>
-                                </div>
-                                <div class="dia-checkbox" onclick="toggleDia(this, '7')">
-                                    <input type="checkbox" name="dias_laborales" value="7" id="dia_domingo">
-                                    <label for="dia_domingo">D Domingo</label>
-                                </div>
-                            </div>
-                            <small class="form-help">Selecciona los días que se trabaja en este proyecto</small>
-                        </div>
-
-                        <div class="horario-resumen">
+                    
+                        <!-- RESUMEN SEMANAL -->
+                        <div class="horario-resumen" style="margin-top: 20px;">
                             <div class="horario-resumen-title">
-                                <span class="material-symbols-outlined">visibility</span>
-                                Horario configurado:
+                                <span class="material-symbols-outlined" style="font-size: 16px;">summarize</span>
+                                Resumen Semanal
                             </div>
-                            <div class="horario-resumen-item">
-                                <span class="horario-resumen-label">Horario:</span>
-                                <span class="horario-resumen-value" id="horario-preview">08:00 - 17:00 (8.0 horas)</span>
-                            </div>
-                            <div class="horario-resumen-item">
-                                <span class="horario-resumen-label">Días laborales:</span>
-                                <span class="horario-resumen-value" id="dias-preview">Lunes, Martes, Miércoles, Jueves, Viernes</span>
-                            </div>
+                            <div id="resumen-horarios-semanal"></div>
                         </div>
                     </div>
 
@@ -1720,5 +2014,240 @@ document.getElementById('proyectoForm').addEventListener('submit', function(e) {
         return false;
     }
 });
+
+// ============================================================================
+// FUNCIONES PARA HORARIOS INDIVIDUALES CON FORMATO 12H
+// ============================================================================
+
+function convertir12hA24h(hora12) {
+    if (!hora12) return null;
+    try {
+        const partes = hora12.trim().toUpperCase().split(' ');
+        const [horas, minutos] = partes[0].split(':').map(Number);
+        const periodo = partes[1];
+        
+        let horas24 = horas;
+        if (periodo === 'PM' && horas !== 12) {
+            horas24 = horas + 12;
+        } else if (periodo === 'AM' && horas === 12) {
+            horas24 = 0;
+        }
+        
+        return `${String(horas24).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
+    } catch (error) {
+        return null;
+    }
+}
+
+function calcularHorasEntre(horaInicio12h, horaFin12h) {
+    if (!horaInicio12h || !horaFin12h) return 0;
+    try {
+        const inicio24 = convertir12hA24h(horaInicio12h);
+        const fin24 = convertir12hA24h(horaFin12h);
+        
+        if (!inicio24 || !fin24) return 0;
+        
+        const [hI, mI] = inicio24.split(':').map(Number);
+        const [hF, mF] = fin24.split(':').map(Number);
+        
+        const minutosInicio = hI * 60 + mI;
+        let minutosFin = hF * 60 + mF;
+        
+        if (minutosFin < minutosInicio) {
+            minutosFin += 24 * 60;
+        }
+        
+        const diferenciaMinutos = minutosFin - minutosInicio;
+        return diferenciaMinutos / 60;
+    } catch (error) {
+        return 0;
+    }
+}
+
+function validarFormatoHora12h(input) {
+    let valor = input.value.trim().toUpperCase();
+    if (!valor) return;
+    
+    try {
+        valor = valor.replace(/\s+/g, ' ');
+        
+        let horas, minutos, periodo;
+        
+        // Formato: "8 AM" o "8AM"
+        const match1 = valor.match(/^(\d{1,2})\s*(AM|PM)$/);
+        if (match1) {
+            horas = parseInt(match1[1]);
+            minutos = 0;
+            periodo = match1[2];
+        }
+        
+        // Formato: "8:30 AM" o "8:30AM"
+        const match2 = valor.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/);
+        if (match2) {
+            horas = parseInt(match2[1]);
+            minutos = parseInt(match2[2]);
+            periodo = match2[3];
+        }
+        
+        // Validar rangos
+        if (horas < 1 || horas > 12) horas = 8;
+        if (minutos < 0 || minutos > 59) minutos = 0;
+        if (!periodo) periodo = 'AM';
+        
+        // Formatear
+        const horaFormateada = `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')} ${periodo}`;
+        input.value = horaFormateada;
+        
+        // Actualizar cálculo
+        const dia = input.getAttribute('data-dia');
+        if (dia) {
+            actualizarHorasDia(dia);
+            actualizarResumenSemanal();
+        }
+    } catch (error) {
+        console.error('Error validando hora:', error);
+    }
+}
+
+function toggleHorarioDia(dia) {
+    const checkbox = document.getElementById(`dia_${dia}`);
+    const contenedorHorarios = document.getElementById(`horario_${dia}`);
+    const contenedorDia = contenedorHorarios.closest('.horario-dia-individual');
+    
+    if (checkbox.checked) {
+        contenedorHorarios.style.display = 'grid';
+        contenedorDia.classList.remove('disabled');
+    } else {
+        contenedorHorarios.style.display = 'none';
+        contenedorDia.classList.add('disabled');
+    }
+    
+    actualizarResumenSemanal();
+}
+
+function actualizarHorasDia(dia) {
+    const inputInicio = document.querySelector(`input[name="hora_inicio_${dia}"]`);
+    const inputFin = document.querySelector(`input[name="hora_fin_${dia}"]`);
+    const indicadorHoras = document.getElementById(`horas_${dia}`);
+    
+    if (!inputInicio || !inputFin || !indicadorHoras) return;
+    
+    const horaInicio = inputInicio.value;
+    const horaFin = inputFin.value;
+    
+    const horas = calcularHorasEntre(horaInicio, horaFin);
+    
+    indicadorHoras.textContent = `${horas.toFixed(1)}h`;
+    
+    // Cambiar color según horas
+    if (horas >= 8) {
+        indicadorHoras.style.background = '#3b82f6';
+    } else if (horas >= 4) {
+        indicadorHoras.style.background = '#f59e0b';
+    } else {
+        indicadorHoras.style.background = '#6b7280';
+    }
+}
+
+function actualizarResumenSemanal() {
+    const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+    const nombresD = {
+        'lunes': 'Lunes',
+        'martes': 'Martes',
+        'miercoles': 'Miércoles',
+        'jueves': 'Jueves',
+        'viernes': 'Viernes',
+        'sabado': 'Sábado',
+        'domingo': 'Domingo'
+    };
+    
+    const resumen = document.getElementById('resumen-horarios-semanal');
+    if (!resumen) return;
+    
+    let html = '';
+    let totalHoras = 0;
+    
+    dias.forEach(dia => {
+        const checkbox = document.getElementById(`dia_${dia}`);
+        if (!checkbox || !checkbox.checked) return;
+        
+        const inputInicio = document.querySelector(`input[name="hora_inicio_${dia}"]`);
+        const inputFin = document.querySelector(`input[name="hora_fin_${dia}"]`);
+        
+        if (!inputInicio || !inputFin) return;
+        
+        const horaInicio = inputInicio.value || '08:00 AM';
+        const horaFin = inputFin.value || '05:00 PM';
+        const horas = calcularHorasEntre(horaInicio, horaFin);
+        
+        totalHoras += horas;
+        
+        html += `
+            <div class="resumen-dia-item">
+                <span class="resumen-dia-nombre">${nombresD[dia]}</span>
+                <span class="resumen-dia-horario">${horaInicio} - ${horaFin}</span>
+                <span class="resumen-dia-horas">${horas.toFixed(1)}h</span>
+            </div>
+        `;
+    });
+    
+    // Total semanal
+    html += `
+        <div class="resumen-dia-item" style="background: #dbeafe; border: 2px solid #3b82f6; margin-top: 8px;">
+            <span class="resumen-dia-nombre" style="color: #1e40af; font-weight: 700;">TOTAL SEMANAL</span>
+            <span class="resumen-dia-horas" style="font-size: 16px; color: #1e40af;">${totalHoras.toFixed(1)}h</span>
+        </div>
+    `;
+    
+    resumen.innerHTML = html;
+}
+
+// Inicialización de horarios 12h
+(function() {
+    console.log('Inicializando sistema de horarios 12h...');
+    
+    // Esperar a que el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initHorarios12h);
+    } else {
+        initHorarios12h();
+    }
+    
+    function initHorarios12h() {
+        // Configurar todos los inputs de hora
+        const inputsHora = document.querySelectorAll('.hora-input-12h');
+        
+        inputsHora.forEach(input => {
+            input.addEventListener('blur', function() {
+                validarFormatoHora12h(this);
+            });
+            
+            input.addEventListener('change', function() {
+                validarFormatoHora12h(this);
+            });
+            
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    validarFormatoHora12h(this);
+                    this.blur();
+                }
+            });
+        });
+        
+        // Calcular horas iniciales
+        const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+        dias.forEach(dia => {
+            actualizarHorasDia(dia);
+        });
+        
+        // Generar resumen inicial
+        setTimeout(() => {
+            actualizarResumenSemanal();
+        }, 100);
+        
+        console.log('Sistema de horarios 12h inicializado ✓');
+    }
+})();
 </script>
 {% endblock %}
