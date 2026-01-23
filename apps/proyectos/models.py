@@ -662,7 +662,31 @@ class Proyecto(models.Model):
     def get_directorio_proyecto(self):
         """Retorna el path del directorio del proyecto"""
         return os.path.join('proyectos', self.slug)
-    
+
+    # ======================================================
+    # NORMALIZACIÓN AUTOMÁTICA DE COORDENADAS
+    # ======================================================
+    def save(self, *args, **kwargs):
+        # Si vienen coordenadas tipo: "4.7110000,-74.0721000"
+        if self.ubicacion_coordenadas:
+            coords = self.ubicacion_coordenadas.strip()
+
+            if ',' in coords:
+                try:
+                    lat_str, lon_str = coords.split(',')
+
+                    lat = float(lat_str.strip())
+                    lon = float(lon_str.strip())
+
+                    self.latitud = lat
+                    self.longitud = lon
+
+                except Exception as e:
+                    # No romper guardado por error de formato
+                    print(f"[GEO NORMALIZE ERROR] {coords} -> {e}")
+
+        super().save(*args, **kwargs)
+
     def soft_delete(self, usuario):
         """Marca el proyecto como eliminado (soft delete)"""
         from django.utils import timezone

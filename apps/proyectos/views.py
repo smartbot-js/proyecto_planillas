@@ -177,6 +177,19 @@ class ProyectoCreateView(LoginRequiredMixin, View):
             # Ubicación (EXISTENTE - NO CAMBIAR)
             proyecto.ubicacion = request.POST.get('ubicacion')
             proyecto.ubicacion_coordenadas = request.POST.get('ubicacion_coordenadas', '')
+            # ===============================
+            # NORMALIZACIÓN GEO AUTOMÁTICA
+            # ===============================
+            coords = proyecto.ubicacion_coordenadas
+
+            if coords and ',' in coords:
+                try:
+                    lat_str, lon_str = coords.split(',')
+                    proyecto.latitud = float(lat_str.strip())
+                    proyecto.longitud = float(lon_str.strip())
+                except Exception as e:
+                    print(f"[GEO PARSE ERROR] {coords} -> {e}")
+
             proyecto.departamento = request.POST.get('departamento', '')
             proyecto.municipio = request.POST.get('municipio', '')
             
