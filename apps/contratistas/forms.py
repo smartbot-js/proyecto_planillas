@@ -10,6 +10,7 @@ from django.db.models import Sum
 from decimal import Decimal
 from .models import Contratista, ContratoProyecto, AvaluoContratista
 from apps.core.utils import get_tipo_cambio_actual
+from apps.core.nicaragua_data import DEPARTAMENTO_CHOICES, get_all_municipio_choices
 
 
 class ContratistaForm(forms.ModelForm):
@@ -29,8 +30,10 @@ class ContratistaForm(forms.ModelForm):
             'telefono': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+505 8888-8888'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'direccion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'departamento': forms.TextInput(attrs={'class': 'form-control'}),
-            'municipio': forms.TextInput(attrs={'class': 'form-control'}),
+            #'departamento': forms.TextInput(attrs={'class': 'form-control'}),
+            #'municipio': forms.TextInput(attrs={'class': 'form-control'}),
+            'departamento': forms.Select(choices=DEPARTAMENTO_CHOICES, attrs={'class': 'form-control', 'id': 'id_departamento'}),
+            'municipio': forms.Select(choices=get_all_municipio_choices(), attrs={'class': 'form-control', 'id': 'id_municipio'}),
             'banco': forms.TextInput(attrs={'class': 'form-control'}),
             'numero_cuenta': forms.TextInput(attrs={'class': 'form-control'}),
             'tipo_cuenta': forms.Select(attrs={'class': 'form-control'}),

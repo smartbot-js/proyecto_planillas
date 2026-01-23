@@ -15,6 +15,8 @@ from apps.usuarios.models import Usuario
 from apps.trabajadores.models import Trabajador
 from apps.asistencias.models import Asistencia # <--- 1. IMPORTAR ASISTENCIA
 from apps.trabajadores.models import Trabajador, HistorialProyecto
+from apps.core.nicaragua_data import DEPARTAMENTOS
+
 from datetime import time
 
 class ProyectoListView(LoginRequiredMixin, ListView):
@@ -159,6 +161,7 @@ class ProyectoCreateView(LoginRequiredMixin, View):
             'supervisores': supervisores,
             'contratistas_disponibles': contratistas_disponibles,
             'trabajadores_disponibles': trabajadores_disponibles,
+            'departamentos': DEPARTAMENTOS,
         }
         return render(request, self.template_name, context)
         
@@ -434,6 +437,7 @@ class ProyectoCreateView(LoginRequiredMixin, View):
             
             context = {
                 'supervisores': supervisores,
+                'departamentos': DEPARTAMENTOS,
             }
             return render(request, self.template_name, context)
 
@@ -483,6 +487,7 @@ class ProyectoEditarView(LoginRequiredMixin, View):
             'contratistas_asignados': contratistas_asignados,  # ✅ CAMBIAR
             'contratistas_proyecto': contratistas_proyecto,
             'avaluos_existentes': avaluos_existentes,
+            'departamentos': DEPARTAMENTOS,
         }
         return render(request, self.template_name, context)
     
@@ -697,6 +702,7 @@ class ProyectoEditarView(LoginRequiredMixin, View):
             context = {
                 'proyecto': proyecto,
                 'supervisores': supervisores,
+                'departamentos': DEPARTAMENTOS,
             }
             return render(request, self.template_name, context)
 

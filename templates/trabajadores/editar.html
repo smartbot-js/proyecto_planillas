@@ -161,13 +161,20 @@
                 <div class="form-card-body">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="departamento">Departamento <span class="required">*</span></label>
-                            <input type="text" id="departamento" name="departamento" class="form-control" value="{{ trabajador.departamento }}" required>
+                            <label for="id_departamento">Departamento <span class="required">*</span></label>
+                            <select id="id_departamento" name="departamento" class="form-control" required>
+                                <option value="">Seleccione un departamento</option>
+                                {% for dep in departamentos %}
+                                <option value="{{ dep }}" {% if dep == trabajador.departamento %}selected{% endif %}>{{ dep }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         
                         <div class="form-group">
-                            <label for="municipio">Municipio <span class="required">*</span></label>
-                            <input type="text" id="municipio" name="municipio" class="form-control" value="{{ trabajador.municipio }}" required>
+                            <label for="id_municipio">Municipio <span class="required">*</span></label>
+                            <select id="id_municipio" name="municipio" class="form-control" required>
+                                <option value="">Seleccione un municipio</option>
+                            </select>
                         </div>
                         
                         <div class="form-group full-width">
@@ -382,7 +389,11 @@
     </form>
 </div>
 
+<script src="{% static 'js/nicaragua_ubicacion.js' %}"></script>
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    inicializarUbicacionNicaragua('id_departamento', 'id_municipio', '{{ trabajador.municipio|default:"" }}');
+});
     // Tabs functionality
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', function() {

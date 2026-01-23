@@ -781,12 +781,19 @@ textarea.form-control {
                     </div>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="departamento">Departamento</label>
-                            <input type="text" id="departamento" name="departamento" class="form-control">
+                            <label for="id_departamento">Departamento</label>
+                            <select id="id_departamento" name="departamento" class="form-control">
+                                <option value="">Seleccione un departamento</option>
+                                {% for dep in departamentos %}
+                                <option value="{{ dep }}">{{ dep }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label for="municipio">Municipio</label>
-                            <input type="text" id="municipio" name="municipio" class="form-control">
+                            <label for="id_municipio">Municipio</label>
+                            <select id="id_municipio" name="municipio" class="form-control" disabled>
+                                <option value="">Seleccione un municipio</option>
+                            </select>
                         </div>
                     </div>
                     <div class="form-grid">
@@ -815,12 +822,19 @@ textarea.form-control {
                     
                     <div class="form-grid cols-2">
                         <div class="form-group">
-                            <label for="puesto_laboral">Puesto Laboral <span class="required">*</span></label>
-                            <input type="text" id="puesto_laboral" name="puesto_laboral" class="form-control" required>
+                            <label for="id_area_cargo">Área de Trabajo <span class="required">*</span></label>
+                            <select id="id_area_cargo" name="area_cargo" class="form-control" required>
+                                <option value="">Seleccione un área</option>
+                                {% for area in areas_trabajo %}
+                                <option value="{{ area }}">{{ area }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label for="area_cargo">Área/Cargo <span class="required">*</span></label>
-                            <input type="text" id="area_cargo" name="area_cargo" class="form-control" required>
+                            <label for="id_puesto_laboral">Puesto Laboral <span class="required">*</span></label>
+                            <select id="id_puesto_laboral" name="puesto_laboral" class="form-control" required disabled>
+                                <option value="">Seleccione un puesto</option>
+                            </select>
                         </div>
                     </div>
                     <div class="form-grid cols-2">
@@ -1037,7 +1051,20 @@ textarea.form-control {
 
 
 {% block extra_js %}
+<script src="{% static 'js/nicaragua_ubicacion.js' %}"></script>
+<script src="{% static 'js/puestos_laborales.js' %}"></script>
+
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    inicializarUbicacionNicaragua('id_departamento', 'id_municipio');
+});
+document.addEventListener('DOMContentLoaded', function() {
+    // Ubicación Nicaragua
+    inicializarUbicacionNicaragua('id_departamento', 'id_municipio');
+    
+    // Puestos laborales
+    inicializarPuestosLaborales('id_area_cargo', 'id_puesto_laboral');
+});
 document.addEventListener('DOMContentLoaded', function() {
     
     // --- LÓGICA DE PESTAÑAS (TABS) ---

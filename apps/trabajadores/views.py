@@ -22,7 +22,8 @@ from .serializers import TrabajadorSerializer, TrabajadorListSerializer
 from .utils import generar_qr_trabajador, parsear_cedula_paraguaya, validar_identificacion_trabajador
 
 from apps.proyectos.models import Proyecto
-
+from apps.core.nicaragua_data import DEPARTAMENTOS
+from apps.core.puestos_data import AREAS_TRABAJO
 
 # ============================================
 # VISTAS WEB (TEMPLATES)
@@ -135,6 +136,8 @@ class TrabajadorCreateView(LoginRequiredMixin, View):
             'sexos': Trabajador.Sexo.choices,
             'estados': Trabajador.Estado.choices,
             'today': timezone.now().date(),
+            'departamentos': DEPARTAMENTOS,
+            'areas_trabajo': AREAS_TRABAJO
         }
         return render(request, self.template_name, context)
     
@@ -302,6 +305,7 @@ class TrabajadorEditarView(LoginRequiredMixin, View):
             'tipos_sangre': Trabajador.TipoSangre.choices,
             'sexos': Trabajador.Sexo.choices,
             'estados': Trabajador.Estado.choices,
+            'departamentos': DEPARTAMENTOS,
         }
         
         return render(request, self.template_name, context)
