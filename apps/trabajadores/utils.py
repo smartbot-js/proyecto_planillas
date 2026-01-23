@@ -232,7 +232,8 @@ def generar_qr_trabajador(trabajador):
         "cedula": trabajador.numero_cedula,
         "nombre": trabajador.nombre_completo,
         "cargo": trabajador.puesto_laboral or trabajador.area_cargo or "Sin asignar",
-        "proyecto": trabajador.proyecto_asignado.nombre if trabajador.proyecto_asignado else None
+        "proyecto": trabajador.proyecto_asignado.nombre if trabajador.proyecto_asignado else None,
+        "id_proyecto": trabajador.proyecto_asignado.id if trabajador.proyecto_asignado else None
     }
 
     # Datos del QR - Solo la cédula (identificador único)
