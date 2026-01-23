@@ -38,7 +38,6 @@ class ProyectoSerializer(serializers.ModelSerializer):
             'ubicacion',
             'fecha_inicio',
             'fecha_fin_estimada',
-            'fecha_fin_real',
             'supervisor',
             'supervisor_nombre',
             'supervisor_email',
@@ -150,13 +149,13 @@ class ProyectoUpdateSerializer(serializers.ModelSerializer):
             )
         return value
     
-    def validate_fecha_fin_real(self, value):
-        """Validar que la fecha fin real sea posterior al inicio"""
-        if value and value < self.instance.fecha_inicio:
-            raise serializers.ValidationError(
-                "La fecha fin real debe ser posterior a la fecha de inicio"
-            )
-        return value
+    # def validate_fecha_fin_real(self, value):
+    #     """Validar que la fecha fin real sea posterior al inicio"""
+    #     if value and value < self.instance.fecha_inicio:
+    #         raise serializers.ValidationError(
+    #             "La fecha fin real debe ser posterior a la fecha de inicio"
+    #         )
+    #     return value
 
 
 class ProyectoListSerializer(serializers.ModelSerializer):
