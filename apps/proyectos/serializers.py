@@ -39,6 +39,10 @@ class ProyectoSerializer(serializers.ModelSerializer):
             'nombre',
             'descripcion',
             'ubicacion',
+            'ubicacion_coordenadas',
+            'latitud',
+            'longitud',
+            'radio_geovalla',
             'fecha_inicio',
             'fecha_fin_estimada',
             'supervisor',
@@ -261,4 +265,3 @@ class MisProyectosSerializer(serializers.ModelSerializer):
             fecha=timezone.now().date(),
             eliminado=False
         ).count()
-        
