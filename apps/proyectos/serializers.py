@@ -24,10 +24,13 @@ class ProyectoSerializer(serializers.ModelSerializer):
         source='get_estado_display',
         read_only=True
     )
-    presupuesto_disponible = serializers.SerializerMethodField()
-    porcentaje_gastado = serializers.SerializerMethodField()
-    dias_transcurridos = serializers.SerializerMethodField()
-    dias_restantes = serializers.SerializerMethodField()
+    # Usar las properties del modelo
+    presupuesto_disponible = serializers.DecimalField(
+        max_digits=15, decimal_places=2, read_only=True
+    )
+    porcentaje_gastado = serializers.DecimalField(
+        max_digits=5, decimal_places=2, read_only=True
+    )
     
     class Meta:
         model = Proyecto
@@ -43,28 +46,19 @@ class ProyectoSerializer(serializers.ModelSerializer):
             'supervisor_email',
             'estado',
             'estado_display',
-            'presupuesto',
-            'presupuesto_gastado',
+            'presupuesto_total',
+            'presupuesto_mano_obra',
+            'presupuesto_administrativo',
+            'gasto_mano_obra_real',
+            'gasto_administrativo_real',
             'presupuesto_disponible',
             'porcentaje_gastado',
-            'dias_transcurridos',
-            'dias_restantes',
+            'porcentaje_avance_general',
+            'activo',
             'fecha_creacion',
             'fecha_actualizacion',
         ]
         read_only_fields = ['id', 'fecha_creacion', 'fecha_actualizacion']
-    
-    def get_presupuesto_disponible(self, obj):
-        return float(obj.presupuesto_disponible())
-    
-    def get_porcentaje_gastado(self, obj):
-        return round(obj.porcentaje_gastado(), 2)
-    
-    def get_dias_transcurridos(self, obj):
-        return obj.dias_transcurridos()
-    
-    def get_dias_restantes(self, obj):
-        return obj.dias_restantes()
 
 
 class ProyectoCreateSerializer(serializers.ModelSerializer):
@@ -80,7 +74,9 @@ class ProyectoCreateSerializer(serializers.ModelSerializer):
             'fecha_inicio',
             'fecha_fin_estimada',
             'supervisor',
-            'presupuesto',
+            'presupuesto_total',
+            'presupuesto_mano_obra',
+            'presupuesto_administrativo',
             'estado',
         ]
     
@@ -103,15 +99,15 @@ class ProyectoCreateSerializer(serializers.ModelSerializer):
                 )
         return value
     
-    def validate_presupuesto(self, value):
-        """Validar que el presupuesto sea mayor a 0"""
-        if value <= 0:
-            raise serializers.ValidationError("El presupuesto debe ser mayor a 0")
+    def validate_presupuesto_total(self, value):
+        """Validar que el presupuesto sea mayor o igual a 0"""
+        if value is not None and value < 0:
+            raise serializers.ValidationError("El presupuesto no puede ser negativo")
         return value
     
     def validate_supervisor(self, value):
         """Validar que el supervisor tenga el rol adecuado"""
-        if not value.puede_validar_asistencias():
+        if hasattr(value, 'puede_validar_asistencias') and not value.puede_validar_asistencias():
             raise serializers.ValidationError(
                 "El usuario seleccionado no tiene permisos de supervisor"
             )
@@ -130,32 +126,14 @@ class ProyectoUpdateSerializer(serializers.ModelSerializer):
             'ubicacion',
             'fecha_inicio',
             'fecha_fin_estimada',
-            'fecha_fin_real',
             'supervisor',
             'estado',
-            'presupuesto',
-            'presupuesto_gastado',
+            'presupuesto_total',
+            'presupuesto_mano_obra',
+            'presupuesto_administrativo',
+            'gasto_mano_obra_real',
+            'gasto_administrativo_real',
         ]
-    
-    def validate_presupuesto_gastado(self, value):
-        """Validar que el presupuesto gastado no supere el total"""
-        presupuesto = self.instance.presupuesto
-        if 'presupuesto' in self.initial_data:
-            presupuesto = self.initial_data.get('presupuesto')
-        
-        if value > presupuesto:
-            raise serializers.ValidationError(
-                "El presupuesto gastado no puede superar el presupuesto total"
-            )
-        return value
-    
-    # def validate_fecha_fin_real(self, value):
-    #     """Validar que la fecha fin real sea posterior al inicio"""
-    #     if value and value < self.instance.fecha_inicio:
-    #         raise serializers.ValidationError(
-    #             "La fecha fin real debe ser posterior a la fecha de inicio"
-    #         )
-    #     return value
 
 
 class ProyectoListSerializer(serializers.ModelSerializer):
@@ -170,7 +148,9 @@ class ProyectoListSerializer(serializers.ModelSerializer):
         source='get_estado_display',
         read_only=True
     )
-    porcentaje_gastado = serializers.SerializerMethodField()
+    porcentaje_gastado = serializers.DecimalField(
+        max_digits=5, decimal_places=2, read_only=True
+    )
     
     class Meta:
         model = Proyecto
@@ -181,14 +161,13 @@ class ProyectoListSerializer(serializers.ModelSerializer):
             'supervisor_nombre',
             'estado',
             'estado_display',
-            'presupuesto',
+            'presupuesto_total',
             'porcentaje_gastado',
+            'porcentaje_avance_general',
             'fecha_inicio',
             'fecha_fin_estimada',
+            'activo',
         ]
-    
-    def get_porcentaje_gastado(self, obj):
-        return round(obj.porcentaje_gastado(), 2)
 
 
 class ProyectoDetalleSerializer(serializers.ModelSerializer):
@@ -200,26 +179,17 @@ class ProyectoDetalleSerializer(serializers.ModelSerializer):
         source='get_estado_display',
         read_only=True
     )
-    presupuesto_disponible = serializers.SerializerMethodField()
-    porcentaje_gastado = serializers.SerializerMethodField()
-    dias_transcurridos = serializers.SerializerMethodField()
-    dias_restantes = serializers.SerializerMethodField()
+    presupuesto_disponible = serializers.DecimalField(
+        max_digits=15, decimal_places=2, read_only=True
+    )
+    porcentaje_gastado = serializers.DecimalField(
+        max_digits=5, decimal_places=2, read_only=True
+    )
     
     class Meta:
         model = Proyecto
         fields = '__all__'
-    
-    def get_presupuesto_disponible(self, obj):
-        return float(obj.presupuesto_disponible())
-    
-    def get_porcentaje_gastado(self, obj):
-        return round(obj.porcentaje_gastado(), 2)
-    
-    def get_dias_transcurridos(self, obj):
-        return obj.dias_transcurridos()
-    
-    def get_dias_restantes(self, obj):
-        return obj.dias_restantes()
+
     
 class MisProyectosSerializer(serializers.ModelSerializer):
     """
