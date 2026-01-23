@@ -241,11 +241,28 @@ class ContratoProyecto(models.Model):
     
     def generar_codigo(self):
         """Genera código único: CT-PRY001-001"""
+        from django.db.models import Max
+        import re
+        
         proyecto_codigo = self.proyecto.codigo if hasattr(self.proyecto, 'codigo') else 'PRY'
-        numero = ContratoProyecto.objects.filter(
-            proyecto=self.proyecto
-        ).count() + 1
-        return f"CT-{proyecto_codigo}-{numero:03d}"
+        prefijo = f"CT-{proyecto_codigo}-"
+        
+        # Buscar el código más alto existente (incluye eliminados para evitar colisiones)
+        ultimo_contrato = ContratoProyecto.objects.filter(
+            codigo__startswith=prefijo
+        ).aggregate(max_codigo=Max('codigo'))['max_codigo']
+        
+        if ultimo_contrato:
+            # Extraer el número del código existente
+            match = re.search(r'-(\d+)$', ultimo_contrato)
+            if match:
+                numero = int(match.group(1)) + 1
+            else:
+                numero = 1
+        else:
+            numero = 1
+        
+        return f"{prefijo}{numero:03d}"
     
     @property
     def total_pagado(self):

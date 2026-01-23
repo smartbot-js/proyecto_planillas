@@ -735,18 +735,26 @@ class ContratoUpdateView(LoginRequiredMixin, UpdateView):
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['proyecto'] = self.proyecto
+        #kwargs['proyecto'] = self.proyecto
         return kwargs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        #context['proyecto'] = self.proyecto
+        context['proyecto'] = self.proyecto
         context['titulo'] = 'Editar Contrato'
         context['boton'] = 'Guardar Cambios'
         return context
-    
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # Guardar el proyecto actualizado para la redirección
+        self.proyecto_destino = self.object.proyecto
+        return response
+        
     def get_success_url(self):
-        return reverse('proyecto_detalle', kwargs={'pk': self.proyecto.id})
+        #return reverse('proyecto_detalle', kwargs={'pk': self.proyecto.id})
+        return reverse('proyecto_detalle', kwargs={'pk': self.object.proyecto.id})
+
 
 class ContratoDeleteView(LoginRequiredMixin, DeleteView):
     model = ContratoProyecto

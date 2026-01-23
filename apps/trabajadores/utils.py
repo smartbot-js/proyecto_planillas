@@ -6,6 +6,7 @@ Utilidades para el módulo de trabajadores
 """
 
 import qrcode
+import json
 import re
 from io import BytesIO
 from django.core.files import File
@@ -225,9 +226,20 @@ def generar_qr_trabajador(trabajador):
         box_size=10,
         border=4,
     )
-    
+
+    # Datos del QR en formato JSON
+    datos_qr = {
+        "cedula": trabajador.numero_cedula,
+        "nombre": trabajador.nombre_completo,
+        "cargo": trabajador.puesto_laboral or trabajador.area_cargo or "Sin asignar",
+        "proyecto": trabajador.proyecto_asignado.nombre if trabajador.proyecto_asignado else None
+    }
+
     # Datos del QR - Solo la cédula (identificador único)
-    qr.add_data(trabajador.numero_cedula)
+#    qr.add_data(trabajador.numero_cedula)
+
+    qr.add_data(json.dumps(datos_qr, ensure_ascii=False))
+
     qr.make(fit=True)
     
     # Crear imagen del QR

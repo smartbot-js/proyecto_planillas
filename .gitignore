@@ -39,3 +39,4 @@ Thumbs.db
 venv/
 env/
 .venv/
+ media/
