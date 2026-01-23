@@ -44,20 +44,26 @@ class ContratoProyectoForm(forms.ModelForm):
     class Meta:
         model = ContratoProyecto
         fields = [
-            'contratista', 'proyecto', 'descripcion', 'actividades',
-            'unidad_medida', 'valor_contrato', 'fecha_inicio', 'fecha_fin', 'estado'
+            'contratista', 'descripcion', 'actividades',
+             'valor_contrato', 'fecha_inicio', 'fecha_fin', 'estado'
         ]
         widgets = {
             'contratista': forms.Select(attrs={'class': 'form-control'}),
-            'proyecto': forms.Select(attrs={'class': 'form-control'}),
+            #'proyecto': forms.Select(attrs={'class': 'form-control'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'actividades': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'unidad_medida': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'm², ml, unidad, etc.'}),
+            #'unidad_medida': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'm², ml, unidad, etc.'}),
             'valor_contrato': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'fecha_inicio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'fecha_fin': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'fecha_inicio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
+            'fecha_fin': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
             'estado': forms.Select(attrs={'class': 'form-control'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Asegurar que las fechas usen el formato correcto para input type="date"
+        self.fields['fecha_inicio'].input_formats = ['%Y-%m-%d']
+        self.fields['fecha_fin'].input_formats = ['%Y-%m-%d']
 
 
 class AvaluoContratistaForm(forms.ModelForm):
