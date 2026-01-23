@@ -192,7 +192,9 @@ class ProyectoCreateView(LoginRequiredMixin, View):
 
             proyecto.departamento = request.POST.get('departamento', '')
             proyecto.municipio = request.POST.get('municipio', '')
-            
+            # RADIO GEOVALLA
+            proyecto.radio_geovalla = int(request.POST.get('radio_geovalla', proyecto.radio_geovalla))
+
             # Características (EXISTENTE - NO CAMBIAR)
             proyecto.tamano_proyecto = request.POST.get('tamano_proyecto', 0)
             proyecto.cantidad_unidades = request.POST.get('cantidad_unidades', 0)
@@ -508,7 +510,9 @@ class ProyectoEditarView(LoginRequiredMixin, View):
             proyecto.ubicacion_coordenadas = request.POST.get('ubicacion_coordenadas', '')
             proyecto.departamento = request.POST.get('departamento', '')
             proyecto.municipio = request.POST.get('municipio', '')
-            
+            # RADIO GEOVALLA
+            proyecto.radio_geovalla = int(request.POST.get('radio_geovalla', proyecto.radio_geovalla))
+
             # Características (EXISTENTE - NO CAMBIAR)
             proyecto.tamano_proyecto = request.POST.get('tamano_proyecto', 0)
             proyecto.cantidad_unidades = request.POST.get('cantidad_unidades', 0)
