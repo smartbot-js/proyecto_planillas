@@ -13,7 +13,7 @@ class ProyectoSimpleSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Proyecto
-        fields = ['id', 'nombre', 'codigo']
+        fields = ['id', 'nombre']
 
 
 class TrabajadorListSerializer(serializers.ModelSerializer):

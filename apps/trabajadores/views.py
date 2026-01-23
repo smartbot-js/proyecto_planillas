@@ -10,7 +10,7 @@ from django.views.generic import ListView, DetailView
 from django.db.models import Q
 from django.contrib import messages
 from django.utils import timezone
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -529,10 +529,19 @@ class TrabajadorTrasladarView(LoginRequiredMixin, View):
 # ============================================
 
 class TrabajadorImportarCSVView(LoginRequiredMixin, View):
-    """Vista para importar trabajadores desde archivo CSV"""
+    """Vista para importar trabajadores desde archivo CSV - CON SOPORTE AJAX"""
     
     def post(self, request):
+        # Detectar si es petición AJAX
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.POST.get('ajax') == 'true'
+        
         if 'archivo_csv' not in request.FILES:
+            if is_ajax:
+                return JsonResponse({
+                    'success': False,
+                    'mensaje': 'No se ha seleccionado ningún archivo',
+                    'errores': ['Por favor, selecciona un archivo CSV para continuar.']
+                })
             messages.error(request, '❌ No se ha seleccionado ningún archivo.')
             return redirect('trabajadores_lista')
         
@@ -540,6 +549,15 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, View):
         
         # Validar que sea CSV
         if not archivo.name.endswith('.csv'):
+            if is_ajax:
+                return JsonResponse({
+                    'success': False,
+                    'mensaje': 'Formato de archivo incorrecto',
+                    'errores': [
+                        'El archivo debe tener extensión .csv',
+                        'Si tu archivo es Excel (.xlsx), guárdalo como "CSV UTF-8 (delimitado por comas)"'
+                    ]
+                })
             messages.error(request, '❌ El archivo debe ser formato CSV.')
             return redirect('trabajadores_lista')
         
@@ -551,10 +569,24 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, View):
             
             # Validar que tenga las columnas requeridas
             columnas_requeridas = ['nombre', 'apellido', 'numero_cedula', 'telefono', 'puesto_laboral']
-            columnas_archivo = reader.fieldnames
+            columnas_archivo = reader.fieldnames or []
             
-            if not all(col in columnas_archivo for col in columnas_requeridas):
-                faltantes = [col for col in columnas_requeridas if col not in columnas_archivo]
+            # Limpiar nombres de columnas (espacios, mayúsculas)
+            columnas_archivo_limpio = [col.strip().lower() for col in columnas_archivo]
+            
+            faltantes = [col for col in columnas_requeridas if col not in columnas_archivo_limpio]
+            
+            if faltantes:
+                if is_ajax:
+                    return JsonResponse({
+                        'success': False,
+                        'mensaje': 'El archivo CSV no tiene las columnas requeridas',
+                        'errores': [
+                            f'Columnas faltantes: {", ".join(faltantes)}',
+                            f'Columnas encontradas: {", ".join(columnas_archivo)}',
+                            'Descarga la plantilla de ejemplo para ver el formato correcto'
+                        ]
+                    })
                 messages.error(
                     request,
                     f'❌ El archivo CSV no tiene las columnas requeridas. Faltan: {", ".join(faltantes)}'
@@ -566,17 +598,27 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, View):
             trabajadores_duplicados = []
             errores = []
             filas_ignoradas = 0
+            filas_vacias = 0
             
             for idx, row in enumerate(reader, start=2):  # Empieza en 2 porque 1 es el header
+                # Normalizar claves del row (quitar espacios, minúsculas)
+                row = {k.strip().lower(): v.strip() if v else '' for k, v in row.items()}
+                
                 numero_cedula = row.get('numero_cedula', '').strip()
+                nombre = row.get('nombre', '').strip()
                 
                 # IGNORAR FILA DE EJEMPLO
-                if numero_cedula == 'EJEMPLO-123' or row.get('nombre', '').upper() == 'EJEMPLO':
+                if numero_cedula.upper() == 'EJEMPLO-123' or nombre.upper() == 'EJEMPLO':
                     filas_ignoradas += 1
                     continue
                 
+                # Ignorar filas completamente vacías
+                if not numero_cedula and not nombre:
+                    filas_vacias += 1
+                    continue
+                
                 if not numero_cedula:
-                    errores.append(f"Fila {idx}: Cédula vacía")
+                    errores.append(f"Fila {idx}: Número de cédula vacío")
                     continue
                 
                 # Verificar si ya existe
@@ -589,37 +631,39 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, View):
                     continue
                 
                 # Validar campos requeridos
-                if not row.get('nombre') or not row.get('apellido'):
-                    errores.append(f"Fila {idx}: Nombre o apellido vacío (Cédula: {numero_cedula})")
-                    continue
+                apellido = row.get('apellido', '').strip()
+                telefono = row.get('telefono', '').strip()
+                puesto_laboral = row.get('puesto_laboral', '').strip()
                 
-                if not row.get('puesto_laboral'):
-                    errores.append(f"Fila {idx}: Puesto laboral vacío (Cédula: {numero_cedula})")
+                campos_faltantes = []
+                if not nombre:
+                    campos_faltantes.append('nombre')
+                if not apellido:
+                    campos_faltantes.append('apellido')
+                if not telefono:
+                    campos_faltantes.append('telefono')
+                if not puesto_laboral:
+                    campos_faltantes.append('puesto_laboral')
+                
+                if campos_faltantes:
+                    errores.append(f"Fila {idx}: Campos vacíos ({', '.join(campos_faltantes)}) - Cédula: {numero_cedula}")
                     continue
                 
                 # Construir contacto de emergencia
+                contacto_emergencia = ''
                 nombre_contacto = row.get('nombre_contacto_emergencia', '').strip()
                 numero_contacto = row.get('numero_contacto_emergencia', '').strip()
-                
-                # Si ambos existen, combinarlos
-                if nombre_contacto and numero_contacto:
-                    contacto_emergencia = f"{nombre_contacto} | {numero_contacto}"
-                elif nombre_contacto:
-                    contacto_emergencia = nombre_contacto
-                elif numero_contacto:
-                    contacto_emergencia = numero_contacto
-                else:
-                    # Fallback al campo antiguo si existe
-                    contacto_emergencia = row.get('contacto_emergencia', '').strip()
+                if nombre_contacto or numero_contacto:
+                    contacto_emergencia = f"{nombre_contacto} | {numero_contacto}".strip(' |')
                 
                 # Preparar datos del trabajador
                 trabajador_data = {
+                    'nombre': nombre,
+                    'apellido': apellido,
                     'numero_cedula': numero_cedula,
-                    'nombre': row.get('nombre', '').strip(),
-                    'apellido': row.get('apellido', '').strip(),
-                    'telefono': row.get('telefono', '').strip(),
-                    'puesto_laboral': row.get('puesto_laboral', '').strip(),
-                    'area_cargo': row.get('area_cargo', row.get('puesto_laboral', '')).strip(),
+                    'telefono': telefono,
+                    'puesto_laboral': puesto_laboral,
+                    'area_cargo': row.get('area_cargo', '').strip(),
                     'departamento': row.get('departamento', '').strip(),
                     'municipio': row.get('municipio', '').strip(),
                     'direccion': row.get('direccion', '').strip(),
@@ -643,14 +687,7 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, View):
                 
                 trabajadores_nuevos.append(trabajador_data)
             
-            # Mensaje informativo sobre filas ignoradas
-            if filas_ignoradas > 0:
-                messages.info(
-                    request,
-                    f'ℹ️ Se ignoraron {filas_ignoradas} fila(s) de ejemplo.'
-                )
-            
-            # Si hay duplicados, preguntar al usuario
+            # Si hay duplicados, pedir confirmación
             if trabajadores_duplicados:
                 # Guardar datos en sesión para confirmación
                 request.session['trabajadores_importar'] = {
@@ -660,7 +697,17 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, View):
                     'ignoradas': filas_ignoradas,
                 }
                 
-                # Renderizar página de confirmación
+                if is_ajax:
+                    return JsonResponse({
+                        'success': False,
+                        'requiere_confirmacion': True,
+                        'nuevos': len(trabajadores_nuevos),
+                        'duplicados_lista': trabajadores_duplicados,
+                        'errores': errores,
+                        'ignorados': filas_ignoradas
+                    })
+                
+                # Renderizar página de confirmación (flujo tradicional)
                 return render(request, 'trabajadores/importar_confirmar.html', {
                     'duplicados': trabajadores_duplicados,
                     'nuevos_count': len(trabajadores_nuevos),
@@ -668,27 +715,73 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, View):
                     'ignoradas': filas_ignoradas,
                 })
             
-            # Si no hay duplicados, crear directamente
-            if trabajadores_nuevos:
-                creados = self._crear_trabajadores(trabajadores_nuevos)
+            # Si no hay trabajadores válidos
+            if not trabajadores_nuevos:
+                if is_ajax:
+                    errores_msg = errores if errores else ['No se encontraron datos válidos en el archivo']
+                    return JsonResponse({
+                        'success': False,
+                        'mensaje': 'No se encontraron trabajadores válidos para importar',
+                        'errores': errores_msg,
+                        'ignorados': filas_ignoradas
+                    })
                 
-                mensaje_exito = f'✅ Se importaron exitosamente {creados} trabajadores.'
                 if filas_ignoradas > 0:
-                    mensaje_exito += f' Se ignoraron {filas_ignoradas} fila(s) de ejemplo.'
-                
-                messages.success(request, mensaje_exito)
-                
-                if errores:
-                    messages.warning(
-                        request,
-                        f'⚠️ Se encontraron {len(errores)} errores: {"; ".join(errores[:5])}'
-                    )
-            else:
+                    messages.info(request, f'ℹ️ Se ignoraron {filas_ignoradas} fila(s) de ejemplo.')
                 messages.warning(request, '⚠️ No se encontraron trabajadores válidos para importar.')
+                return redirect('trabajadores_lista')
+            
+            # Si no hay duplicados, crear directamente
+            creados = self._crear_trabajadores(trabajadores_nuevos)
+            
+            if is_ajax:
+                advertencias = []
+                if errores:
+                    advertencias.append(f'Se encontraron {len(errores)} filas con errores')
+                
+                return JsonResponse({
+                    'success': True,
+                    'creados': creados,
+                    'duplicados': 0,
+                    'ignorados': filas_ignoradas,
+                    'advertencias': advertencias
+                })
+            
+            mensaje_exito = f'✅ Se importaron exitosamente {creados} trabajadores.'
+            if filas_ignoradas > 0:
+                mensaje_exito += f' Se ignoraron {filas_ignoradas} fila(s) de ejemplo.'
+            
+            messages.success(request, mensaje_exito)
+            
+            if errores:
+                messages.warning(
+                    request,
+                    f'⚠️ Se encontraron {len(errores)} errores: {"; ".join(errores[:5])}'
+                )
             
             return redirect('trabajadores_lista')
             
+        except UnicodeDecodeError:
+            if is_ajax:
+                return JsonResponse({
+                    'success': False,
+                    'mensaje': 'Error de codificación en el archivo',
+                    'errores': [
+                        'El archivo no está en formato UTF-8',
+                        'Abre el archivo en Excel y guárdalo como "CSV UTF-8 (delimitado por comas)"',
+                        'O usa un editor de texto para guardarlo con codificación UTF-8'
+                    ]
+                })
+            messages.error(request, '❌ Error de codificación. Guarda el archivo como CSV UTF-8.')
+            return redirect('trabajadores_lista')
+            
         except Exception as e:
+            if is_ajax:
+                return JsonResponse({
+                    'success': False,
+                    'mensaje': 'Error al procesar el archivo',
+                    'errores': [str(e)]
+                })
             messages.error(
                 request,
                 f'❌ Error al procesar el archivo: {str(e)}'
@@ -711,7 +804,6 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, View):
                     generar_qr_trabajador(trabajador)
                     trabajador.save(update_fields=['codigo_qr'])
                 except Exception as e:
-                    # Si falla el QR, no detener la creación
                     print(f"Error al generar QR para {trabajador.numero_cedula}: {str(e)}")
                 
                 trabajadores.append(trabajador)
@@ -721,13 +813,17 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, View):
         
         return len(trabajadores)
 
+
 class TrabajadorImportarConfirmarView(LoginRequiredMixin, View):
-    """Vista para confirmar importación con duplicados"""
+    """Vista para confirmar importación con duplicados - CON SOPORTE AJAX"""
     
     def post(self, request):
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.POST.get('ajax') == 'true'
         accion = request.POST.get('accion')
         
         if accion not in ['confirmar', 'cancelar']:
+            if is_ajax:
+                return JsonResponse({'success': False, 'mensaje': 'Acción inválida'})
             messages.error(request, '❌ Acción inválida.')
             return redirect('trabajadores_lista')
         
@@ -735,15 +831,21 @@ class TrabajadorImportarConfirmarView(LoginRequiredMixin, View):
         datos_importar = request.session.get('trabajadores_importar')
         
         if not datos_importar:
+            if is_ajax:
+                return JsonResponse({'success': False, 'mensaje': 'No se encontraron datos para importar. Intenta subir el archivo nuevamente.'})
             messages.error(request, '❌ No se encontraron datos para importar.')
             return redirect('trabajadores_lista')
         
         if accion == 'cancelar':
             del request.session['trabajadores_importar']
+            if is_ajax:
+                return JsonResponse({'success': True, 'mensaje': 'Importación cancelada'})
             messages.info(request, 'ℹ️ Importación cancelada.')
             return redirect('trabajadores_lista')
         
         # Confirmar: crear trabajadores omitiendo duplicados
+        from .utils import generar_qr_trabajador
+        
         trabajadores_nuevos = datos_importar['nuevos']
         duplicados_count = len(datos_importar['duplicados'])
         
@@ -771,6 +873,14 @@ class TrabajadorImportarConfirmarView(LoginRequiredMixin, View):
         
         # Limpiar sesión
         del request.session['trabajadores_importar']
+        
+        if is_ajax:
+            return JsonResponse({
+                'success': True,
+                'creados': creados,
+                'duplicados': duplicados_count,
+                'qr_generados': qr_generados
+            })
         
         messages.success(
             request,

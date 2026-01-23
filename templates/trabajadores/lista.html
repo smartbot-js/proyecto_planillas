@@ -356,8 +356,9 @@
 </div>
 
 <!-- Modal Importar CSV -->
+<!-- Modal Importar CSV - VERSIÓN MEJORADA CON ERRORES INLINE -->
 <div id="modalImportarCSV" class="modal">
-    <div class="modal-content">
+    <div class="modal-content modal-lg">
         <div class="modal-header">
             <h3>
                 <span class="material-symbols-outlined">upload_file</span>
@@ -367,9 +368,15 @@
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
-        <form method="POST" action="{% url 'trabajadores_importar_csv' %}" enctype="multipart/form-data" id="formImportarCSV">
-            {% csrf_token %}
-            <div class="modal-body">
+        
+        <div class="modal-body">
+            <!-- Área de resultados (oculta inicialmente) -->
+            <div id="importResultados" style="display: none;">
+                <!-- Se llena dinámicamente con JavaScript -->
+            </div>
+            
+            <!-- Formulario de importación -->
+            <div id="importFormContainer">
                 <div class="import-instructions">
                     <h4>
                         <span class="material-symbols-outlined">info</span>
@@ -378,8 +385,8 @@
                     <ol>
                         <li>Descarga la plantilla CSV de ejemplo</li>
                         <li>Completa los datos de los trabajadores en el archivo</li>
-                        <li>Guarda el archivo CSV y súbelo aquí</li>
-                        <li>El sistema validará automáticamente duplicados</li>
+                        <li>Guarda el archivo en formato <strong>CSV UTF-8</strong></li>
+                        <li>Sube el archivo y el sistema validará los datos</li>
                     </ol>
                     
                     <a href="{% url 'trabajadores_descargar_plantilla' %}" class="btn btn-outline">
@@ -393,26 +400,62 @@
                         <span class="material-symbols-outlined">attach_file</span>
                         Seleccionar archivo CSV
                     </label>
-                    <input type="file" name="archivo_csv" id="archivo_csv" accept=".csv" required class="form-control">
-                    <small style="display: block; margin-top: 8px; color: #6b7280;">Solo archivos .csv</small>
+                    <div class="file-input-wrapper">
+                        <input type="file" name="archivo_csv" id="archivo_csv" accept=".csv" class="form-control">
+                        <div id="fileNameDisplay" class="file-name-display">
+                            <span class="material-symbols-outlined">description</span>
+                            <span>Ningún archivo seleccionado</span>
+                        </div>
+                    </div>
+                    <small style="display: block; margin-top: 8px; color: #6b7280;">
+                        Solo archivos .csv con codificación UTF-8
+                    </small>
                 </div>
 
                 <div class="csv-format-info">
-                    <strong>Campos requeridos en el CSV:</strong>
-                    <code>nombre, apellido, numero_cedula, puesto_laboral, salario_normal, fecha_ingreso</code>
-                    <small style="display: block; margin-top: 8px;">Los trabajadores con cédulas duplicadas serán omitidos automáticamente</small>
+                    <strong>
+                        <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">table_chart</span>
+                        Campos requeridos en el CSV:
+                    </strong>
+                    <code>nombre, apellido, numero_cedula, telefono, puesto_laboral</code>
+                    
+                    <div class="csv-optional-fields">
+                        <strong>Campos opcionales:</strong>
+                        <code>fecha_nacimiento, sexo, email, direccion, departamento, municipio, area_cargo, salario_normal, tarifa_hora_extra, numero_seguro_social, asegurado</code>
+                    </div>
+                    
+                    <div class="csv-tips">
+                        <span class="material-symbols-outlined">tips_and_updates</span>
+                        <div>
+                            <strong>Tips:</strong>
+                            <ul>
+                                <li>Las fechas deben estar en formato: <code>YYYY-MM-DD</code> (ej: 2024-01-15)</li>
+                                <li>El campo sexo acepta: <code>masculino</code>, <code>femenino</code>, <code>otro</code></li>
+                                <li>El campo asegurado acepta: <code>si</code>, <code>no</code></li>
+                                <li>Los trabajadores con cédulas duplicadas serán omitidos</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="cerrarModalImportar()">
-                    Cancelar
-                </button>
-                <button type="submit" class="btn btn-primary" id="btnImportar">
-                    <span class="material-symbols-outlined">upload</span>
-                    Importar Trabajadores
-                </button>
+            
+            <!-- Estado de carga -->
+            <div id="importLoading" style="display: none;" class="import-loading">
+                <div class="loading-spinner"></div>
+                <p>Procesando archivo CSV...</p>
+                <small>Esto puede tomar unos segundos</small>
             </div>
-        </form>
+        </div>
+        
+        <div class="modal-footer" id="importFooter">
+            <button type="button" class="btn btn-secondary" onclick="cerrarModalImportar()">
+                Cancelar
+            </button>
+            <button type="button" class="btn btn-primary" id="btnImportar" onclick="procesarCSV()">
+                <span class="material-symbols-outlined">upload</span>
+                Importar
+            </button>
+        </div>
     </div>
 </div>
 
@@ -585,11 +628,250 @@
     .page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
     .page-actions { width: 100%; }
 }
+/* Estilos para Modal Importar CSV Mejorado */
+.modal-lg {
+    max-width: 700px;
+}
+
+.file-input-wrapper {
+    position: relative;
+}
+
+.file-input-wrapper input[type="file"] {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.file-name-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #f9fafb;
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    color: #6b7280;
+    transition: all 0.2s;
+}
+
+.file-name-display.has-file {
+    border-color: #10b981;
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.file-input-wrapper:hover .file-name-display {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.csv-optional-fields {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #fde68a;
+}
+
+.csv-optional-fields code {
+    font-size: 11px;
+}
+
+.csv-tips {
+    margin-top: 16px;
+    padding: 12px;
+    background: #fffbeb;
+    border-radius: 6px;
+    display: flex;
+    gap: 12px;
+}
+
+.csv-tips .material-symbols-outlined {
+    color: #f59e0b;
+    font-size: 24px;
+}
+
+.csv-tips ul {
+    margin: 8px 0 0 0;
+    padding-left: 16px;
+    font-size: 12px;
+}
+
+.csv-tips li {
+    margin-bottom: 4px;
+}
+
+.import-loading {
+    text-align: center;
+    padding: 48px 24px;
+}
+
+.loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #e5e7eb;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.import-loading p {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+.import-loading small {
+    color: #6b7280;
+}
+
+/* Estilos para resultados */
+.import-result {
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.import-result.success {
+    background: #ecfdf5;
+    border: 1px solid #10b981;
+}
+
+.import-result.error {
+    background: #fef2f2;
+    border: 1px solid #ef4444;
+}
+
+.import-result.warning {
+    background: #fffbeb;
+    border: 1px solid #f59e0b;
+}
+
+.import-result-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.import-result-header .material-symbols-outlined {
+    font-size: 28px;
+}
+
+.import-result.success .import-result-header .material-symbols-outlined { color: #10b981; }
+.import-result.error .import-result-header .material-symbols-outlined { color: #ef4444; }
+.import-result.warning .import-result-header .material-symbols-outlined { color: #f59e0b; }
+
+.import-result-header h4 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.import-result-header p {
+    margin: 4px 0 0 0;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.error-list {
+    max-height: 200px;
+    overflow-y: auto;
+    background: white;
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 12px;
+}
+
+.error-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid #fee2e2;
+    font-size: 13px;
+}
+
+.error-item:last-child {
+    border-bottom: none;
+}
+
+.error-item .material-symbols-outlined {
+    font-size: 16px;
+    color: #ef4444;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.error-item strong {
+    color: #991b1b;
+}
+
+.duplicates-list {
+    max-height: 150px;
+    overflow-y: auto;
+    background: white;
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 12px;
+}
+
+.duplicate-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid #fde68a;
+    font-size: 13px;
+}
+
+.duplicate-item:last-child {
+    border-bottom: none;
+}
+
+.import-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.summary-item {
+    text-align: center;
+    padding: 12px;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.summary-item .number {
+    font-size: 24px;
+    font-weight: 700;
+    display: block;
+}
+
+.summary-item .label {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.summary-item.success .number { color: #10b981; }
+.summary-item.error .number { color: #ef4444; }
+.summary-item.warning .number { color: #f59e0b; }
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// Variables globales
+let csvData = null;
+
 function toggleDropdown(btn) {
     const dropdown = btn.nextElementSibling;
     document.querySelectorAll('.dropdown-menu').forEach(d => {
@@ -654,18 +936,381 @@ function confirmarEliminar(trabajadorId, nombreCompleto) {
 
 function abrirModalImportar() {
     document.getElementById('modalImportarCSV').classList.add('active');
+    resetearModalImportar();
 }
 
 function cerrarModalImportar() {
     document.getElementById('modalImportarCSV').classList.remove('active');
-    document.getElementById('formImportarCSV').reset();
+    resetearModalImportar();
 }
 
-// Preview del archivo seleccionado
+function resetearModalImportar() {
+    // Resetear formulario
+    const archivoInput = document.getElementById('archivo_csv');
+    if (archivoInput) archivoInput.value = '';
+    
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+    if (fileNameDisplay) {
+        fileNameDisplay.innerHTML = `
+            <span class="material-symbols-outlined">description</span>
+            <span>Ningún archivo seleccionado</span>
+        `;
+        fileNameDisplay.classList.remove('has-file');
+    }
+    
+    // Mostrar formulario, ocultar resultados y loading
+    const formContainer = document.getElementById('importFormContainer');
+    const resultados = document.getElementById('importResultados');
+    const loading = document.getElementById('importLoading');
+    
+    if (formContainer) formContainer.style.display = 'block';
+    if (resultados) resultados.style.display = 'none';
+    if (loading) loading.style.display = 'none';
+    
+    // Restaurar botones del footer
+    const footer = document.getElementById('importFooter');
+    if (footer) {
+        footer.innerHTML = `
+            <button type="button" class="btn btn-secondary" onclick="cerrarModalImportar()">
+                Cancelar
+            </button>
+            <button type="button" class="btn btn-primary" id="btnImportar" onclick="procesarCSV()">
+                <span class="material-symbols-outlined">upload</span>
+                Importar
+            </button>
+        `;
+    }
+}
+
+function procesarCSV() {
+    const archivo = document.getElementById('archivo_csv').files[0];
+    
+    if (!archivo) {
+        mostrarErrorEnModal('No se ha seleccionado ningún archivo', [
+            'Por favor, selecciona un archivo CSV para continuar.'
+        ]);
+        return;
+    }
+    
+    if (!archivo.name.endsWith('.csv')) {
+        mostrarErrorEnModal('Formato de archivo incorrecto', [
+            'El archivo debe tener extensión .csv',
+            'Si tu archivo es Excel (.xlsx), guárdalo como "CSV UTF-8 (delimitado por comas)"'
+        ]);
+        return;
+    }
+    
+    // Mostrar loading
+    document.getElementById('importFormContainer').style.display = 'none';
+    document.getElementById('importLoading').style.display = 'block';
+    
+    // Enviar archivo via AJAX
+    const formData = new FormData();
+    formData.append('archivo_csv', archivo);
+    formData.append('ajax', 'true');  // Indicar que es petición AJAX
+    
+    // Obtener CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                      document.querySelector('input[name="csrfmiddlewaretoken"]')?.value ||
+                      getCookie('csrftoken');
+    
+    fetch('/trabajadores/importar-csv/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        document.getElementById('importLoading').style.display = 'none';
+        mostrarResultados(data);
+    })
+    .catch(error => {
+        document.getElementById('importLoading').style.display = 'none';
+        mostrarErrorEnModal('Error de conexión', [
+            'No se pudo procesar el archivo.',
+            'Por favor, verifica tu conexión e intenta nuevamente.',
+            `Detalle técnico: ${error.message}`
+        ]);
+    });
+}
+
+function mostrarResultados(data) {
+    const container = document.getElementById('importResultados');
+    const footer = document.getElementById('importFooter');
+    
+    container.style.display = 'block';
+    
+    if (data.success) {
+        // Importación exitosa
+        container.innerHTML = `
+            <div class="import-result success">
+                <div class="import-result-header">
+                    <span class="material-symbols-outlined">check_circle</span>
+                    <div>
+                        <h4>¡Importación exitosa!</h4>
+                        <p>Los trabajadores han sido importados correctamente</p>
+                    </div>
+                </div>
+                
+                <div class="import-summary">
+                    <div class="summary-item success">
+                        <span class="number">${data.creados || 0}</span>
+                        <span class="label">Importados</span>
+                    </div>
+                    <div class="summary-item warning">
+                        <span class="number">${data.duplicados || 0}</span>
+                        <span class="label">Duplicados omitidos</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="number">${data.ignorados || 0}</span>
+                        <span class="label">Filas ignoradas</span>
+                    </div>
+                </div>
+                
+                ${data.advertencias && data.advertencias.length > 0 ? `
+                    <div class="import-result warning" style="margin-top: 16px;">
+                        <strong>Advertencias:</strong>
+                        <ul style="margin: 8px 0 0 16px; font-size: 13px;">
+                            ${data.advertencias.map(a => `<li>${a}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        
+        footer.innerHTML = `
+            <button type="button" class="btn btn-primary" onclick="location.reload()">
+                <span class="material-symbols-outlined">check</span>
+                Aceptar
+            </button>
+        `;
+        
+    } else if (data.requiere_confirmacion) {
+        // Hay duplicados, pedir confirmación
+        csvData = data;
+        
+        container.innerHTML = `
+            <div class="import-result warning">
+                <div class="import-result-header">
+                    <span class="material-symbols-outlined">warning</span>
+                    <div>
+                        <h4>Se encontraron duplicados</h4>
+                        <p>Algunos trabajadores ya existen en el sistema</p>
+                    </div>
+                </div>
+                
+                <div class="import-summary">
+                    <div class="summary-item success">
+                        <span class="number">${data.nuevos || 0}</span>
+                        <span class="label">Nuevos para importar</span>
+                    </div>
+                    <div class="summary-item warning">
+                        <span class="number">${data.duplicados_lista?.length || 0}</span>
+                        <span class="label">Duplicados</span>
+                    </div>
+                    <div class="summary-item error">
+                        <span class="number">${data.errores?.length || 0}</span>
+                        <span class="label">Errores</span>
+                    </div>
+                </div>
+                
+                ${data.duplicados_lista && data.duplicados_lista.length > 0 ? `
+                    <div class="duplicates-list">
+                        <strong style="display: block; margin-bottom: 8px;">Trabajadores duplicados (serán omitidos):</strong>
+                        ${data.duplicados_lista.map(d => `
+                            <div class="duplicate-item">
+                                <span class="material-symbols-outlined" style="color: #f59e0b;">person</span>
+                                <span><strong>${d.nombre}</strong> - Cédula: ${d.cedula} (Fila ${d.fila})</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+                
+                ${data.errores && data.errores.length > 0 ? `
+                    <div class="error-list" style="margin-top: 12px;">
+                        <strong style="display: block; margin-bottom: 8px; color: #991b1b;">Errores encontrados:</strong>
+                        ${data.errores.map(e => `
+                            <div class="error-item">
+                                <span class="material-symbols-outlined">error</span>
+                                <span>${e}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+            </div>
+            
+            <p style="margin-top: 16px; font-size: 14px; color: #4b5563;">
+                ¿Desea continuar con la importación? Los <strong>${data.nuevos || 0}</strong> trabajadores nuevos serán creados 
+                y los duplicados serán omitidos automáticamente.
+            </p>
+        `;
+        
+        footer.innerHTML = `
+            <button type="button" class="btn btn-secondary" onclick="resetearModalImportar()">
+                <span class="material-symbols-outlined">arrow_back</span>
+                Volver
+            </button>
+            <button type="button" class="btn btn-primary" onclick="confirmarImportacion()">
+                <span class="material-symbols-outlined">check</span>
+                Confirmar Importación
+            </button>
+        `;
+        
+    } else {
+        // Error en la importación
+        mostrarErrorEnModal(data.mensaje || 'Error al procesar el archivo', data.errores || []);
+    }
+}
+
+function mostrarErrorEnModal(titulo, errores) {
+    const container = document.getElementById('importResultados');
+    const footer = document.getElementById('importFooter');
+    
+    document.getElementById('importFormContainer').style.display = 'none';
+    document.getElementById('importLoading').style.display = 'none';
+    container.style.display = 'block';
+    
+    container.innerHTML = `
+        <div class="import-result error">
+            <div class="import-result-header">
+                <span class="material-symbols-outlined">error</span>
+                <div>
+                    <h4>${titulo}</h4>
+                    <p>No se pudo completar la importación</p>
+                </div>
+            </div>
+            
+            ${errores.length > 0 ? `
+                <div class="error-list">
+                    ${errores.map(e => `
+                        <div class="error-item">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                            <span>${e}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+            
+            <div class="csv-tips" style="margin-top: 16px;">
+                <span class="material-symbols-outlined">help</span>
+                <div>
+                    <strong>¿Necesitas ayuda?</strong>
+                    <ul>
+                        <li>Descarga la plantilla de ejemplo y úsala como guía</li>
+                        <li>Asegúrate de que el archivo esté guardado como CSV UTF-8</li>
+                        <li>Verifica que las columnas requeridas estén presentes: <code>nombre, apellido, numero_cedula, telefono, puesto_laboral</code></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    footer.innerHTML = `
+        <button type="button" class="btn btn-secondary" onclick="cerrarModalImportar()">
+            Cerrar
+        </button>
+        <button type="button" class="btn btn-primary" onclick="resetearModalImportar()">
+            <span class="material-symbols-outlined">refresh</span>
+            Intentar de nuevo
+        </button>
+    `;
+}
+
+function confirmarImportacion() {
+    // Mostrar loading
+    document.getElementById('importResultados').style.display = 'none';
+    document.getElementById('importLoading').style.display = 'block';
+    
+    // Obtener CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                      document.querySelector('input[name="csrfmiddlewaretoken"]')?.value ||
+                      getCookie('csrftoken');
+    
+    // Enviar confirmación
+    const formData = new FormData();
+    formData.append('accion', 'confirmar');
+    formData.append('ajax', 'true');
+    
+    fetch('/trabajadores/importar-csv/confirmar/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('importLoading').style.display = 'none';
+        
+        if (data.success) {
+            mostrarResultados({
+                success: true,
+                creados: data.creados,
+                duplicados: data.duplicados,
+                ignorados: 0
+            });
+        } else {
+            mostrarErrorEnModal('Error al confirmar importación', [data.mensaje || 'Error desconocido']);
+        }
+    })
+    .catch(error => {
+        document.getElementById('importLoading').style.display = 'none';
+        mostrarErrorEnModal('Error de conexión', ['No se pudo completar la importación']);
+    });
+}
+
+// Función auxiliar para obtener cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Cerrar modal con Escape
+document.addEventListener('keydown', (e) => { 
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('modalImportarCSV');
+        if (modal && modal.classList.contains('active')) {
+            cerrarModalImportar();
+        }
+    }
+});
+
+// Mostrar nombre del archivo seleccionado
 document.getElementById('archivo_csv')?.addEventListener('change', function(e) {
     const fileName = e.target.files[0]?.name;
+    const display = document.getElementById('fileNameDisplay');
+    
     if (fileName) {
-        console.log('Archivo seleccionado:', fileName);
+        display.innerHTML = `
+            <span class="material-symbols-outlined">description</span>
+            <span>${fileName}</span>
+        `;
+        display.classList.add('has-file');
+    } else {
+        display.innerHTML = `
+            <span class="material-symbols-outlined">description</span>
+            <span>Ningún archivo seleccionado</span>
+        `;
+        display.classList.remove('has-file');
     }
 });
 
