@@ -26,6 +26,9 @@ urlpatterns = [
     path('', include('apps.contratistas.urls')),
     path('', include('apps.reportes.urls')),
     #path('', include('apps.pagos_contratistas.urls')),
+
+    # core
+    path('', include('apps.core.urls')),
 ]
 
 # API REST

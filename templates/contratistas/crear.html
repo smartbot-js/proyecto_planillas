@@ -516,7 +516,15 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/nicaragua_ubicacion.js' %}"></script>
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Para crear (municipio vacío)
+    inicializarUbicacionNicaragua('id_departamento', 'id_municipio');
+    
+    // Para editar (con municipio actual)
+    // inicializarUbicacionNicaragua('id_departamento', 'id_municipio', '{{ objeto.municipio }}');
+});
 // Preview de la foto
 document.getElementById('{{ form.foto_cedula.id_for_label }}').addEventListener('change', function(e) {
     const file = e.target.files[0];
