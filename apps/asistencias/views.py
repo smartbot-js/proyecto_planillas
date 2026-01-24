@@ -1195,7 +1195,7 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
         except Asistencia.DoesNotExist:
             return Response(
                 {'error': 'Asistencia no encontrada'},
-                status=status.HTTP_44_NOT_FOUND
+                status=status.HTTP_404_NOT_FOUND
             )
         
         except Exception as e:
