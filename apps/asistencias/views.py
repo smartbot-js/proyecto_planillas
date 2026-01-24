@@ -1222,52 +1222,7 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
     def sincronizar(self, request):
         """
         Sincronización batch desde app móvil offline
-        
-        POST /api/asistencias/sincronizar/
-        
-        Body:
-        {
-            "asistencias": [
-                {
-                    "asistencia_temp_id": 1,
-                    "tipo": "entrada",
-                    "trabajador_cedula": "2812903031000Q",
-                    "proyecto_id": 2,
-                    "fecha": "2026-01-24",
-                    "hora_entrada": "08:00:00",
-                    "latitud_entrada": 12.1365,
-                    "longitud_entrada": -86.2515
-                },
-                {
-                    "asistencia_temp_id": 1,
-                    "tipo": "salida",
-                    "hora_salida": "17:00:00",
-                    "latitud_salida": 12.1366,
-                    "longitud_salida": -86.2516
-                }
-            ]
-        }
-        
-        Response:
-        {
-            "exitosas": 2,
-            "fallidas": 0,
-            "resultados": [
-                {
-                    "temp_id": 1,
-                    "tipo": "entrada",
-                    "status": "ok",
-                    "asistencia_id": 45
-                },
-                {
-                    "temp_id": 1,
-                    "tipo": "salida", 
-                    "status": "ok",
-                    "asistencia_id": 45
-                }
-            ],
-            "errores": []
-        }
+        Con manejo de reintentos - ignora registros ya sincronizados
         """
         serializer = self.get_serializer(data=request.data)
         
@@ -1277,13 +1232,15 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
         asistencias_data = serializer.validated_data['asistencias']
         
         resultados = {
-            'exitosas': 0,
-            'fallidas': 0,
-            'resultados': [],  # Para mapear temp_id -> asistencia_id
+            'nuevos': 0,           # Registros creados por primera vez
+            'ya_sincronizados': 0, # Registros que ya existían (ignorados)
+            'actualizados': 0,     # Entradas sin salida que ahora tienen salida
+            'fallidos': 0,
+            'resultados': [],
             'errores': []
         }
         
-        # Diccionario para mapear temp_id -> asistencia creada
+        # Diccionario para mapear temp_id -> asistencia
         temp_id_map = {}
         
         # Primero procesar todas las ENTRADAS
@@ -1309,16 +1266,17 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
                 ).first()
                 
                 if asistencia_existente:
-                    # Actualizar la existente
-                    asistencia = asistencia_existente
-                    asistencia.hora_entrada = data.get('hora_entrada')
-                    asistencia.latitud_entrada = data.get('latitud_entrada')
-                    asistencia.longitud_entrada = data.get('longitud_entrada')
-                    asistencia.metodo_identificacion = data.get('metodo_identificacion', 'qr')
-                    asistencia.dispositivo_id = data.get('dispositivo_id', '')
-                    asistencia.editado_por = request.user
-                    asistencia.sincronizado_en = timezone.now()
-                    asistencia.save()
+                    # Ya existe - guardar en mapa pero marcar como ya sincronizado
+                    temp_id_map[temp_id] = asistencia_existente
+                    
+                    resultados['ya_sincronizados'] += 1
+                    resultados['resultados'].append({
+                        'temp_id': temp_id,
+                        'tipo': 'entrada',
+                        'status': 'ya_sincronizado',
+                        'asistencia_id': asistencia_existente.id,
+                        'mensaje': 'La entrada ya fue registrada anteriormente'
+                    })
                 else:
                     # Crear nueva
                     asistencia = Asistencia.objects.create(
@@ -1336,34 +1294,33 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
                         estado='abierto',
                         sincronizado_en=timezone.now()
                     )
-                
-                # Guardar en el mapa para vincular con salida
-                temp_id_map[temp_id] = asistencia
-                
-                resultados['exitosas'] += 1
-                resultados['resultados'].append({
-                    'temp_id': temp_id,
-                    'tipo': 'entrada',
-                    'status': 'ok',
-                    'asistencia_id': asistencia.id
-                })
+                    
+                    temp_id_map[temp_id] = asistencia
+                    
+                    resultados['nuevos'] += 1
+                    resultados['resultados'].append({
+                        'temp_id': temp_id,
+                        'tipo': 'entrada',
+                        'status': 'creado',
+                        'asistencia_id': asistencia.id
+                    })
             
             except Trabajador.DoesNotExist:
-                resultados['fallidas'] += 1
+                resultados['fallidos'] += 1
                 resultados['errores'].append({
                     'temp_id': temp_id,
                     'tipo': 'entrada',
                     'error': f"Trabajador no encontrado: {data.get('trabajador_cedula')}"
                 })
             except Proyecto.DoesNotExist:
-                resultados['fallidas'] += 1
+                resultados['fallidos'] += 1
                 resultados['errores'].append({
                     'temp_id': temp_id,
                     'tipo': 'entrada',
                     'error': f"Proyecto no encontrado: {data.get('proyecto_id')}"
                 })
             except Exception as e:
-                resultados['fallidas'] += 1
+                resultados['fallidos'] += 1
                 resultados['errores'].append({
                     'temp_id': temp_id,
                     'tipo': 'entrada',
@@ -1378,17 +1335,27 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
             temp_id = data.get('asistencia_temp_id')
             
             try:
-                # Buscar la asistencia creada con este temp_id
+                # Buscar la asistencia con este temp_id
                 asistencia = temp_id_map.get(temp_id)
                 
                 if not asistencia:
-                    # Si no está en el mapa, buscar por temp_id en asistencias abiertas de hoy
-                    # (podría ser una salida para una entrada sincronizada previamente)
-                    resultados['fallidas'] += 1
+                    resultados['fallidos'] += 1
                     resultados['errores'].append({
                         'temp_id': temp_id,
                         'tipo': 'salida',
-                        'error': f"No se encontró entrada con temp_id={temp_id}. Envía primero la entrada."
+                        'error': f"No se encontró entrada con temp_id={temp_id}"
+                    })
+                    continue
+                
+                # Verificar si ya tiene salida registrada
+                if asistencia.hora_salida and asistencia.estado == 'cerrado':
+                    resultados['ya_sincronizados'] += 1
+                    resultados['resultados'].append({
+                        'temp_id': temp_id,
+                        'tipo': 'salida',
+                        'status': 'ya_sincronizado',
+                        'asistencia_id': asistencia.id,
+                        'mensaje': 'La salida ya fue registrada anteriormente'
                     })
                     continue
                 
@@ -1408,24 +1375,34 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
                 
                 asistencia.save()
                 
-                resultados['exitosas'] += 1
+                resultados['actualizados'] += 1
                 resultados['resultados'].append({
                     'temp_id': temp_id,
                     'tipo': 'salida',
-                    'status': 'ok',
+                    'status': 'actualizado',
                     'asistencia_id': asistencia.id
                 })
             
             except Exception as e:
-                resultados['fallidas'] += 1
+                resultados['fallidos'] += 1
                 resultados['errores'].append({
                     'temp_id': temp_id,
                     'tipo': 'salida',
                     'error': str(e)
                 })
         
+        # Calcular totales para la app
+        total_enviados = len(asistencias_data)
+        total_procesados = resultados['nuevos'] + resultados['ya_sincronizados'] + resultados['actualizados']
+        
+        resultados['resumen'] = {
+            'total_enviados': total_enviados,
+            'total_procesados': total_procesados,
+            'sincronizacion_completa': resultados['fallidos'] == 0
+        }
+        
         return Response(resultados, status=status.HTTP_200_OK)
-   
+
     @action(
     detail=True,
     methods=['post'],
