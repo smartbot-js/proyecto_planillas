@@ -942,10 +942,10 @@ class Asistencia(models.Model):
             self.estado = 'cerrado'
         
         # ===== 4. CALCULAR DURACIÓN JORNADA =====
-        if self.horas_totales:
-            horas = int(self.horas_totales)
-            minutos = int((self.horas_totales - horas) * 60)
-            self.duracion_jornada = f"{horas}h {minutos}m"
+        # if self.horas_totales:
+        #     horas = int(self.horas_totales)
+        #     minutos = int((self.horas_totales - horas) * 60)
+        #     self.duracion_jornada = f"{horas}h {minutos}m"
         
         super().save(*args, **kwargs)
 
