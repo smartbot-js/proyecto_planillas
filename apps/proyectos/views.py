@@ -128,6 +128,33 @@ class ProyectoDetalleView(LoginRequiredMixin, DetailView):
         context['puede_editar'] = proyecto.puede_ser_editado_por(self.request.user)
         context['puede_eliminar'] = proyecto.puede_ser_eliminado_por(self.request.user)
         
+        # ===============================================
+        # CORRECCIÓN: CONTRATISTAS CON CONTRATOS FILTRADOS POR PROYECTO
+        # ===============================================
+        from apps.contratistas.models import ContratoProyecto
+
+        contratistas_asignados = proyecto.contratistas.filter(
+            eliminado=False,
+            activo=True
+        )
+
+        contratistas_con_contratos = []
+        for contratista in contratistas_asignados:
+            contratos_en_este_proyecto = ContratoProyecto.objects.filter(
+                contratista=contratista,
+                proyecto=proyecto,  # ← FILTRO CLAVE
+                eliminado=False
+            ).prefetch_related('avaluos')
+            
+            contratistas_con_contratos.append({
+                'contratista': contratista,
+                'contratos': contratos_en_este_proyecto,
+                'total_contratos': contratos_en_este_proyecto.count(),
+                'total_pagado': sum(c.total_pagado for c in contratos_en_este_proyecto),
+            })
+
+        context['contratistas_con_contratos'] = contratistas_con_contratos
+
         return context
 
 

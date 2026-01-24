@@ -325,7 +325,7 @@ class TrabajadorEditarView(LoginRequiredMixin, View):
         try:
             # Validar cédula única
             nuevo_numero_cedula = request.POST.get('numero_cedula')
-            if nuevo_numero_cedula != trabajador.numero_cedula:
+            if nuevo_numero_cedula and nuevo_numero_cedula != trabajador.numero_cedula:
                 if Trabajador.objects.filter(
                     numero_cedula=nuevo_numero_cedula,
                     eliminado=False
@@ -336,32 +336,47 @@ class TrabajadorEditarView(LoginRequiredMixin, View):
                     )
                     return redirect('trabajador_editar', pk=pk)
             
-            # Actualizar campos básicos
-            nombre_completo = request.POST.get('nombre_completo', '')
-            if nombre_completo:
-                partes = nombre_completo.split(' ', 1)
-                trabajador.nombre = partes[0]
-                trabajador.apellido = partes[1] if len(partes) > 1 else ''
+            # ============================================
+            # CAMPOS BÁSICOS - CORREGIDO
+            # ============================================
+            # Leer nombre y apellido directamente del POST
+            nombre = request.POST.get('nombre', '').strip()
+            apellido = request.POST.get('apellido', '').strip()
             
-            trabajador.numero_cedula = nuevo_numero_cedula
+            if nombre:
+                trabajador.nombre = nombre
+            if apellido:
+                trabajador.apellido = apellido
             
-            if request.POST.get('fecha_nacimiento'):
-                trabajador.fecha_nacimiento = request.POST.get('fecha_nacimiento')
+            if nuevo_numero_cedula:
+                trabajador.numero_cedula = nuevo_numero_cedula
             
+            # Fecha de nacimiento
+            fecha_nacimiento = request.POST.get('fecha_nacimiento')
+            if fecha_nacimiento:
+                trabajador.fecha_nacimiento = fecha_nacimiento
+            
+            # Sexo y tipo de sangre
             trabajador.sexo = request.POST.get('sexo', trabajador.sexo)
             trabajador.tipo_sangre = request.POST.get('tipo_sangre', trabajador.tipo_sangre)
             
-            # Ubicación
+            # ============================================
+            # UBICACIÓN
+            # ============================================
             trabajador.departamento = request.POST.get('departamento', trabajador.departamento)
             trabajador.municipio = request.POST.get('municipio', trabajador.municipio)
             trabajador.direccion = request.POST.get('direccion', trabajador.direccion)
             
-            # Contacto
+            # ============================================
+            # CONTACTO
+            # ============================================
             trabajador.telefono = request.POST.get('telefono', trabajador.telefono)
             trabajador.email = request.POST.get('email', trabajador.email)
             trabajador.contacto_emergencia = request.POST.get('contacto_emergencia', trabajador.contacto_emergencia)
             
-            # Proyecto
+            # ============================================
+            # PROYECTO
+            # ============================================
             proyecto_id = request.POST.get('proyecto_asignado')
             if proyecto_id:
                 nuevo_proyecto = get_object_or_404(Proyecto, pk=proyecto_id)
@@ -392,25 +407,42 @@ class TrabajadorEditarView(LoginRequiredMixin, View):
                     ).update(fecha_salida=timezone.now().date())
                 trabajador.proyecto_asignado = None
             
-            # Datos laborales
+            # ============================================
+            # DATOS LABORALES
+            # ============================================
             trabajador.puesto_laboral = request.POST.get('puesto_laboral', trabajador.puesto_laboral)
             trabajador.area_cargo = request.POST.get('area_cargo', trabajador.area_cargo)
-            trabajador.salario_normal = request.POST.get('salario_normal', trabajador.salario_normal)
-            trabajador.tarifa_hora_extra = request.POST.get('tarifa_hora_extra', trabajador.tarifa_hora_extra)
+            
+            # Salarios - manejar valores vacíos
+            salario_normal = request.POST.get('salario_normal')
+            if salario_normal:
+                trabajador.salario_normal = salario_normal
+            
+            tarifa_hora_extra = request.POST.get('tarifa_hora_extra')
+            if tarifa_hora_extra:
+                trabajador.tarifa_hora_extra = tarifa_hora_extra
+            
             trabajador.numero_seguro_social = request.POST.get('numero_seguro_social', trabajador.numero_seguro_social)
             trabajador.notas = request.POST.get('notas', trabajador.notas)
             
-            # Checkboxes
+            # ============================================
+            # CHECKBOXES
+            # ============================================
             trabajador.record_policia = 'record_policia' in request.POST
             trabajador.asegurado = 'asegurado' in request.POST
             
-            # Estado y fecha
+            # ============================================
+            # ESTADO Y FECHA
+            # ============================================
             trabajador.estado = request.POST.get('estado', trabajador.estado)
             
-            if request.POST.get('fecha_ingreso'):
-                trabajador.fecha_ingreso = request.POST.get('fecha_ingreso')
+            fecha_ingreso = request.POST.get('fecha_ingreso')
+            if fecha_ingreso:
+                trabajador.fecha_ingreso = fecha_ingreso
             
-            # Archivos (solo si se suben nuevos)
+            # ============================================
+            # ARCHIVOS (solo si se suben nuevos)
+            # ============================================
             if 'foto' in request.FILES:
                 trabajador.foto = request.FILES['foto']
             
@@ -426,7 +458,9 @@ class TrabajadorEditarView(LoginRequiredMixin, View):
             if 'record_policia_doc' in request.FILES:
                 trabajador.record_policia_doc = request.FILES['record_policia_doc']
             
-            # Auditoría
+            # ============================================
+            # AUDITORÍA Y GUARDAR
+            # ============================================
             trabajador.modificado_por = request.user
             trabajador.save()
             
@@ -442,7 +476,6 @@ class TrabajadorEditarView(LoginRequiredMixin, View):
                 f'❌ Error al actualizar el trabajador: {str(e)}'
             )
             return redirect('trabajador_editar', pk=pk)
-
 
 class TrabajadorEliminarView(LoginRequiredMixin, View):
     """Vista para eliminar (soft delete) un trabajador"""
