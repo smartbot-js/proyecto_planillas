@@ -1615,4 +1615,91 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
             'message': f'Procesadas {resultados["total_procesadas"]} asistencias',
             'resultados': resultados
         }, status=status.HTTP_200_OK)
-    
+
+    # ============================================
+    # API TEMPORAL PARA PRUEBAS - ELIMINAR ASISTENCIAS
+    # ============================================
+    # 
+    # AGREGAR EN: apps/asistencias/views.py (dentro de AsistenciaViewSet)
+    #
+    # ⚠️ IMPORTANTE: ELIMINAR DESPUÉS DE LAS PRUEBAS
+    # ============================================
+
+    @action(detail=False, methods=['delete', 'post'], url_path='limpiar-pruebas')
+    def limpiar_pruebas(self, request):
+        """
+        🧪 ENDPOINT TEMPORAL PARA PRUEBAS - ELIMINAR DESPUÉS
+        
+        Elimina asistencias para poder repetir pruebas de check-in
+        
+        DELETE /api/asistencias/limpiar-pruebas/
+        
+        Body opciones:
+        1. Eliminar por ID específico:
+        {"asistencia_id": 123}
+        
+        2. Eliminar todas las de hoy de un trabajador:
+        {"trabajador_cedula": "2812903031000Q"}
+        
+        3. Eliminar todas las de hoy:
+        {"todas_hoy": true}
+        
+        4. Eliminar por proyecto hoy:
+        {"proyecto_id": 2}
+        """
+        from django.utils import timezone
+        
+        hoy = timezone.now().date()
+        
+        # Opción 1: Por ID específico
+        asistencia_id = request.data.get('asistencia_id')
+        if asistencia_id:
+            deleted, _ = Asistencia.objects.filter(id=asistencia_id).delete()
+            return Response({
+                'message': f'Asistencia {asistencia_id} eliminada',
+                'eliminadas': deleted
+            })
+        
+        # Opción 2: Por cédula del trabajador (solo hoy)
+        trabajador_cedula = request.data.get('trabajador_cedula')
+        if trabajador_cedula:
+            deleted, _ = Asistencia.objects.filter(
+                trabajador__numero_cedula=trabajador_cedula,
+                fecha=hoy
+            ).delete()
+            return Response({
+                'message': f'Asistencias de hoy eliminadas para cédula {trabajador_cedula}',
+                'eliminadas': deleted
+            })
+        
+        # Opción 3: Todas las de hoy
+        todas_hoy = request.data.get('todas_hoy')
+        if todas_hoy:
+            deleted, _ = Asistencia.objects.filter(fecha=hoy).delete()
+            return Response({
+                'message': f'Todas las asistencias de hoy eliminadas',
+                'eliminadas': deleted
+            })
+        
+        # Opción 4: Por proyecto (solo hoy)
+        proyecto_id = request.data.get('proyecto_id')
+        if proyecto_id:
+            deleted, _ = Asistencia.objects.filter(
+                proyecto_id=proyecto_id,
+                fecha=hoy
+            ).delete()
+            return Response({
+                'message': f'Asistencias de hoy eliminadas para proyecto {proyecto_id}',
+                'eliminadas': deleted
+            })
+        
+        return Response({
+            'error': 'Debe enviar: asistencia_id, trabajador_cedula, todas_hoy o proyecto_id',
+            'ejemplos': {
+                'por_id': {'asistencia_id': 123},
+                'por_cedula': {'trabajador_cedula': '2812903031000Q'},
+                'todas_hoy': {'todas_hoy': True},
+                'por_proyecto': {'proyecto_id': 2}
+            }
+        }, status=400)
+        
