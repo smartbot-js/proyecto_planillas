@@ -1097,7 +1097,7 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
                     )
 
             # Hora de entrada
-            hora_entrada = data.get('hora_entrada') or timezone.now().time()
+            hora_entrada = data.get('hora_entrada') or timezone.localtime().time()
 
             # Crear asistencia
             asistencia = Asistencia.objects.create(
@@ -1164,7 +1164,7 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            hora_salida = data.get('hora_salida') or timezone.now().time()
+            hora_salida = data.get('hora_salida') or timezone.localtime().time()
 
             # Usar el método del modelo para cerrar el turno
             asistencia.cerrar_turno(hora_salida=hora_salida)
