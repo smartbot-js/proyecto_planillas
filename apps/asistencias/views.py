@@ -1222,6 +1222,52 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
     def sincronizar(self, request):
         """
         Sincronización batch desde app móvil offline
+        
+        POST /api/asistencias/sincronizar/
+        
+        Body:
+        {
+            "asistencias": [
+                {
+                    "asistencia_temp_id": 1,
+                    "tipo": "entrada",
+                    "trabajador_cedula": "2812903031000Q",
+                    "proyecto_id": 2,
+                    "fecha": "2026-01-24",
+                    "hora_entrada": "08:00:00",
+                    "latitud_entrada": 12.1365,
+                    "longitud_entrada": -86.2515
+                },
+                {
+                    "asistencia_temp_id": 1,
+                    "tipo": "salida",
+                    "hora_salida": "17:00:00",
+                    "latitud_salida": 12.1366,
+                    "longitud_salida": -86.2516
+                }
+            ]
+        }
+        
+        Response:
+        {
+            "exitosas": 2,
+            "fallidas": 0,
+            "resultados": [
+                {
+                    "temp_id": 1,
+                    "tipo": "entrada",
+                    "status": "ok",
+                    "asistencia_id": 45
+                },
+                {
+                    "temp_id": 1,
+                    "tipo": "salida", 
+                    "status": "ok",
+                    "asistencia_id": 45
+                }
+            ],
+            "errores": []
+        }
         """
         serializer = self.get_serializer(data=request.data)
         
@@ -1233,53 +1279,153 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
         resultados = {
             'exitosas': 0,
             'fallidas': 0,
+            'resultados': [],  # Para mapear temp_id -> asistencia_id
             'errores': []
         }
         
+        # Diccionario para mapear temp_id -> asistencia creada
+        temp_id_map = {}
+        
+        # Primero procesar todas las ENTRADAS
         for data in asistencias_data:
+            if data.get('tipo') != 'entrada':
+                continue
+                
+            temp_id = data.get('asistencia_temp_id')
+            
             try:
                 trabajador = Trabajador.objects.get(
                     numero_cedula=data['trabajador_cedula'],
                     eliminado=False
                 )
-                proyecto = Proyecto.objects.get(id=data['proyecto_id'])
+                proyecto = Proyecto.objects.get(id=data['proyecto_id'], eliminado=False)
                 
                 fecha = data['fecha']
                 
-                # Usar update_or_create para manejar duplicados de sincronización
-                asistencia, created = Asistencia.objects.update_or_create(
+                # Verificar si ya existe asistencia para este trabajador en esta fecha
+                asistencia_existente = Asistencia.objects.filter(
                     trabajador=trabajador,
-                    fecha=fecha,
-                    defaults={
-                        'proyecto': proyecto,
-                        'hora_entrada': data.get('hora_entrada'),
-                        'hora_salida': data.get('hora_salida'),
-                        'puesto_laboral': trabajador.puesto_laboral,
-                        'latitud_entrada': data.get('latitud_entrada'),
-                        'longitud_entrada': data.get('longitud_entrada'),
-                        'latitud_salida': data.get('latitud_salida'),
-                        'longitud_salida': data.get('longitud_salida'),
-                        'metodo_identificacion': data.get('metodo_identificacion', 'qr'),
-                        'dispositivo_id': data.get('dispositivo_id', ''),
-                        'observaciones': data.get('observaciones', ''),
-                        'registrado_por': request.user,
-                        'editado_por': request.user,
-                        'estado': 'cerrado' if data.get('hora_salida') else 'abierto',
-                        'sincronizado_en': timezone.now()
-                    }
-                )
+                    fecha=fecha
+                ).first()
                 
-                # Recalcular horas (save() lo hace)
+                if asistencia_existente:
+                    # Actualizar la existente
+                    asistencia = asistencia_existente
+                    asistencia.hora_entrada = data.get('hora_entrada')
+                    asistencia.latitud_entrada = data.get('latitud_entrada')
+                    asistencia.longitud_entrada = data.get('longitud_entrada')
+                    asistencia.metodo_identificacion = data.get('metodo_identificacion', 'qr')
+                    asistencia.dispositivo_id = data.get('dispositivo_id', '')
+                    asistencia.editado_por = request.user
+                    asistencia.sincronizado_en = timezone.now()
+                    asistencia.save()
+                else:
+                    # Crear nueva
+                    asistencia = Asistencia.objects.create(
+                        trabajador=trabajador,
+                        proyecto=proyecto,
+                        fecha=fecha,
+                        puesto_laboral=trabajador.puesto_laboral,
+                        hora_entrada=data.get('hora_entrada'),
+                        latitud_entrada=data.get('latitud_entrada'),
+                        longitud_entrada=data.get('longitud_entrada'),
+                        metodo_identificacion=data.get('metodo_identificacion', 'qr'),
+                        dispositivo_id=data.get('dispositivo_id', ''),
+                        observaciones=data.get('observaciones', ''),
+                        registrado_por=request.user,
+                        estado='abierto',
+                        sincronizado_en=timezone.now()
+                    )
+                
+                # Guardar en el mapa para vincular con salida
+                temp_id_map[temp_id] = asistencia
+                
+                resultados['exitosas'] += 1
+                resultados['resultados'].append({
+                    'temp_id': temp_id,
+                    'tipo': 'entrada',
+                    'status': 'ok',
+                    'asistencia_id': asistencia.id
+                })
+            
+            except Trabajador.DoesNotExist:
+                resultados['fallidas'] += 1
+                resultados['errores'].append({
+                    'temp_id': temp_id,
+                    'tipo': 'entrada',
+                    'error': f"Trabajador no encontrado: {data.get('trabajador_cedula')}"
+                })
+            except Proyecto.DoesNotExist:
+                resultados['fallidas'] += 1
+                resultados['errores'].append({
+                    'temp_id': temp_id,
+                    'tipo': 'entrada',
+                    'error': f"Proyecto no encontrado: {data.get('proyecto_id')}"
+                })
+            except Exception as e:
+                resultados['fallidas'] += 1
+                resultados['errores'].append({
+                    'temp_id': temp_id,
+                    'tipo': 'entrada',
+                    'error': str(e)
+                })
+        
+        # Luego procesar todas las SALIDAS
+        for data in asistencias_data:
+            if data.get('tipo') != 'salida':
+                continue
+                
+            temp_id = data.get('asistencia_temp_id')
+            
+            try:
+                # Buscar la asistencia creada con este temp_id
+                asistencia = temp_id_map.get(temp_id)
+                
+                if not asistencia:
+                    # Si no está en el mapa, buscar por temp_id en asistencias abiertas de hoy
+                    # (podría ser una salida para una entrada sincronizada previamente)
+                    resultados['fallidas'] += 1
+                    resultados['errores'].append({
+                        'temp_id': temp_id,
+                        'tipo': 'salida',
+                        'error': f"No se encontró entrada con temp_id={temp_id}. Envía primero la entrada."
+                    })
+                    continue
+                
+                # Actualizar con datos de salida
+                asistencia.hora_salida = data.get('hora_salida')
+                asistencia.latitud_salida = data.get('latitud_salida')
+                asistencia.longitud_salida = data.get('longitud_salida')
+                asistencia.estado = 'cerrado'
+                asistencia.editado_por = request.user
+                asistencia.sincronizado_en = timezone.now()
+                
+                if data.get('observaciones'):
+                    if asistencia.observaciones:
+                        asistencia.observaciones += f"\n[SALIDA]: {data['observaciones']}"
+                    else:
+                        asistencia.observaciones = f"[SALIDA]: {data['observaciones']}"
+                
                 asistencia.save()
                 
                 resultados['exitosas'] += 1
+                resultados['resultados'].append({
+                    'temp_id': temp_id,
+                    'tipo': 'salida',
+                    'status': 'ok',
+                    'asistencia_id': asistencia.id
+                })
             
             except Exception as e:
                 resultados['fallidas'] += 1
-                resultados['errores'].append(f"Cédula {data.get('trabajador_cedula')}: {str(e)}")
+                resultados['errores'].append({
+                    'temp_id': temp_id,
+                    'tipo': 'salida',
+                    'error': str(e)
+                })
         
         return Response(resultados, status=status.HTTP_200_OK)
-    
+   
     @action(
     detail=True,
     methods=['post'],
