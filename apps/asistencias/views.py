@@ -1069,7 +1069,7 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
             )
             
             # Buscar proyecto
-            proyecto = Proyecto.objects.get(id=data['proyecto_id'], eliminado=False, activo=True)
+            proyecto = Proyecto.objects.get(id=data['proyecto_id'], eliminado=False)
             
             # Verificar si ya tiene asistencia hoy
             hoy = timezone.now().date()
