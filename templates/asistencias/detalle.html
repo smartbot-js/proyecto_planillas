@@ -130,10 +130,22 @@
 
                 <!-- Map -->
                 <div class="map-container" id="map">
+                    {% if asistencia.latitud_entrada and asistencia.longitud_entrada %}
+                    <iframe
+                        width="100%"
+                        height="100%"
+                        style="border:0;"
+                        loading="lazy"
+                        allowfullscreen
+                        referrerpolicy="no-referrer-when-downgrade"
+                        src="https://maps.google.com/maps?q={{ asistencia.latitud_entrada }},{{ asistencia.longitud_entrada }}&t=&z=17&ie=UTF8&iwloc=&output=embed">
+                    </iframe>
+                    {% else %}
                     <div class="map-placeholder">
                         <span class="material-symbols-outlined">map</span>
-                        <p>Mapa de ubicación</p>
+                        <p>Sin coordenadas de ubicación</p>
                     </div>
+                    {% endif %}
                 </div>
 
                 <!-- Location Details -->
