@@ -1223,9 +1223,10 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
         """
         Sincronización batch desde app móvil offline
         
-        - 1 entrada + 1 salida (mismo temp_id) = 1 registro completo
-        - Si ya existe completo → ignora, no modifica
-        - Si existe incompleto → indica qué falta
+        - Entrada y salida se procesan por separado
+        - Si ya existe entrada para trabajador/fecha → responde "ya_sincronizado"
+        - Si ya existe salida → responde "ya_sincronizado"
+        - No modifica registros existentes
         """
         serializer = self.get_serializer(data=request.data)
         
@@ -1234,167 +1235,170 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
         
         asistencias_data = serializer.validated_data['asistencias']
         
-        # Agrupar por temp_id
-        registros_agrupados = {}
-        for data in asistencias_data:
-            temp_id = data.get('asistencia_temp_id')
-            tipo = data.get('tipo')
-            
-            if temp_id not in registros_agrupados:
-                registros_agrupados[temp_id] = {'entrada': None, 'salida': None}
-            
-            registros_agrupados[temp_id][tipo] = data
-        
         resultados = {
-            'nuevos': 0,
-            'ya_sincronizados': 0,
-            'fallidos': 0,
-            'resultados': [],
-            'errores': []
+            'sincronizadas': 0,
+            'ya_sincronizadas': 0,
+            'errores': 0,
+            'resultados': []
         }
         
-        # Procesar cada registro agrupado
-        for temp_id, datos in registros_agrupados.items():
-            entrada = datos.get('entrada')
-            salida = datos.get('salida')
+        # Mapa para vincular temp_id con asistencia creada en este batch
+        temp_id_map = {}
+        
+        # Contador para asignar temp_id a entradas que no lo traen
+        entrada_index = 0
+        
+        # Procesar cada registro
+        for data in asistencias_data:
+            tipo = data.get('tipo')
+            temp_id = data.get('asistencia_temp_id')
             
-            # Validar que venga entrada (mínimo requerido)
-            if not entrada:
-                resultados['fallidos'] += 1
-                resultados['errores'].append({
-                    'temp_id': temp_id,
-                    'error': 'Falta check-in (entrada). Solo se recibió check-out.'
-                })
-                continue
-            
-            try:
-                # Buscar trabajador y proyecto
-                trabajador = Trabajador.objects.get(
-                    numero_cedula=entrada['trabajador_cedula'],
-                    eliminado=False
-                )
-                proyecto = Proyecto.objects.get(
-                    id=entrada['proyecto_id'],
-                    eliminado=False
-                )
+            if tipo == 'entrada':
+                entrada_index += 1
                 
-                fecha = entrada['fecha']
-                
-                # Verificar si ya existe asistencia
-                asistencia_existente = Asistencia.objects.filter(
-                    trabajador=trabajador,
-                    fecha=fecha
-                ).first()
-                
-                if asistencia_existente:
-                    # Ya existe - verificar si está completo
-                    if asistencia_existente.hora_entrada and asistencia_existente.hora_salida:
-                        # Registro completo - ignorar
-                        resultados['ya_sincronizados'] += 1
-                        resultados['resultados'].append({
-                            'temp_id': temp_id,
-                            'status': 'ya_sincronizado',
-                            'asistencia_id': asistencia_existente.id,
-                            'mensaje': 'Registro ya existe completo (check-in y check-out)'
-                        })
-                    elif asistencia_existente.hora_entrada and not asistencia_existente.hora_salida:
-                        # Tiene entrada pero falta salida
-                        if salida:
-                            # Completar con la salida
-                            asistencia_existente.hora_salida = salida.get('hora_salida')
-                            asistencia_existente.latitud_salida = salida.get('latitud_salida')
-                            asistencia_existente.longitud_salida = salida.get('longitud_salida')
-                            asistencia_existente.estado = 'cerrado'
-                            asistencia_existente.editado_por = request.user
-                            asistencia_existente.sincronizado_en = timezone.now()
-                            asistencia_existente.save()
-                            
-                            resultados['nuevos'] += 1
-                            resultados['resultados'].append({
-                                'temp_id': temp_id,
-                                'status': 'completado',
-                                'asistencia_id': asistencia_existente.id,
-                                'mensaje': 'Check-out agregado a registro existente'
-                            })
-                        else:
-                            # No viene salida en el request
-                            resultados['fallidos'] += 1
-                            resultados['errores'].append({
-                                'temp_id': temp_id,
-                                'asistencia_id': asistencia_existente.id,
-                                'error': 'Registro incompleto: falta check-out'
-                            })
-                    else:
-                        # Caso raro: existe pero sin entrada
-                        resultados['fallidos'] += 1
-                        resultados['errores'].append({
-                            'temp_id': temp_id,
-                            'error': 'Registro en estado inconsistente'
-                        })
-                else:
-                    # No existe - crear nuevo
-                    tiene_salida = salida is not None
-                    
-                    asistencia = Asistencia.objects.create(
-                        trabajador=trabajador,
-                        proyecto=proyecto,
-                        fecha=fecha,
-                        puesto_laboral=trabajador.puesto_laboral,
-                        hora_entrada=entrada.get('hora_entrada'),
-                        latitud_entrada=entrada.get('latitud_entrada'),
-                        longitud_entrada=entrada.get('longitud_entrada'),
-                        hora_salida=salida.get('hora_salida') if salida else None,
-                        latitud_salida=salida.get('latitud_salida') if salida else None,
-                        longitud_salida=salida.get('longitud_salida') if salida else None,
-                        metodo_identificacion=entrada.get('metodo_identificacion', 'qr'),
-                        dispositivo_id=entrada.get('dispositivo_id', ''),
-                        observaciones=entrada.get('observaciones', ''),
-                        registrado_por=request.user,
-                        estado='cerrado' if tiene_salida else 'abierto',
-                        sincronizado_en=timezone.now()
+                try:
+                    trabajador = Trabajador.objects.get(
+                        numero_cedula=data['trabajador_cedula'],
+                        eliminado=False
                     )
+                    proyecto = Proyecto.objects.get(
+                        id=data['proyecto_id'],
+                        eliminado=False
+                    )
+                    fecha = data['fecha']
                     
-                    if tiene_salida:
-                        resultados['nuevos'] += 1
+                    # Verificar si ya existe entrada para este trabajador/fecha
+                    asistencia_existente = Asistencia.objects.filter(
+                        trabajador=trabajador,
+                        fecha=fecha
+                    ).first()
+                    
+                    if asistencia_existente:
+                        # Ya existe - no modificar
+                        resultados['ya_sincronizadas'] += 1
                         resultados['resultados'].append({
                             'temp_id': temp_id,
-                            'status': 'creado',
-                            'asistencia_id': asistencia.id,
-                            'mensaje': 'Registro completo creado (check-in y check-out)'
+                            'asistencia_id': asistencia_existente.id,
+                            'estado': 'ya_sincronizado',
+                            'mensaje': 'Entrada ya registrada anteriormente'
                         })
+                        # Guardar en mapa por si viene salida
+                        temp_id_map[entrada_index] = asistencia_existente
+                        if temp_id:
+                            temp_id_map[temp_id] = asistencia_existente
                     else:
-                        resultados['fallidos'] += 1
-                        resultados['errores'].append({
+                        # Crear nueva entrada
+                        asistencia = Asistencia.objects.create(
+                            trabajador=trabajador,
+                            proyecto=proyecto,
+                            fecha=fecha,
+                            puesto_laboral=trabajador.puesto_laboral,
+                            hora_entrada=data.get('hora_entrada'),
+                            latitud_entrada=data.get('latitud_entrada'),
+                            longitud_entrada=data.get('longitud_entrada'),
+                            metodo_identificacion=data.get('metodo_identificacion', 'qr'),
+                            dispositivo_id=data.get('dispositivo_id', ''),
+                            observaciones=data.get('observaciones', ''),
+                            registrado_por=request.user,
+                            estado='abierto',
+                            sincronizado_en=timezone.now()
+                        )
+                        
+                        resultados['sincronizadas'] += 1
+                        resultados['resultados'].append({
                             'temp_id': temp_id,
                             'asistencia_id': asistencia.id,
-                            'error': 'Registro incompleto: falta check-out'
+                            'estado': 'exitoso',
+                            'mensaje': 'Entrada registrada'
                         })
+                        # Guardar en mapa
+                        temp_id_map[entrada_index] = asistencia
+                        if temp_id:
+                            temp_id_map[temp_id] = asistencia
+                
+                except Trabajador.DoesNotExist:
+                    resultados['errores'] += 1
+                    resultados['resultados'].append({
+                        'temp_id': temp_id,
+                        'asistencia_id': None,
+                        'estado': 'error',
+                        'mensaje': f"Trabajador no encontrado: {data.get('trabajador_cedula')}"
+                    })
+                except Proyecto.DoesNotExist:
+                    resultados['errores'] += 1
+                    resultados['resultados'].append({
+                        'temp_id': temp_id,
+                        'asistencia_id': None,
+                        'estado': 'error',
+                        'mensaje': f"Proyecto no encontrado: {data.get('proyecto_id')}"
+                    })
+                except Exception as e:
+                    resultados['errores'] += 1
+                    resultados['resultados'].append({
+                        'temp_id': temp_id,
+                        'asistencia_id': None,
+                        'estado': 'error',
+                        'mensaje': str(e)
+                    })
             
-            except Trabajador.DoesNotExist:
-                resultados['fallidos'] += 1
-                resultados['errores'].append({
-                    'temp_id': temp_id,
-                    'error': f"Trabajador no encontrado: {entrada.get('trabajador_cedula')}"
-                })
-            except Proyecto.DoesNotExist:
-                resultados['fallidos'] += 1
-                resultados['errores'].append({
-                    'temp_id': temp_id,
-                    'error': f"Proyecto no encontrado: {entrada.get('proyecto_id')}"
-                })
-            except Exception as e:
-                resultados['fallidos'] += 1
-                resultados['errores'].append({
-                    'temp_id': temp_id,
-                    'error': str(e)
-                })
-        
-        # Resumen final
-        total_registros = len(registros_agrupados)
-        resultados['resumen'] = {
-            'total_enviados': total_registros,
-            'sincronizacion_completa': resultados['fallidos'] == 0
-        }
+            elif tipo == 'salida':
+                try:
+                    # Buscar asistencia por temp_id
+                    asistencia = temp_id_map.get(temp_id)
+                    
+                    if not asistencia:
+                        resultados['errores'] += 1
+                        resultados['resultados'].append({
+                            'temp_id': temp_id,
+                            'asistencia_id': None,
+                            'estado': 'error',
+                            'mensaje': f'No se encontró entrada con temp_id={temp_id}'
+                        })
+                        continue
+                    
+                    # Verificar si ya tiene salida
+                    if asistencia.hora_salida:
+                        resultados['ya_sincronizadas'] += 1
+                        resultados['resultados'].append({
+                            'temp_id': temp_id,
+                            'asistencia_id': asistencia.id,
+                            'estado': 'ya_sincronizado',
+                            'mensaje': 'Salida ya registrada anteriormente'
+                        })
+                        continue
+                    
+                    # Registrar salida
+                    asistencia.hora_salida = data.get('hora_salida')
+                    asistencia.latitud_salida = data.get('latitud_salida')
+                    asistencia.longitud_salida = data.get('longitud_salida')
+                    asistencia.estado = 'cerrado'
+                    asistencia.editado_por = request.user
+                    asistencia.sincronizado_en = timezone.now()
+                    
+                    if data.get('observaciones'):
+                        if asistencia.observaciones:
+                            asistencia.observaciones += f"\n[SALIDA]: {data['observaciones']}"
+                        else:
+                            asistencia.observaciones = f"[SALIDA]: {data['observaciones']}"
+                    
+                    asistencia.save()
+                    
+                    resultados['sincronizadas'] += 1
+                    resultados['resultados'].append({
+                        'temp_id': temp_id,
+                        'asistencia_id': asistencia.id,
+                        'estado': 'exitoso',
+                        'mensaje': 'Salida registrada'
+                    })
+                
+                except Exception as e:
+                    resultados['errores'] += 1
+                    resultados['resultados'].append({
+                        'temp_id': temp_id,
+                        'asistencia_id': None,
+                        'estado': 'error',
+                        'mensaje': str(e)
+                    })
         
         return Response(resultados, status=status.HTTP_200_OK)
 

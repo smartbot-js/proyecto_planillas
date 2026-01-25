@@ -184,22 +184,17 @@ class CheckOutSerializer(serializers.Serializer):
 
 class SincronizarAsistenciaItemSerializer(serializers.Serializer):
     """
-    Serializer para un item de asistencia en el batch
-    
-    Soporta dos tipos de registros:
-    - tipo="entrada": Crea nueva asistencia (requiere trabajador_cedula, proyecto_id, fecha, hora_entrada)
-    - tipo="salida": Actualiza asistencia existente (requiere asistencia_temp_id, hora_salida)
+    Serializer para sincronización batch
+    - tipo "entrada": requiere trabajador_cedula, proyecto_id, fecha, hora_entrada
+    - tipo "salida": requiere asistencia_temp_id, hora_salida
     """
-    # Identificador temporal para vincular entrada con salida
-    asistencia_temp_id = serializers.IntegerField(required=True)
+    # Identificador temporal (requerido para salida, opcional para entrada)
+    asistencia_temp_id = serializers.IntegerField(required=False, allow_null=True)
     
     # Tipo de registro
-    tipo = serializers.ChoiceField(
-        choices=['entrada', 'salida'],
-        required=True
-    )
+    tipo = serializers.ChoiceField(choices=['entrada', 'salida'], required=True)
     
-    # Campos para ENTRADA (requeridos solo si tipo=entrada)
+    # Campos para ENTRADA
     trabajador_cedula = serializers.CharField(max_length=50, required=False, allow_blank=True)
     proyecto_id = serializers.IntegerField(required=False, allow_null=True)
     fecha = serializers.DateField(format="%Y-%m-%d", required=False, allow_null=True)
@@ -207,12 +202,12 @@ class SincronizarAsistenciaItemSerializer(serializers.Serializer):
     latitud_entrada = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
     longitud_entrada = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
     
-    # Campos para SALIDA (requeridos solo si tipo=salida)
+    # Campos para SALIDA
     hora_salida = serializers.TimeField(required=False, allow_null=True)
     latitud_salida = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
     longitud_salida = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
     
-    # Campos opcionales para ambos tipos
+    # Campos opcionales
     metodo_identificacion = serializers.ChoiceField(
         choices=[('qr', 'QR'), ('nfc', 'NFC'), ('facial', 'Facial'), ('huella', 'Huella'), ('manual', 'Manual')],
         default='qr',
@@ -222,35 +217,33 @@ class SincronizarAsistenciaItemSerializer(serializers.Serializer):
     observaciones = serializers.CharField(required=False, allow_blank=True)
     
     def validate(self, data):
-        """Validación condicional según el tipo"""
         tipo = data.get('tipo')
         
         if tipo == 'entrada':
-            # Validar campos requeridos para entrada
             if not data.get('trabajador_cedula'):
-                raise serializers.ValidationError({'trabajador_cedula': 'Este campo es requerido para tipo entrada.'})
+                raise serializers.ValidationError({'trabajador_cedula': 'Requerido para entrada.'})
             if not data.get('proyecto_id'):
-                raise serializers.ValidationError({'proyecto_id': 'Este campo es requerido para tipo entrada.'})
+                raise serializers.ValidationError({'proyecto_id': 'Requerido para entrada.'})
             if not data.get('fecha'):
-                raise serializers.ValidationError({'fecha': 'Este campo es requerido para tipo entrada.'})
+                raise serializers.ValidationError({'fecha': 'Requerido para entrada.'})
             if not data.get('hora_entrada'):
-                raise serializers.ValidationError({'hora_entrada': 'Este campo es requerido para tipo entrada.'})
+                raise serializers.ValidationError({'hora_entrada': 'Requerido para entrada.'})
         
         elif tipo == 'salida':
-            # Validar campos requeridos para salida
+            if not data.get('asistencia_temp_id') and data.get('asistencia_temp_id') != 0:
+                raise serializers.ValidationError({'asistencia_temp_id': 'Requerido para salida.'})
             if not data.get('hora_salida'):
-                raise serializers.ValidationError({'hora_salida': 'Este campo es requerido para tipo salida.'})
+                raise serializers.ValidationError({'hora_salida': 'Requerido para salida.'})
         
         return data
 
+
 class SincronizarAsistenciasSerializer(serializers.Serializer):
     """Serializer para sincronización batch desde app móvil"""
-    
     asistencias = serializers.ListField(
         child=SincronizarAsistenciaItemSerializer(),
         allow_empty=False
     )
-
 
 class ResumenDiarioSerializer(serializers.ModelSerializer):
     """Serializer para resúmenes diarios"""
