@@ -129,24 +129,31 @@
                 <h3 class="card-title">Ubicación y validaciones</h3>
 
                 <!-- Map -->
-                <div class="map-container" id="map">
-                    {% if asistencia.latitud_entrada and asistencia.longitud_entrada %}
-                    <iframe
-                        width="100%"
-                        height="100%"
-                        style="border:0;"
-                        loading="lazy"
-                        allowfullscreen
-                        referrerpolicy="no-referrer-when-downgrade"
-                        src="https://maps.google.com/maps?q={{ asistencia.latitud_entrada }},{{ asistencia.longitud_entrada }}&t=&z=17&ie=UTF8&iwloc=&output=embed">
-                    </iframe>
-                    {% else %}
-                    <div class="map-placeholder">
-                        <span class="material-symbols-outlined">map</span>
-                        <p>Sin coordenadas de ubicación</p>
+                <!-- Map Container -->
+                <div class="map-container">
+                    <div id="map"></div>
+                    
+                    <!-- Leyenda del mapa -->
+                    <div class="map-legend">
+                        <div class="legend-item">
+                            <span class="legend-dot project"></span>
+                            <span>Proyecto</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-circle"></span>
+                            <span>Radio permitido</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot worker-inside"></span>
+                            <span>Dentro</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot worker-outside"></span>
+                            <span>Fuera</span>
+                        </div>
                     </div>
-                    {% endif %}
                 </div>
+
 
                 <!-- Location Details -->
                 <div class="location-details">
@@ -377,7 +384,61 @@
     </div>
 </div>
 
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
 <style>
+    #map {
+        height: 280px;
+        width: 100%;
+        border-radius: 8px;
+        z-index: 1;
+    }
+    .leaflet-popup-content {
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    .leaflet-popup-content strong {
+        color: #1e293b;
+    }
+    .map-legend {
+        display: flex;
+        gap: 16px;
+        padding: 12px 0;
+        font-size: 12px;
+        color: #64748b;
+        border-top: 1px solid #e2e8f0;
+        margin-top: 12px;
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+    .legend-dot.project {
+        background: #3b82f6;
+        border: 2px solid #1d4ed8;
+    }
+    .legend-dot.worker-inside {
+        background: #22c55e;
+        border: 2px solid #16a34a;
+    }
+    .legend-dot.worker-outside {
+        background: #ef4444;
+        border: 2px solid #dc2626;
+    }
+    .legend-circle {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: rgba(59, 130, 246, 0.2);
+        border: 2px solid #3b82f6;
+    }
 * {
     box-sizing: border-box;
     margin: 0;
@@ -1015,9 +1076,165 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+.badge-success-validation {
+    background: #dcfce7;
+    color: #166534;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.badge-error-validation {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
 </style>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Coordenadas del proyecto
+    const proyectoLat = {{ asistencia.proyecto.latitud|default:"null" }};
+    const proyectoLng = {{ asistencia.proyecto.longitud|default:"null" }};
+    const radioGeovalla = {{ asistencia.proyecto.radio_geovalla|default:"150" }};
+    const proyectoNombre = "{{ asistencia.proyecto.nombre|escapejs }}";
+    
+    // Coordenadas de la asistencia (entrada)
+    const asistenciaLat = {{ asistencia.latitud_entrada|default:"null" }};
+    const asistenciaLng = {{ asistencia.longitud_entrada|default:"null" }};
+    const trabajadorNombre = "{{ asistencia.trabajador.nombre_completo|escapejs }}";
+    const horaEntrada = "{{ asistencia.hora_entrada|time:'H:i' }}";
+    
+    // Verificar que hay coordenadas
+    if (!proyectoLat || !proyectoLng) {
+        document.getElementById('map').innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #94a3b8;">
+                <span class="material-symbols-outlined" style="font-size: 48px; margin-bottom: 8px;">location_off</span>
+                <p>El proyecto no tiene coordenadas configuradas</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Crear mapa centrado en el proyecto
+    const map = L.map('map').setView([proyectoLat, proyectoLng], 17);
+    
+    // Capa de OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+    
+    // Icono personalizado para el proyecto (azul)
+    const iconoProyecto = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="
+            background: #3b82f6;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 3px solid #1d4ed8;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        "></div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+        popupAnchor: [0, -12]
+    });
+    
+    // Marcador del proyecto
+    const marcadorProyecto = L.marker([proyectoLat, proyectoLng], { icon: iconoProyecto })
+        .addTo(map)
+        .bindPopup(`
+            <strong>📍 ${proyectoNombre}</strong><br>
+            <small>Centro del proyecto</small><br>
+            <small>Radio: ${radioGeovalla}m</small>
+        `);
+    
+    // Círculo de geovalla
+    const circuloGeovalla = L.circle([proyectoLat, proyectoLng], {
+        radius: radioGeovalla,
+        color: '#3b82f6',
+        fillColor: '#3b82f6',
+        fillOpacity: 0.15,
+        weight: 2,
+        dashArray: '5, 5'
+    }).addTo(map);
+    
+    // Si hay coordenadas de asistencia, agregar marcador del trabajador
+    if (asistenciaLat && asistenciaLng) {
+        // Calcular distancia
+        const distancia = map.distance([proyectoLat, proyectoLng], [asistenciaLat, asistenciaLng]);
+        const dentroDelRadio = distancia <= radioGeovalla;
+        
+        // Color según si está dentro o fuera
+        const colorMarcador = dentroDelRadio ? '#22c55e' : '#ef4444';
+        const borderColor = dentroDelRadio ? '#16a34a' : '#dc2626';
+        const estadoTexto = dentroDelRadio ? '✅ Dentro del radio' : '❌ Fuera del radio';
+        
+        // Icono personalizado para el trabajador
+        const iconoTrabajador = L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="
+                background: ${colorMarcador};
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                border: 3px solid ${borderColor};
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            "></div>`,
+            iconSize: [20, 20],
+            iconAnchor: [10, 10],
+            popupAnchor: [0, -10]
+        });
+        
+        // Marcador del trabajador
+        const marcadorTrabajador = L.marker([asistenciaLat, asistenciaLng], { icon: iconoTrabajador })
+            .addTo(map)
+            .bindPopup(`
+                <strong>👷 ${trabajadorNombre}</strong><br>
+                <small>Entrada: ${horaEntrada}</small><br>
+                <small>Distancia: ${Math.round(distancia)}m</small><br>
+                <small>${estadoTexto}</small>
+            `);
+        
+        // Línea entre proyecto y asistencia
+        const linea = L.polyline([
+            [proyectoLat, proyectoLng],
+            [asistenciaLat, asistenciaLng]
+        ], {
+            color: dentroDelRadio ? '#22c55e' : '#ef4444',
+            weight: 2,
+            opacity: 0.7,
+            dashArray: '5, 10'
+        }).addTo(map);
+        
+        // Ajustar vista para mostrar ambos puntos
+        const grupo = L.featureGroup([marcadorProyecto, marcadorTrabajador, circuloGeovalla]);
+        map.fitBounds(grupo.getBounds().pad(0.2));
+        
+        // Actualizar el campo de distancia calculada si existe
+        const distanciaElement = document.getElementById('distanciaCalculada');
+        if (distanciaElement) {
+            distanciaElement.textContent = Math.round(distancia) + ' m';
+        }
+        
+        // Actualizar resultado de validación si existe
+        const resultadoElement = document.getElementById('resultadoValidacion');
+        if (resultadoElement) {
+            if (dentroDelRadio) {
+                resultadoElement.innerHTML = '<span class="badge-success-validation">Dentro del radio</span>';
+            } else {
+                resultadoElement.innerHTML = '<span class="badge-error-validation">Fuera del radio</span>';
+            }
+        }
+    }
+});
+
 // Calcular distancia entre dos coordenadas (fórmula de Haversine)
 function calcularDistancia(lat1, lon1, lat2, lon2) {
     const R = 6371e3; // Radio de la Tierra en metros
