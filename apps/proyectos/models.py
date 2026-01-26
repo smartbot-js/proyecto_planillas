@@ -577,34 +577,6 @@ class Proyecto(models.Model):
         
         return round(horas_extras, 2)
 
-    def calcular_horas_extras_dia(self, hora_salida_real, hora_salida_esperada_dia):
-            """
-            Calcula horas extras comparando con la hora de salida ESPECÍFICA de ese día.
-            """
-            if not hora_salida_real or not hora_salida_esperada_dia:
-                return 0.0
-            
-            # Convertir a datetime para calcular diferencia
-            try:
-                # Asegurar formato correcto convirtiendo strings a objetos time si es necesario
-                if isinstance(hora_salida_esperada_dia, str):
-                    hora_salida_esperada_dia = datetime.strptime(hora_salida_esperada_dia, '%H:%M:%S').time()
-                    
-                salida_esperada = datetime.combine(datetime.today(), hora_salida_esperada_dia)
-                salida_real = datetime.combine(datetime.today(), hora_salida_real)
-                
-                # Si salió antes o a la hora esperada, no hay extras
-                if salida_real <= salida_esperada:
-                    return 0.0
-                
-                # Calcular horas extras
-                diferencia = salida_real - salida_esperada
-                horas_extras = diferencia.total_seconds() / 3600
-                
-                return round(horas_extras, 2)
-            except Exception as e:
-                print(f"Error calculando extras día: {e}")
-                return 0.0
 
     def calcular_horas_trabajadas(self, hora_entrada, hora_salida):
         """

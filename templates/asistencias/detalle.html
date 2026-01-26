@@ -99,11 +99,11 @@
                     <div class="hours-grid">
                         <div class="hours-box">
                             <span class="hours-box-label">Normales:</span>
-                            <span class="hours-box-value">{{ asistencia.horas_normales|floatformat:2 }}h</span>
+                            <span class="hours-box-value">{{ asistencia.horas_normales|floatformat:0 }}h</span>
                         </div>
                         <div class="hours-box">
                             <span class="hours-box-label">Extras:</span>
-                            <span class="hours-box-value">{{ asistencia.horas_extras|floatformat:2 }}h</span>
+                            <span class="hours-box-value">{{ asistencia.horas_extras|floatformat:0 }}h</span>
                         </div>
                     </div>
                 </div>
@@ -320,7 +320,7 @@
                     {% if asistencia.llego_tarde %}
                     {{ asistencia.minutos_tarde }} min
                     {% else %}
-                    0 min
+                    0m
                     {% endif %}
                 </span>
             </div>
