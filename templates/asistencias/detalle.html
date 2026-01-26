@@ -99,11 +99,11 @@
                     <div class="hours-grid">
                         <div class="hours-box">
                             <span class="hours-box-label">Normales:</span>
-                            <span class="hours-box-value">{{ asistencia.horas_normales|floatformat:0 }}h</span>
+                            <span class="hours-box-value">{{ asistencia.horas_normales|floatformat:2 }}h</span>
                         </div>
                         <div class="hours-box">
                             <span class="hours-box-label">Extras:</span>
-                            <span class="hours-box-value">{{ asistencia.horas_extras|floatformat:0 }}h</span>
+                            <span class="hours-box-value">{{ asistencia.horas_extras|floatformat:2 }}h</span>
                         </div>
                     </div>
                 </div>
@@ -318,15 +318,23 @@
                 <span class="summary-label">Tardanza</span>
                 <span class="summary-value">
                     {% if asistencia.llego_tarde %}
-                    {{ asistencia.minutos_tarde }}m
+                    {{ asistencia.minutos_tarde }} min
                     {% else %}
-                    0m
+                    0 min
                     {% endif %}
                 </span>
             </div>
-            <div class="summary-item">
-                <span class="summary-label">Pago estimado</span>
-                <span class="summary-value">$ —</span>
+            <div class="summary-item pago-estimado-item">
+                <span class="summary-label">
+                    Pago estimado
+                    <button type="button" class="currency-toggle-btn" onclick="toggleMoneda()" title="Ver en Dólares">
+                        <span class="material-symbols-outlined">currency_exchange</span>
+                    </button>
+                </span>
+                <span class="summary-value">
+                    <span id="pagoCordobas">C$ <span id="montoCordobas">0.00</span></span>
+                    <span id="pagoDolares" style="display: none;">$ <span id="montoDolares">0.00</span></span>
+                </span>
             </div>
         </div>
     </div>
@@ -1075,6 +1083,45 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+/* Pago Estimado con Toggle */
+.pago-estimado-item .summary-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.currency-toggle-btn {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 2px 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.currency-toggle-btn:hover {
+    background: #e2e8f0;
+}
+
+.currency-toggle-btn .material-symbols-outlined {
+    font-size: 16px;
+    color: #64748b;
+}
+
+.currency-toggle-btn.active-usd {
+    background: #dbeafe;
+    border-color: #3b82f6;
+}
+
+.currency-toggle-btn.active-usd .material-symbols-outlined {
+    color: #3b82f6;
+}
+
+#pagoDolares {
+    color: #3b82f6;
+}
 </style>
 
 <!-- Leaflet JS -->
@@ -1230,5 +1277,43 @@ document.addEventListener('keydown', function(e) {
         cerrarModalNota();
     }
 });
+// ========================================
+// PAGO ESTIMADO CON TOGGLE DE MONEDA
+// ========================================
+var salarioNormal = {% if asistencia.trabajador.salario_normal %}{{ asistencia.trabajador.salario_normal|stringformat:"f" }}{% else %}0{% endif %};
+var tarifaHoraExtra = {% if asistencia.trabajador.tarifa_hora_extra %}{{ asistencia.trabajador.tarifa_hora_extra|stringformat:"f" }}{% else %}0{% endif %};
+var horasNormales = {% if asistencia.horas_normales %}{{ asistencia.horas_normales|stringformat:"f" }}{% else %}0{% endif %};
+var horasExtras = {% if asistencia.horas_extras %}{{ asistencia.horas_extras|stringformat:"f" }}{% else %}0{% endif %};
+var tipoCambio = {% if tipo_cambio_actual %}{{ tipo_cambio_actual|stringformat:"f" }}{% else %}36.6{% endif %};
+
+var pagoTotalCordobas = (horasNormales * salarioNormal) + (horasExtras * tarifaHoraExtra);
+var pagoTotalDolares = tipoCambio > 0 ? (pagoTotalCordobas / tipoCambio) : 0;
+var mostrandoDolares = false;
+
+function formatearNumero(num) {
+    return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function toggleMoneda() {
+    var btn = document.querySelector('.currency-toggle-btn');
+    var cordobas = document.getElementById('pagoCordobas');
+    var dolares = document.getElementById('pagoDolares');
+    
+    mostrandoDolares = !mostrandoDolares;
+    
+    if (mostrandoDolares) {
+        cordobas.style.display = 'none';
+        dolares.style.display = 'inline';
+        btn.classList.add('active-usd');
+    } else {
+        cordobas.style.display = 'inline';
+        dolares.style.display = 'none';
+        btn.classList.remove('active-usd');
+    }
+}
+
+// Inicializar valores
+document.getElementById('montoCordobas').textContent = formatearNumero(pagoTotalCordobas);
+document.getElementById('montoDolares').textContent = formatearNumero(pagoTotalDolares);
 </script>
 {% endblock %}
