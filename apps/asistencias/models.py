@@ -925,18 +925,37 @@ class Asistencia(models.Model):
         
         # ===== 2. CALCULAR HORAS TRABAJADAS =====
         if self.hora_entrada and self.hora_salida:
-            # Calcular horas totales del turno
+            # A. Calcular horas totales del turno
             self.horas_totales = self.proyecto.calcular_horas_trabajadas(
                 self.hora_entrada,
                 self.hora_salida
             )
+
+            # B. Obtener horario ESPECÍFICO de este día
+            _, hora_fin_dia, jornada_dia = self.proyecto.obtener_horario_dia(self.fecha)
             
-            # Calcular horas normales (máximo la jornada esperada)
-            self.horas_normales = min(self.horas_totales, float(self.proyecto.horas_jornada))
-            
-            # Calcular horas extras usando horario del proyecto
-            self.horas_extras = self.proyecto.calcular_horas_extras(self.hora_salida)
-        
+            # C. Calcular extras preliminares según horario de salida
+            extras_calculadas = Decimal('0.00')
+            if hora_fin_dia:
+                val_extras = self.proyecto.calcular_horas_extras_dia(
+                    self.hora_salida, 
+                    hora_fin_dia
+                )
+                extras_calculadas = Decimal(str(val_extras))
+            elif self.horas_totales > 0:
+                # Si no hay hora fin (ej. Domingo), todo es extra
+                extras_calculadas = self.horas_totales
+
+            # D. VALIDACIÓN DE SEGURIDAD (CRÍTICO PARA CORREGIR TU ERROR)
+            # Las horas extras NUNCA pueden ser mayores que las horas totales trabajadas
+            if extras_calculadas > self.horas_totales:
+                self.horas_extras = self.horas_totales
+                self.horas_normales = Decimal('0.00')
+            else:
+                self.horas_extras = extras_calculadas
+                # Las normales son el resto
+                self.horas_normales = self.horas_totales - self.horas_extras
+
         # ===== 3. CERRAR AUTOMÁTICAMENTE SI HAY SALIDA =====
         if self.hora_salida and self.estado == 'abierto':
             self.estado = 'cerrado'
