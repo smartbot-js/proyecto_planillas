@@ -172,66 +172,209 @@
                 <div class="card-header">
                     <h3><span class="material-symbols-outlined">schedule</span> Horarios y Días Laborales</h3>
                 </div>
-                <div class="horarios-detalle-grid">
-                    <div class="horario-item">
-                        <div class="horario-icon">
-                            <span class="material-symbols-outlined">login</span>
-                        </div>
-                        <div class="horario-info">
-                            <span class="horario-label">Hora de Entrada</span>
-                            <span class="horario-value">{{ proyecto.hora_entrada_esperada|time:"H:i" }}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="horario-item">
-                        <div class="horario-icon">
-                            <span class="material-symbols-outlined">logout</span>
-                        </div>
-                        <div class="horario-info">
-                            <span class="horario-label">Hora de Salida</span>
-                            <span class="horario-value">{{ proyecto.hora_salida_esperada|time:"H:i" }}</span>
-                        </div>
-                    </div>
-                    
+                
+                <!-- Tolerancias -->
+                <div class="horarios-detalle-grid" style="margin-bottom: 20px;">
                     <div class="horario-item">
                         <div class="horario-icon">
                             <span class="material-symbols-outlined">timer</span>
                         </div>
                         <div class="horario-info">
-                            <span class="horario-label">Tolerancia</span>
-                            <span class="horario-value">{{ proyecto.minutos_tolerancia }} min</span>
+                            <span class="horario-label">Tolerancia Entrada</span>
+                            <span class="horario-value">{{ proyecto.minutos_tolerancia_entrada }} min</span>
                         </div>
                     </div>
-                    
                     <div class="horario-item">
                         <div class="horario-icon">
-                            <span class="material-symbols-outlined">access_time</span>
+                            <span class="material-symbols-outlined">timer_off</span>
                         </div>
                         <div class="horario-info">
-                            <span class="horario-label">Jornada</span>
-                            <span class="horario-value">{{ proyecto.horas_jornada }} horas</span>
+                            <span class="horario-label">Tolerancia Salida</span>
+                            <span class="horario-value">{{ proyecto.minutos_tolerancia_salida }} min</span>
                         </div>
                     </div>
                 </div>
                 
-                <div class="dias-laborales-detalle">
-                    <span class="dias-label">Días laborales:</span>
-                    <div class="dias-badges">
-                        {% with dias=proyecto.get_dias_laborales_list %}
-                        <span class="dia-badge {% if 1 in dias %}activo{% endif %}">L</span>
-                        <span class="dia-badge {% if 2 in dias %}activo{% endif %}">M</span>
-                        <span class="dia-badge {% if 3 in dias %}activo{% endif %}">M</span>
-                        <span class="dia-badge {% if 4 in dias %}activo{% endif %}">J</span>
-                        <span class="dia-badge {% if 5 in dias %}activo{% endif %}">V</span>
-                        <span class="dia-badge {% if 6 in dias %}activo{% endif %}">S</span>
-                        <span class="dia-badge {% if 7 in dias %}activo{% endif %}">D</span>
-                        {% endwith %}
+                <!-- Horarios por día -->
+                <div class="horarios-semana-grid">
+                    {% with dias=proyecto.get_dias_laborales_list %}
+                    
+                    <!-- Lunes -->
+                    <div class="horario-dia-card {% if 1 in dias %}activo{% else %}inactivo{% endif %}">
+                        <div class="dia-header">
+                            <span class="dia-nombre">Lunes</span>
+                            {% if 1 in dias %}
+                            <span class="dia-status activo">Laboral</span>
+                            {% else %}
+                            <span class="dia-status inactivo">No laboral</span>
+                            {% endif %}
+                        </div>
+                        {% if 1 in dias %}
+                        <div class="dia-horarios">
+                            <div class="horario-entrada">
+                                <span class="material-symbols-outlined">login</span>
+                                {{ proyecto.hora_inicio_lunes|default:"--:--" }}
+                            </div>
+                            <span class="horario-separador">→</span>
+                            <div class="horario-salida">
+                                <span class="material-symbols-outlined">logout</span>
+                                {{ proyecto.hora_fin_lunes|default:"--:--" }}
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
-                </div>
-                
-                <div class="horario-resumen-detalle">
-                    <span class="material-symbols-outlined">info</span>
-                    <p>{{ proyecto.get_horario_display }} • {{ proyecto.get_dias_laborales_nombres }}</p>
+                    
+                    <!-- Martes -->
+                    <div class="horario-dia-card {% if 2 in dias %}activo{% else %}inactivo{% endif %}">
+                        <div class="dia-header">
+                            <span class="dia-nombre">Martes</span>
+                            {% if 2 in dias %}
+                            <span class="dia-status activo">Laboral</span>
+                            {% else %}
+                            <span class="dia-status inactivo">No laboral</span>
+                            {% endif %}
+                        </div>
+                        {% if 2 in dias %}
+                        <div class="dia-horarios">
+                            <div class="horario-entrada">
+                                <span class="material-symbols-outlined">login</span>
+                                {{ proyecto.hora_inicio_martes|default:"--:--" }}
+                            </div>
+                            <span class="horario-separador">→</span>
+                            <div class="horario-salida">
+                                <span class="material-symbols-outlined">logout</span>
+                                {{ proyecto.hora_fin_martes|default:"--:--" }}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Miércoles -->
+                    <div class="horario-dia-card {% if 3 in dias %}activo{% else %}inactivo{% endif %}">
+                        <div class="dia-header">
+                            <span class="dia-nombre">Miércoles</span>
+                            {% if 3 in dias %}
+                            <span class="dia-status activo">Laboral</span>
+                            {% else %}
+                            <span class="dia-status inactivo">No laboral</span>
+                            {% endif %}
+                        </div>
+                        {% if 3 in dias %}
+                        <div class="dia-horarios">
+                            <div class="horario-entrada">
+                                <span class="material-symbols-outlined">login</span>
+                                {{ proyecto.hora_inicio_miercoles|default:"--:--" }}
+                            </div>
+                            <span class="horario-separador">→</span>
+                            <div class="horario-salida">
+                                <span class="material-symbols-outlined">logout</span>
+                                {{ proyecto.hora_fin_miercoles|default:"--:--" }}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Jueves -->
+                    <div class="horario-dia-card {% if 4 in dias %}activo{% else %}inactivo{% endif %}">
+                        <div class="dia-header">
+                            <span class="dia-nombre">Jueves</span>
+                            {% if 4 in dias %}
+                            <span class="dia-status activo">Laboral</span>
+                            {% else %}
+                            <span class="dia-status inactivo">No laboral</span>
+                            {% endif %}
+                        </div>
+                        {% if 4 in dias %}
+                        <div class="dia-horarios">
+                            <div class="horario-entrada">
+                                <span class="material-symbols-outlined">login</span>
+                                {{ proyecto.hora_inicio_jueves|default:"--:--" }}
+                            </div>
+                            <span class="horario-separador">→</span>
+                            <div class="horario-salida">
+                                <span class="material-symbols-outlined">logout</span>
+                                {{ proyecto.hora_fin_jueves|default:"--:--" }}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Viernes -->
+                    <div class="horario-dia-card {% if 5 in dias %}activo{% else %}inactivo{% endif %}">
+                        <div class="dia-header">
+                            <span class="dia-nombre">Viernes</span>
+                            {% if 5 in dias %}
+                            <span class="dia-status activo">Laboral</span>
+                            {% else %}
+                            <span class="dia-status inactivo">No laboral</span>
+                            {% endif %}
+                        </div>
+                        {% if 5 in dias %}
+                        <div class="dia-horarios">
+                            <div class="horario-entrada">
+                                <span class="material-symbols-outlined">login</span>
+                                {{ proyecto.hora_inicio_viernes|default:"--:--" }}
+                            </div>
+                            <span class="horario-separador">→</span>
+                            <div class="horario-salida">
+                                <span class="material-symbols-outlined">logout</span>
+                                {{ proyecto.hora_fin_viernes|default:"--:--" }}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Sábado -->
+                    <div class="horario-dia-card {% if 6 in dias %}activo{% else %}inactivo{% endif %}">
+                        <div class="dia-header">
+                            <span class="dia-nombre">Sábado</span>
+                            {% if 6 in dias %}
+                            <span class="dia-status activo">Laboral</span>
+                            {% else %}
+                            <span class="dia-status inactivo">No laboral</span>
+                            {% endif %}
+                        </div>
+                        {% if 6 in dias %}
+                        <div class="dia-horarios">
+                            <div class="horario-entrada">
+                                <span class="material-symbols-outlined">login</span>
+                                {{ proyecto.hora_inicio_sabado|default:"--:--" }}
+                            </div>
+                            <span class="horario-separador">→</span>
+                            <div class="horario-salida">
+                                <span class="material-symbols-outlined">logout</span>
+                                {{ proyecto.hora_fin_sabado|default:"--:--" }}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Domingo -->
+                    <div class="horario-dia-card {% if 7 in dias %}activo{% else %}inactivo{% endif %}">
+                        <div class="dia-header">
+                            <span class="dia-nombre">Domingo</span>
+                            {% if 7 in dias %}
+                            <span class="dia-status activo">Laboral</span>
+                            {% else %}
+                            <span class="dia-status inactivo">No laboral</span>
+                            {% endif %}
+                        </div>
+                        {% if 7 in dias and proyecto.hora_inicio_domingo %}
+                        <div class="dia-horarios">
+                            <div class="horario-entrada">
+                                <span class="material-symbols-outlined">login</span>
+                                {{ proyecto.hora_inicio_domingo|default:"--:--" }}
+                            </div>
+                            <span class="horario-separador">→</span>
+                            <div class="horario-salida">
+                                <span class="material-symbols-outlined">logout</span>
+                                {{ proyecto.hora_fin_domingo|default:"--:--" }}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% endwith %}
                 </div>
             </div>
 
@@ -1221,6 +1364,92 @@ body { background-color: #f8fafc; font-family: 'Inter', -apple-system, BlinkMacS
 .empty-message-contratista .material-symbols-outlined { font-size: 60px; color: #d1d5db; margin-bottom: 12px; }
 @media (max-width: 1024px) { .detalle-layout-grid { grid-template-columns: 1fr; } .detalle-sidebar-content { grid-row: 1; } }
 @media (max-width: 768px) { .financial-grid { grid-template-columns: 1fr; } .proyecto-meta-grid { grid-template-columns: 1fr; } .workers-selection { grid-template-columns: 1fr; } .tabs { flex-direction: column; } .page-header { flex-direction: column; align-items: stretch; } .page-actions { flex-direction: column; width: 100%; } .location-info-items { grid-template-columns: 1fr; } .contrato-metrics-grid { grid-template-columns: repeat(2, 1fr); } .avaluo-item-detalle { flex-direction: column; align-items: flex-start; gap: 12px; } .avaluo-actions { width: 100%; justify-content: flex-end; } .contrato-actions-detalle { flex-direction: column; } .btn-contrato-action { width: 100%; justify-content: center; } .contratista-header-modern { flex-wrap: wrap; } .btn-ver-detalle { width: 100%; } .contratista-stats-modern { grid-template-columns: 1fr; } .contratistas-grid-detalle { grid-template-columns: 1fr; } }
+/* Horarios Flexibles por Día */
+.horarios-semana-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.horario-dia-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.horario-dia-card.activo {
+    background: #f0fdf4;
+    border-color: #86efac;
+}
+
+.horario-dia-card.inactivo {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+    opacity: 0.7;
+}
+
+.dia-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.dia-nombre {
+    font-weight: 700;
+    font-size: 14px;
+    color: #1f2937;
+}
+
+.dia-status {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.dia-status.activo {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.dia-status.inactivo {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.dia-horarios {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.horario-entrada, .horario-salida {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.horario-entrada .material-symbols-outlined,
+.horario-salida .material-symbols-outlined {
+    font-size: 14px;
+    color: #3b82f6;
+}
+
+.horario-separador {
+    color: #9ca3af;
+    font-size: 12px;
+}
 </style>
 {% endblock %}
 
