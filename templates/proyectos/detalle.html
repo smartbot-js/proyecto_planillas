@@ -526,7 +526,7 @@
 <div class="tab-content" data-content="contratistas">
     <div class="content-card">
         <div class="card-header">
-            <h3>Contratistas Asignados ({{ proyecto.contratistas.count }})</h3>
+            <h3>Contratistas Asignados ({{ contratistas_con_contratos|length }})</h3>
             <div style="display: flex; gap: 8px;">
                 {% if user.es_administrador or proyecto.supervisor == user %}
                 <a href="{% url 'proyecto_editar' proyecto.id %}" class="btn btn-secondary btn-sm">
@@ -541,9 +541,10 @@
             </div>
         </div>
 
-        {% if proyecto.contratistas.exists %}
+        {% if contratistas_con_contratos %}
         <div class="contratistas-grid-detalle">
-            {% for contratista in proyecto.contratistas.all %}
+            {% for item in contratistas_con_contratos %}
+            {% with contratista=item.contratista %}
             <div class="contratista-card-modern">
                 <div class="contratista-header-modern">
                     <div class="contratista-avatar-modern">
@@ -594,7 +595,7 @@
                     </div>
                 </div>
                 
-                {% with contratos=contratista.contratos.all %}
+                {% with contratos=item.contratos %}
                 {% if contratos %}
                 <div class="contratos-section-detalle">
                     <div class="contratos-header-detalle">
@@ -726,6 +727,7 @@
                     <p>No hay contratos registrados para este contratista</p>
                 </div>
                 {% endif %}
+                {% endwith %}
                 {% endwith %}
             </div>
             {% endfor %}
