@@ -915,40 +915,107 @@ class Asistencia(models.Model):
 
     def save(self, *args, **kwargs):
         """
-        Método save mejorado con cálculos automáticos basados en horarios del proyecto
+        Método save mejorado con cálculos automáticos basados en horarios del proyecto POR DÍA
         """
-        # ===== 1. CALCULAR LLEGADAS TARDE USANDO HORARIO DEL PROYECTO =====
-        if self.hora_entrada and self.proyecto:
-            minutos_tarde, llego_tarde = self.proyecto.calcular_llegada_tarde(self.hora_entrada)
-            self.minutos_tarde = minutos_tarde
-            self.llego_tarde = llego_tarde
+        from datetime import datetime, timedelta
         
-        # ===== 2. CALCULAR HORAS TRABAJADAS =====
-        if self.hora_entrada and self.hora_salida:
-            # Calcular horas totales del turno
-            self.horas_totales = self.proyecto.calcular_horas_trabajadas(
-                self.hora_entrada,
-                self.hora_salida
-            )
+        if self.hora_entrada and self.proyecto and self.fecha:
+            # ===== 1. OBTENER HORARIO DEL DÍA ESPECÍFICO =====
+            hora_inicio_esperada, hora_fin_esperada, jornada_normal = self.proyecto.obtener_horario_dia(self.fecha)
             
-            # Calcular horas normales (máximo la jornada esperada)
-            self.horas_normales = min(self.horas_totales, float(self.proyecto.horas_jornada))
+            # Si es día no laboral (domingo sin horario), no calcular
+            if hora_inicio_esperada is None:
+                self.minutos_tarde = 0
+                self.llego_tarde = False
+                self.horas_normales = Decimal('0.00')
+                self.horas_extras = Decimal('0.00')
+                self.horas_totales = Decimal('0.00')
+                super().save(*args, **kwargs)
+                return
             
-            # Calcular horas extras usando horario del proyecto
-            self.horas_extras = self.proyecto.calcular_horas_extras(self.hora_salida)
+            # ===== 2. CONVERTIR HORARIOS DE STRING A TIME =====
+            # Los horarios están en formato "08:00 AM" o "05:00 PM"
+            def parse_hora_12h(hora_str):
+                """Convierte '08:00 AM' o '05:00 PM' a objeto time"""
+                if not hora_str:
+                    return None
+                try:
+                    # Si ya es un objeto time
+                    if hasattr(hora_str, 'hour'):
+                        return hora_str
+                    # Si es string en formato 12h
+                    hora_str = hora_str.strip().upper()
+                    return datetime.strptime(hora_str, '%I:%M %p').time()
+                except:
+                    try:
+                        # Intentar formato 24h
+                        return datetime.strptime(hora_str, '%H:%M').time()
+                    except:
+                        return None
+            
+            hora_inicio_time = parse_hora_12h(hora_inicio_esperada)
+            hora_fin_time = parse_hora_12h(hora_fin_esperada)
+            
+            # ===== 3. CALCULAR LLEGADA TARDE =====
+            if hora_inicio_time:
+                tolerancia = self.proyecto.minutos_tolerancia_entrada or self.proyecto.minutos_tolerancia or 15
+                
+                entrada_dt = datetime.combine(self.fecha, self.hora_entrada)
+                inicio_esperado_dt = datetime.combine(self.fecha, hora_inicio_time)
+                inicio_con_tolerancia = inicio_esperado_dt + timedelta(minutes=tolerancia)
+                
+                if entrada_dt > inicio_con_tolerancia:
+                    self.llego_tarde = True
+                    self.minutos_tarde = int((entrada_dt - inicio_esperado_dt).total_seconds() / 60)
+                else:
+                    self.llego_tarde = False
+                    self.minutos_tarde = 0
+            
+            # ===== 4. CALCULAR HORAS TRABAJADAS =====
+            if self.hora_salida:
+                entrada_dt = datetime.combine(self.fecha, self.hora_entrada)
+                salida_dt = datetime.combine(self.fecha, self.hora_salida)
+                
+                # Si la salida es antes que la entrada, cruzó medianoche
+                if salida_dt < entrada_dt:
+                    salida_dt += timedelta(days=1)
+                
+                # Calcular horas totales
+                diferencia = salida_dt - entrada_dt
+                total_horas = Decimal(str(diferencia.total_seconds() / 3600))
+                
+                # Validar que no sea negativo o absurdo
+                if total_horas < 0 or total_horas > 24:
+                    total_horas = Decimal('0.00')
+                
+                self.horas_totales = total_horas.quantize(Decimal('0.01'))
+                
+                # Calcular horas normales y extras basado en jornada del día
+                jornada_decimal = Decimal(str(jornada_normal))
+                
+                if self.horas_totales <= jornada_decimal:
+                    self.horas_normales = self.horas_totales
+                    self.horas_extras = Decimal('0.00')
+                else:
+                    self.horas_normales = jornada_decimal
+                    self.horas_extras = (self.horas_totales - jornada_decimal).quantize(Decimal('0.01'))
+            else:
+                # Sin hora de salida, no hay horas calculadas
+                self.horas_totales = Decimal('0.00')
+                self.horas_normales = Decimal('0.00')
+                self.horas_extras = Decimal('0.00')
         
-        # ===== 3. CERRAR AUTOMÁTICAMENTE SI HAY SALIDA =====
+        # ===== 5. CERRAR AUTOMÁTICAMENTE SI HAY SALIDA =====
         if self.hora_salida and self.estado == 'abierto':
             self.estado = 'cerrado'
         
-        # ===== 4. CALCULAR DURACIÓN JORNADA =====
+        # # ===== 6. CALCULAR DURACIÓN JORNADA =====
         # if self.horas_totales:
         #     horas = int(self.horas_totales)
         #     minutos = int((self.horas_totales - horas) * 60)
         #     self.duracion_jornada = f"{horas}h {minutos}m"
         
         super().save(*args, **kwargs)
-
 
 class ResumenDiario(models.Model):
     """Modelo para almacenar resúmenes diarios de asistencias"""
