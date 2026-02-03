@@ -549,7 +549,10 @@
                 <div class="contratista-header-modern">
                     <div class="contratista-avatar-modern">
                         {% if contratista.foto_cedula %}
-                            <img src="{{ contratista.foto_cedula.url }}" alt="{{ contratista.nombre_completo }}">
+                            <img src="{{ contratista.foto_cedula.url }}" alt="{{ contratista.nombre_completo }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="avatar-placeholder-modern" style="display: none;">
+                                <span class="material-symbols-outlined">person</span>
+                            </div>
                         {% else %}
                             <div class="avatar-placeholder-modern">
                                 <span class="material-symbols-outlined">person</span>
