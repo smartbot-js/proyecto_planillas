@@ -373,29 +373,55 @@ class Proyecto(models.Model):
         Obtiene el horario laboral según el día de la semana
         Retorna: (hora_inicio, hora_fin, jornada_normal_horas)
         """
-        dia_semana = fecha.weekday()  # 0=Lunes, 6=Domingo
+        dia_semana = fecha.weekday()  # 0=Lunes, 1=Martes, ..., 6=Domingo
         
-        if dia_semana <= 3:  # Lunes a Jueves (0-3)
-            return (
-                self.hora_inicio_lunes_jueves,
-                self.hora_fin_lunes_jueves,
-                8.5  # 8 horas 30 minutos
-            )
-        elif dia_semana == 4:  # Viernes
-            return (
-                self.hora_inicio_viernes,
-                self.hora_fin_viernes,
-                9.0  # 9 horas
-            )
-        elif dia_semana == 5:  # Sábado
-            return (
-                self.hora_inicio_sabado,
-                self.hora_fin_sabado,
-                5.0  # 5 horas
-            )
-        else:  # Domingo
-            return (None, None, 0)  # No se trabaja
+        horarios = {
+            0: (self.hora_inicio_lunes, self.hora_fin_lunes),
+            1: (self.hora_inicio_martes, self.hora_fin_martes),
+            2: (self.hora_inicio_miercoles, self.hora_fin_miercoles),
+            3: (self.hora_inicio_jueves, self.hora_fin_jueves),
+            4: (self.hora_inicio_viernes, self.hora_fin_viernes),
+            5: (self.hora_inicio_sabado, self.hora_fin_sabado),
+            6: (self.hora_inicio_domingo, self.hora_fin_domingo),
+        }
+        
+        hora_inicio, hora_fin = horarios.get(dia_semana, (None, None))
+        
+        # Si es domingo y no tiene horario configurado
+        if dia_semana == 6 and (not hora_inicio or not hora_fin):
+            return (None, None, 0)
+        
+        # Calcular jornada
+        jornada = self._calcular_horas_jornada(hora_inicio, hora_fin)
+        
+        return (hora_inicio, hora_fin, jornada)
 
+    def _calcular_horas_jornada(self, hora_inicio_str, hora_fin_str):
+        """Calcula las horas de jornada entre dos horarios en formato 12h"""
+        if not hora_inicio_str or not hora_fin_str:
+            return 0
+        
+        try:
+            def parse_12h(hora_str):
+                hora_str = hora_str.strip().upper()
+                try:
+                    return datetime.strptime(hora_str, '%I:%M %p')
+                except:
+                    try:
+                        return datetime.strptime(hora_str, '%H:%M')
+                    except:
+                        return None
+            
+            inicio = parse_12h(hora_inicio_str)
+            fin = parse_12h(hora_fin_str)
+            
+            if inicio and fin:
+                diferencia = (fin - inicio).total_seconds() / 3600
+                return round(diferencia, 2) if diferencia > 0 else 0
+            return 0
+        except:
+            return 0
+            
     # ==================== HORARIOS DE TRABAJO ====================
     hora_entrada_esperada = models.TimeField(
         default=time(8, 0),

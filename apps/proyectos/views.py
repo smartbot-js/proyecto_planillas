@@ -129,30 +129,32 @@ class ProyectoDetalleView(LoginRequiredMixin, DetailView):
         context['puede_eliminar'] = proyecto.puede_ser_eliminado_por(self.request.user)
         
         # ===============================================
-        # CORRECCIÓN: CONTRATISTAS CON CONTRATOS FILTRADOS POR PROYECTO
+        # CORRECCIÓN: CONTRATISTAS BASADOS EN CONTRATOS DEL PROYECTO
         # ===============================================
-        from apps.contratistas.models import ContratoProyecto
+        from apps.contratistas.models import ContratoProyecto, Contratista
 
-        contratistas_asignados = proyecto.contratistas.filter(
-            eliminado=False,
-            activo=True
-        )
+        # Obtener contratos del proyecto y agrupar por contratista
+        contratos_del_proyecto = ContratoProyecto.objects.filter(
+            proyecto=proyecto,
+            eliminado=False
+        ).select_related('contratista').prefetch_related('avaluos')
 
-        contratistas_con_contratos = []
-        for contratista in contratistas_asignados:
-            contratos_en_este_proyecto = ContratoProyecto.objects.filter(
-                contratista=contratista,
-                proyecto=proyecto,  # ← FILTRO CLAVE
-                eliminado=False
-            ).prefetch_related('avaluos')
-            
-            contratistas_con_contratos.append({
-                'contratista': contratista,
-                'contratos': contratos_en_este_proyecto,
-                'total_contratos': contratos_en_este_proyecto.count(),
-                'total_pagado': sum(c.total_pagado for c in contratos_en_este_proyecto),
-            })
+        # Agrupar por contratista
+        contratistas_dict = {}
+        for contrato in contratos_del_proyecto:
+            contratista_id = contrato.contratista_id
+            if contratista_id not in contratistas_dict:
+                contratistas_dict[contratista_id] = {
+                    'contratista': contrato.contratista,
+                    'contratos': [],
+                    'total_contratos': 0,
+                    'total_pagado': Decimal('0.00'),
+                }
+            contratistas_dict[contratista_id]['contratos'].append(contrato)
+            contratistas_dict[contratista_id]['total_contratos'] += 1
+            contratistas_dict[contratista_id]['total_pagado'] += contrato.total_pagado
 
+        contratistas_con_contratos = list(contratistas_dict.values())
         context['contratistas_con_contratos'] = contratistas_con_contratos
 
         return context
