@@ -563,7 +563,42 @@ class TrabajadorTrasladarView(LoginRequiredMixin, View):
 
 class TrabajadorImportarCSVView(LoginRequiredMixin, View):
     """Vista para importar trabajadores desde archivo CSV - CON SOPORTE AJAX"""
-    
+
+    def _parsear_fecha(self, fecha_str):
+        """
+        Convierte fechas en múltiples formatos a formato Django (YYYY-MM-DD)
+        Soporta: MM/DD/YYYY, DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY, etc.
+        """
+        if not fecha_str or not fecha_str.strip():
+            return None
+        
+        fecha_str = fecha_str.strip()
+        
+        # Lista de formatos a intentar
+        formatos = [
+            '%Y-%m-%d',      # 2024-01-15 (ISO)
+            '%d/%m/%Y',      # 15/01/2024
+            '%m/%d/%Y',      # 01/15/2024 (US)
+            '%d-%m-%Y',      # 15-01-2024
+            '%m-%d-%Y',      # 01-15-2024
+            '%Y/%m/%d',      # 2024/01/15
+            '%d.%m.%Y',      # 15.01.2024
+            '%m.%d.%Y',      # 01.15.2024
+        ]
+        
+        from datetime import datetime
+        
+        for formato in formatos:
+            try:
+                fecha_parseada = datetime.strptime(fecha_str, formato)
+                return fecha_parseada.date()
+            except ValueError:
+                continue
+        
+        # Si ningún formato funcionó, retornar None
+        print(f"No se pudo parsear la fecha: {fecha_str}")
+        return None
+
     def post(self, request):
         # Detectar si es petición AJAX
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.POST.get('ajax') == 'true'
@@ -702,7 +737,7 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, View):
                     'direccion': row.get('direccion', '').strip(),
                     'email': row.get('email', '').strip(),
                     'contacto_emergencia': contacto_emergencia,
-                    'fecha_nacimiento': row.get('fecha_nacimiento', None) or None,
+                    'fecha_nacimiento': self._parsear_fecha(row.get('fecha_nacimiento', '')),
                     'sexo': row.get('sexo', 'masculino').lower(),
                     'salario_normal': row.get('salario_normal', 0) or 0,
                     'tarifa_hora_extra': row.get('tarifa_hora_extra', 0) or 0,
