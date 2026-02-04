@@ -923,13 +923,35 @@ class Asistencia(models.Model):
             # ===== 1. OBTENER HORARIO DEL DÍA ESPECÍFICO =====
             hora_inicio_esperada, hora_fin_esperada, jornada_normal = self.proyecto.obtener_horario_dia(self.fecha)
             
-            # Si es día no laboral (domingo sin horario), no calcular
+            # Si es día no laboral (domingo sin horario)
             if hora_inicio_esperada is None:
                 self.minutos_tarde = 0
                 self.llego_tarde = False
-                self.horas_normales = Decimal('0.00')
-                self.horas_extras = Decimal('0.00')
-                self.horas_totales = Decimal('0.00')
+                
+                # Si hay hora de salida, calcular horas trabajadas (todas son extras)
+                if self.hora_salida:
+                    entrada_dt = datetime.combine(self.fecha, self.hora_entrada)
+                    salida_dt = datetime.combine(self.fecha, self.hora_salida)
+                    
+                    # Si la salida es antes que la entrada, cruzó medianoche
+                    if salida_dt < entrada_dt:
+                        salida_dt += timedelta(days=1)
+                    
+                    diferencia = salida_dt - entrada_dt
+                    total_horas = Decimal(str(diferencia.total_seconds() / 3600))
+                    
+                    # Validar que no sea negativo o absurdo
+                    if total_horas < 0 or total_horas > 24:
+                        total_horas = Decimal('0.00')
+                    
+                    self.horas_totales = total_horas.quantize(Decimal('0.01'))
+                    self.horas_normales = Decimal('0.00')  # No hay jornada normal en día no laboral
+                    self.horas_extras = self.horas_totales  # Todas las horas son extras
+                else:
+                    self.horas_totales = Decimal('0.00')
+                    self.horas_normales = Decimal('0.00')
+                    self.horas_extras = Decimal('0.00')
+                
                 super().save(*args, **kwargs)
                 return
             
