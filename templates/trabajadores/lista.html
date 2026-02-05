@@ -159,7 +159,13 @@
                     <td>
                         <div class="worker-cell">
                             {% if trabajador.foto %}
-                            <img src="{{ trabajador.foto.url }}" alt="{{ trabajador.nombre_completo }}" class="worker-avatar">
+                            <img src="{{ trabajador.foto.url }}" 
+                                 alt="{{ trabajador.nombre_completo }}" 
+                                 class="worker-avatar"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="worker-avatar-placeholder" style="display: none;">
+                                {{ trabajador.nombre|first }}{{ trabajador.apellido|first }}
+                            </div>
                             {% else %}
                             <div class="worker-avatar-placeholder">
                                 {{ trabajador.nombre|first }}{{ trabajador.apellido|first }}
