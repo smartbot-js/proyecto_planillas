@@ -358,6 +358,60 @@ class Proyecto(models.Model):
         help_text='Hora de fin Domingo (formato 12h, opcional)'
     )
 
+    # ============================================================
+    # TIEMPO DE DESCANSO/COMIDA POR DÍA (FORMATO H:MM)
+    # ============================================================
+
+    # LUNES
+    descanso_lunes = models.CharField(
+        max_length=10,
+        default='1:00',
+        help_text='Tiempo de descanso/comida Lunes (formato H:MM, ej: 1:00, 0:30, 1:30)'
+    )
+
+    # MARTES
+    descanso_martes = models.CharField(
+        max_length=10,
+        default='1:00',
+        help_text='Tiempo de descanso/comida Martes'
+    )
+
+    # MIÉRCOLES
+    descanso_miercoles = models.CharField(
+        max_length=10,
+        default='1:00',
+        help_text='Tiempo de descanso/comida Miércoles'
+    )
+
+    # JUEVES
+    descanso_jueves = models.CharField(
+        max_length=10,
+        default='1:00',
+        help_text='Tiempo de descanso/comida Jueves'
+    )
+
+    # VIERNES
+    descanso_viernes = models.CharField(
+        max_length=10,
+        default='1:00',
+        help_text='Tiempo de descanso/comida Viernes'
+    )
+
+    # SÁBADO
+    descanso_sabado = models.CharField(
+        max_length=10,
+        default='0:00',
+        help_text='Tiempo de descanso/comida Sábado'
+    )
+
+    # DOMINGO
+    descanso_domingo = models.CharField(
+        max_length=10,
+        default='0:00',
+        blank=True,
+        help_text='Tiempo de descanso/comida Domingo'
+    )
+
     # TOLERANCIAS
     minutos_tolerancia_entrada = models.IntegerField(
         default=15,
@@ -368,34 +422,55 @@ class Proyecto(models.Model):
         help_text='Minutos de tolerancia para salida temprana'
     )
 
+    def _parsear_descanso(self, descanso_str):
+        """
+        Convierte string de descanso (H:MM) a horas decimales
+        Ej: '1:00' -> 1.0, '1:30' -> 1.5, '0:45' -> 0.75
+        """
+        if not descanso_str:
+            return 0
+        try:
+            partes = descanso_str.split(':')
+            horas = int(partes[0])
+            minutos = int(partes[1]) if len(partes) > 1 else 0
+            return horas + (minutos / 60)
+        except:
+            return 1.0  # Default 1 hora si hay error
+
     def obtener_horario_dia(self, fecha):
         """
         Obtiene el horario laboral según el día de la semana
-        Retorna: (hora_inicio, hora_fin, jornada_normal_horas)
+        Retorna: (hora_inicio, hora_fin, jornada_normal_horas, descanso_horas)
         """
         dia_semana = fecha.weekday()  # 0=Lunes, 1=Martes, ..., 6=Domingo
         
         horarios = {
-            0: (self.hora_inicio_lunes, self.hora_fin_lunes),
-            1: (self.hora_inicio_martes, self.hora_fin_martes),
-            2: (self.hora_inicio_miercoles, self.hora_fin_miercoles),
-            3: (self.hora_inicio_jueves, self.hora_fin_jueves),
-            4: (self.hora_inicio_viernes, self.hora_fin_viernes),
-            5: (self.hora_inicio_sabado, self.hora_fin_sabado),
-            6: (self.hora_inicio_domingo, self.hora_fin_domingo),
+            0: (self.hora_inicio_lunes, self.hora_fin_lunes, self.descanso_lunes),
+            1: (self.hora_inicio_martes, self.hora_fin_martes, self.descanso_martes),
+            2: (self.hora_inicio_miercoles, self.hora_fin_miercoles, self.descanso_miercoles),
+            3: (self.hora_inicio_jueves, self.hora_fin_jueves, self.descanso_jueves),
+            4: (self.hora_inicio_viernes, self.hora_fin_viernes, self.descanso_viernes),
+            5: (self.hora_inicio_sabado, self.hora_fin_sabado, self.descanso_sabado),
+            6: (self.hora_inicio_domingo, self.hora_fin_domingo, self.descanso_domingo),
         }
         
-        hora_inicio, hora_fin = horarios.get(dia_semana, (None, None))
+        hora_inicio, hora_fin, descanso_str = horarios.get(dia_semana, (None, None, '0:00'))
         
         # Si es domingo y no tiene horario configurado
         if dia_semana == 6 and (not hora_inicio or not hora_fin):
-            return (None, None, 0)
+            return (None, None, 0, 0)
         
-        # Calcular jornada
-        jornada = self._calcular_horas_jornada(hora_inicio, hora_fin)
+        # Calcular jornada bruta (sin descontar descanso)
+        jornada_bruta = self._calcular_horas_jornada(hora_inicio, hora_fin)
         
-        return (hora_inicio, hora_fin, jornada)
-
+        # Parsear descanso
+        descanso_horas = self._parsear_descanso(descanso_str)
+        
+        # Jornada neta = bruta - descanso
+        jornada_neta = max(0, jornada_bruta - descanso_horas)
+        
+        return (hora_inicio, hora_fin, jornada_neta, descanso_horas)
+        
     def _calcular_horas_jornada(self, hora_inicio_str, hora_fin_str):
         """Calcula las horas de jornada entre dos horarios en formato 12h"""
         if not hora_inicio_str or not hora_fin_str:

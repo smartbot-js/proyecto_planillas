@@ -294,6 +294,15 @@ class ProyectoCreateView(LoginRequiredMixin, View):
             proyecto.hora_inicio_domingo = request.POST.get('hora_inicio_domingo', '')
             proyecto.hora_fin_domingo = request.POST.get('hora_fin_domingo', '')
 
+            # DESCANSO POR DÍA
+            proyecto.descanso_lunes = request.POST.get('descanso_lunes', '1:00')
+            proyecto.descanso_martes = request.POST.get('descanso_martes', '1:00')
+            proyecto.descanso_miercoles = request.POST.get('descanso_miercoles', '1:00')
+            proyecto.descanso_jueves = request.POST.get('descanso_jueves', '1:00')
+            proyecto.descanso_viernes = request.POST.get('descanso_viernes', '1:00')
+            proyecto.descanso_sabado = request.POST.get('descanso_sabado', '0:00')
+            proyecto.descanso_domingo = request.POST.get('descanso_domingo', '0:00')
+            
             # TOLERANCIAS
             proyecto.minutos_tolerancia_entrada = int(request.POST.get('minutos_tolerancia_entrada', 15))
             proyecto.minutos_tolerancia_salida = int(request.POST.get('minutos_tolerancia_salida', 10))
@@ -627,6 +636,17 @@ class ProyectoEditarView(LoginRequiredMixin, View):
             if request.POST.get('hora_fin_domingo'):
                 proyecto.hora_fin_domingo = request.POST.get('hora_fin_domingo')
 
+            # ============================================================
+            # DESCANSO POR DÍA
+            # ============================================================
+            proyecto.descanso_lunes = request.POST.get('descanso_lunes', '1:00')
+            proyecto.descanso_martes = request.POST.get('descanso_martes', '1:00')
+            proyecto.descanso_miercoles = request.POST.get('descanso_miercoles', '1:00')
+            proyecto.descanso_jueves = request.POST.get('descanso_jueves', '1:00')
+            proyecto.descanso_viernes = request.POST.get('descanso_viernes', '1:00')
+            proyecto.descanso_sabado = request.POST.get('descanso_sabado', '0:00')
+            proyecto.descanso_domingo = request.POST.get('descanso_domingo', '0:00')
+            
             # TOLERANCIAS
             if request.POST.get('minutos_tolerancia_entrada'):
                 proyecto.minutos_tolerancia_entrada = int(request.POST.get('minutos_tolerancia_entrada'))
