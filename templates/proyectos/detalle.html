@@ -221,6 +221,10 @@
                                 {{ proyecto.hora_fin_lunes|default:"--:--" }}
                             </div>
                         </div>
+                        <div class="dia-descanso">
+                            <span class="material-symbols-outlined">restaurant</span>
+                            {{ proyecto.descanso_lunes|default:"1:00" }}
+                        </div>
                         {% endif %}
                     </div>
                     
@@ -245,6 +249,10 @@
                                 <span class="material-symbols-outlined">logout</span>
                                 {{ proyecto.hora_fin_martes|default:"--:--" }}
                             </div>
+                        </div>
+                        <div class="dia-descanso">
+                            <span class="material-symbols-outlined">restaurant</span>
+                            {{ proyecto.descanso_martes|default:"1:00" }}
                         </div>
                         {% endif %}
                     </div>
@@ -271,6 +279,10 @@
                                 {{ proyecto.hora_fin_miercoles|default:"--:--" }}
                             </div>
                         </div>
+                        <div class="dia-descanso">
+                            <span class="material-symbols-outlined">restaurant</span>
+                            {{ proyecto.descanso_miercoles|default:"1:00" }}
+                        </div>
                         {% endif %}
                     </div>
                     
@@ -295,6 +307,10 @@
                                 <span class="material-symbols-outlined">logout</span>
                                 {{ proyecto.hora_fin_jueves|default:"--:--" }}
                             </div>
+                        </div>
+                        <div class="dia-descanso">
+                            <span class="material-symbols-outlined">restaurant</span>
+                            {{ proyecto.descanso_jueves|default:"1:00" }}
                         </div>
                         {% endif %}
                     </div>
@@ -321,6 +337,10 @@
                                 {{ proyecto.hora_fin_viernes|default:"--:--" }}
                             </div>
                         </div>
+                        <div class="dia-descanso">
+                            <span class="material-symbols-outlined">restaurant</span>
+                            {{ proyecto.descanso_viernes|default:"1:00" }}
+                        </div>
                         {% endif %}
                     </div>
                     
@@ -346,6 +366,10 @@
                                 {{ proyecto.hora_fin_sabado|default:"--:--" }}
                             </div>
                         </div>
+                        <div class="dia-descanso">
+                            <span class="material-symbols-outlined">restaurant</span>
+                            {{ proyecto.descanso_sabado|default:"1:00" }}
+                        </div>
                         {% endif %}
                     </div>
                     
@@ -370,6 +394,10 @@
                                 <span class="material-symbols-outlined">logout</span>
                                 {{ proyecto.hora_fin_domingo|default:"--:--" }}
                             </div>
+                        </div>
+                        <div class="dia-descanso">
+                            <span class="material-symbols-outlined">restaurant</span>
+                            {{ proyecto.descanso_domingo|default:"1:00" }}
                         </div>
                         {% endif %}
                     </div>
@@ -1449,6 +1477,22 @@ body { background-color: #f8fafc; font-family: 'Inter', -apple-system, BlinkMacS
 .horario-separador {
     color: #9ca3af;
     font-size: 12px;
+}
+.dia-descanso {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #f59e0b;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #e5e7eb;
+}
+
+.dia-descanso .material-symbols-outlined {
+    font-size: 14px;
 }
 </style>
 {% endblock %}

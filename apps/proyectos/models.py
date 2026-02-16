@@ -440,18 +440,18 @@ class Proyecto(models.Model):
     def obtener_horario_dia(self, fecha):
         """
         Obtiene el horario laboral según el día de la semana
-        Retorna: (hora_inicio, hora_fin, jornada_normal_horas, descanso_horas)
+        Retorna: (hora_inicio, hora_fin, jornada_neta_horas, descanso_horas)
         """
         dia_semana = fecha.weekday()  # 0=Lunes, 1=Martes, ..., 6=Domingo
         
         horarios = {
-            0: (self.hora_inicio_lunes, self.hora_fin_lunes, self.descanso_lunes),
-            1: (self.hora_inicio_martes, self.hora_fin_martes, self.descanso_martes),
-            2: (self.hora_inicio_miercoles, self.hora_fin_miercoles, self.descanso_miercoles),
-            3: (self.hora_inicio_jueves, self.hora_fin_jueves, self.descanso_jueves),
-            4: (self.hora_inicio_viernes, self.hora_fin_viernes, self.descanso_viernes),
-            5: (self.hora_inicio_sabado, self.hora_fin_sabado, self.descanso_sabado),
-            6: (self.hora_inicio_domingo, self.hora_fin_domingo, self.descanso_domingo),
+            0: (self.hora_inicio_lunes, self.hora_fin_lunes, getattr(self, 'descanso_lunes', '1:00')),
+            1: (self.hora_inicio_martes, self.hora_fin_martes, getattr(self, 'descanso_martes', '1:00')),
+            2: (self.hora_inicio_miercoles, self.hora_fin_miercoles, getattr(self, 'descanso_miercoles', '1:00')),
+            3: (self.hora_inicio_jueves, self.hora_fin_jueves, getattr(self, 'descanso_jueves', '1:00')),
+            4: (self.hora_inicio_viernes, self.hora_fin_viernes, getattr(self, 'descanso_viernes', '1:00')),
+            5: (self.hora_inicio_sabado, self.hora_fin_sabado, getattr(self, 'descanso_sabado', '0:00')),
+            6: (self.hora_inicio_domingo, self.hora_fin_domingo, getattr(self, 'descanso_domingo', '0:00')),
         }
         
         hora_inicio, hora_fin, descanso_str = horarios.get(dia_semana, (None, None, '0:00'))
@@ -460,7 +460,7 @@ class Proyecto(models.Model):
         if dia_semana == 6 and (not hora_inicio or not hora_fin):
             return (None, None, 0, 0)
         
-        # Calcular jornada bruta (sin descontar descanso)
+        # Calcular jornada bruta
         jornada_bruta = self._calcular_horas_jornada(hora_inicio, hora_fin)
         
         # Parsear descanso
@@ -470,7 +470,23 @@ class Proyecto(models.Model):
         jornada_neta = max(0, jornada_bruta - descanso_horas)
         
         return (hora_inicio, hora_fin, jornada_neta, descanso_horas)
+
+    def _parsear_descanso(self, descanso_str):
+        """
+        Convierte string de descanso (H:MM) a decimal de horas
+        Ej: '1:00' -> 1.0, '1:30' -> 1.5, '0:45' -> 0.75
+        """
+        if not descanso_str:
+            return 0
         
+        try:
+            partes = descanso_str.strip().split(':')
+            horas = int(partes[0])
+            minutos = int(partes[1]) if len(partes) > 1 else 0
+            return horas + (minutos / 60)
+        except:
+            return 0
+
     def _calcular_horas_jornada(self, hora_inicio_str, hora_fin_str):
         """Calcula las horas de jornada entre dos horarios en formato 12h"""
         if not hora_inicio_str or not hora_fin_str:
