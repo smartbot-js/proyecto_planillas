@@ -106,7 +106,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def supervisores(self, request):
         supervisores = Usuario.objects.filter(
-            rol=Usuario.Rol.SUPERVISOR,
+            rol__codigo__in=['gerente_proyecto', 'gerente_general'],
             activo=True
         )
         serializer = self.get_serializer(supervisores, many=True)
@@ -115,7 +115,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def trabajadores(self, request):
         trabajadores = Usuario.objects.filter(
-            rol=Usuario.Rol.TRABAJADOR,
+            rol__codigo='asistencia',
             activo=True
         )
         serializer = self.get_serializer(trabajadores, many=True)
@@ -253,6 +253,16 @@ class LoginTemplateView(View):
         if user is not None:
             print(f"Autenticación exitosa para: {email}")
             
+            # ========== AGREGAR VALIDACIÓN DE APROBACIÓN ==========
+            if not user.cuenta_aprobada and not user.is_superuser:
+                messages.warning(
+                    request,
+                    'Tu cuenta está pendiente de aprobación por un administrador. '
+                    'Serás notificado cuando tu cuenta sea activada.'
+                )
+                return render(request, self.template_name, context)
+            # ======================================================
+            
             if user.activo:
                 auth_login(request, user)
                 
@@ -275,7 +285,6 @@ class LoginTemplateView(View):
             print(f"Autenticación FALLIDA para: {email}")
             messages.error(request, 'Credenciales incorrectas. Verifica tu correo y contraseña.')
         
-        #return render(request, self.template_name)
         return render(request, self.template_name, context)
 
 class RegistroTemplateView(View):
@@ -287,37 +296,53 @@ class RegistroTemplateView(View):
         nombre_completo = request.POST.get('nombre_completo', '').strip()
         password = request.POST.get('password', '')
         password_confirm = request.POST.get('password_confirm', '')
-        rol = request.POST.get('rol', 'trabajador')
+        rol_codigo = request.POST.get('rol', '')  # ← Cambiar nombre variable
+        
         context = {
             'roles': Usuario.Rol.choices
         }
+        
         # Validaciones
         if password != password_confirm:
             messages.error(request, 'Las contraseñas no coinciden.')
-            #return render(request, self.template_name)
             return render(request, self.template_name, context)
         
         if Usuario.objects.filter(email=email).exists():
             messages.error(request, 'El email ya está registrado.')
-            #return render(request, self.template_name)
             return render(request, self.template_name, context)
         
         try:
-            # IMPORTANTE: Usar create_user() NO create()
-            usuario = Usuario.objects.create_user(  # ← Esto es clave
+            # ========== OBTENER ROL OBJETO ==========
+            from apps.admin_panel.models import Rol
+            
+            # Buscar rol por código (si viene del formulario)
+            rol_obj = None
+            if rol_codigo:
+                try:
+                    rol_obj = Rol.objects.get(codigo=rol_codigo, activo=True)
+                except Rol.DoesNotExist:
+                    # Si no existe, dejarlo sin rol (admin lo asignará)
+                    rol_obj = None
+            # ========================================
+            
+            usuario = Usuario.objects.create_user(
                 email=email,
                 nombre_completo=nombre_completo,
-                password=password,  # Se encripta automáticamente
-                rol=rol,
-                activo=True
+                password=password,
+                rol=rol_obj,  # ← Asignar objeto Rol, no string
+                activo=True,
+                cuenta_aprobada=False,
             )
             
-            messages.success(request, '¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.')
+            messages.success(
+                request, 
+                'Cuenta creada exitosamente. Un administrador revisará tu solicitud '
+                'y serás notificado cuando sea aprobada.'
+            )
             return redirect('login')
             
         except Exception as e:
             messages.error(request, f'Error al crear la cuenta: {str(e)}')
-            #return render(request, self.template_name)
             return render(request, self.template_name, context)
         
 class LogoutTemplateView(View):

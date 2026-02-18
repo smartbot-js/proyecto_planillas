@@ -24,7 +24,7 @@ from .utils import generar_qr_trabajador, parsear_cedula_paraguaya, validar_iden
 from apps.proyectos.models import Proyecto
 from apps.core.nicaragua_data import DEPARTAMENTOS
 from apps.core.puestos_data import AREAS_TRABAJO
-
+from apps.admin_panel.permissions import PermissionRequiredMixin
 # ============================================
 # VISTAS WEB (TEMPLATES)
 # ============================================
@@ -119,8 +119,10 @@ class TrabajadorListView(LoginRequiredMixin, ListView):
         return context
 
 
-class TrabajadorCreateView(LoginRequiredMixin, View):
+class TrabajadorCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para crear un nuevo trabajador"""
+    permission_modulo = 'trabajadores'
+    permission_accion = 'crear'
     template_name = 'trabajadores/crear.html'
     
     def get(self, request):
@@ -277,8 +279,10 @@ class TrabajadorDetalleView(LoginRequiredMixin, DetailView):
         return context
 
 
-class TrabajadorEditarView(LoginRequiredMixin, View):
+class TrabajadorEditarView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para editar un trabajador existente"""
+    permission_modulo = 'trabajadores'
+    permission_accion = 'editar'
     template_name = 'trabajadores/editar.html'
     
     def get(self, request, pk):
@@ -477,9 +481,11 @@ class TrabajadorEditarView(LoginRequiredMixin, View):
             )
             return redirect('trabajador_editar', pk=pk)
 
-class TrabajadorEliminarView(LoginRequiredMixin, View):
+class TrabajadorEliminarView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para eliminar (soft delete) un trabajador"""
-    
+    permission_modulo = 'trabajadores'
+    permission_accion = 'eliminar'
+
     def post(self, request, pk):
         trabajador = get_object_or_404(Trabajador, pk=pk, eliminado=False)
         
@@ -506,8 +512,10 @@ class TrabajadorEliminarView(LoginRequiredMixin, View):
         return redirect('trabajadores_lista')
 
 
-class TrabajadorTrasladarView(LoginRequiredMixin, View):
+class TrabajadorTrasladarView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para trasladar un trabajador a otro proyecto"""
+    permission_modulo = 'trabajadores'
+    permission_accion = 'editar'
     
     def post(self, request, pk):
         try:
@@ -561,8 +569,10 @@ class TrabajadorTrasladarView(LoginRequiredMixin, View):
 # IMPORTACIÓN Y EXPORTACIÓN CSV
 # ============================================
 
-class TrabajadorImportarCSVView(LoginRequiredMixin, View):
+class TrabajadorImportarCSVView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para importar trabajadores desde archivo CSV - CON SOPORTE AJAX"""
+    permission_modulo = 'trabajadores'
+    permission_accion = 'crear'
 
     def _parsear_fecha(self, fecha_str):
         """
@@ -882,9 +892,11 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, View):
         return len(trabajadores)
 
 
-class TrabajadorImportarConfirmarView(LoginRequiredMixin, View):
+class TrabajadorImportarConfirmarView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para confirmar importación con duplicados - CON SOPORTE AJAX"""
-    
+    permission_modulo = 'trabajadores'
+    permission_accion = 'crear'
+
     def post(self, request):
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.POST.get('ajax') == 'true'
         accion = request.POST.get('accion')
@@ -1098,8 +1110,10 @@ def trabajadores_plantilla_csv(request):
     
     return response
 
-class TrabajadorCambiarEstadoView(LoginRequiredMixin, View):
+class TrabajadorCambiarEstadoView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para cambiar el estado de un trabajador"""
+    permission_modulo = 'trabajadores'
+    permission_accion = 'editar'
     
     def post(self, request, pk):
         trabajador = get_object_or_404(Trabajador, pk=pk)

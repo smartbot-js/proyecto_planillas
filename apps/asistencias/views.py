@@ -39,6 +39,7 @@ from .permissions import (
 )
 from apps.trabajadores.models import Trabajador
 from apps.proyectos.models import Proyecto
+from apps.admin_panel.permissions import PermissionRequiredMixin
 
 import csv
 
@@ -155,13 +156,15 @@ class AsistenciaValidarListView(LoginRequiredMixin, ListView):
 # VISTA: VALIDAR/RECHAZAR INDIVIDUAL
 # ========================================
 
-class AsistenciaValidarView(LoginRequiredMixin, View):
+class AsistenciaValidarView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """
     Vista para validar o rechazar una asistencia individual
     
     URL: /asistencias/<pk>/validar/
     Template: templates/asistencias/validar.html
     """
+    permission_modulo = 'asistencias'
+    permission_accion = 'validar'
     template_name = 'asistencias/validar.html'
     
     def get(self, request, pk):
@@ -267,13 +270,15 @@ class AsistenciaValidarView(LoginRequiredMixin, View):
 # VISTA: CORREGIR MARCACIONES
 # ========================================
 
-class AsistenciaCorregirView(LoginRequiredMixin, View):
+class AsistenciaCorregirView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """
     Vista para corregir marcaciones erróneas
     
     URL: /asistencias/<pk>/corregir/
     Template: templates/asistencias/corregir.html
     """
+    permission_modulo = 'asistencias'
+    permission_accion = 'corregir'
     template_name = 'asistencias/corregir.html'
     
     def get(self, request, pk):
@@ -501,9 +506,11 @@ class AsistenciaDetalleView(LoginRequiredMixin, DetailView):
     context_object_name = 'asistencia'
 
 
-class AsistenciaMarcarEntradaView(LoginRequiredMixin, View):
+class AsistenciaMarcarEntradaView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para marcar entrada manualmente"""
-    
+    permission_modulo = 'asistencias'
+    permission_accion = 'crear'
+
     def get(self, request):
         # Filtrar trabajadores NO eliminados y con estado activo
         trabajadores = Trabajador.objects.filter(
@@ -600,8 +607,10 @@ class AsistenciaMarcarEntradaView(LoginRequiredMixin, View):
             messages.error(request, f'❌ Error al registrar entrada: {str(e)}')
             return redirect('asistencia_marcar_entrada')
         
-class AsistenciaCerrarTurnoView(LoginRequiredMixin, View):
+class AsistenciaCerrarTurnoView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para cerrar el turno de un trabajador"""
+    permission_modulo = 'asistencias'
+    permission_accion = 'crear'
     
     def post(self, request, pk):
         try:
@@ -652,9 +661,11 @@ class AsistenciaCerrarTurnoView(LoginRequiredMixin, View):
             messages.error(request, f'Error al cerrar turno: {str(e)}')
             return redirect('asistencia_detalle', pk=pk)
 
-class AsistenciaEditarView(LoginRequiredMixin, View):
+class AsistenciaEditarView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para editar asistencia existente"""
-    
+    permission_modulo = 'asistencias'
+    permission_accion = 'editar'
+
     def get(self, request, pk):
         asistencia = get_object_or_404(Asistencia, pk=pk)
         

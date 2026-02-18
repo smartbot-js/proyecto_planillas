@@ -1,0 +1,339 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}Editar{% else %}Crear{% endif %} Rol - Quadycons{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --primary-color: #3b82f6;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --border-color: #e2e8f0;
+    --bg-page: #f8fafc;
+}
+
+.page-container { max-width: 900px; margin: 0 auto; padding: 24px; }
+
+.page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 24px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-title .material-symbols-outlined { font-size: 32px; color: var(--primary-color); }
+
+.form-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.form-card-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-page);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.form-card-header .material-symbols-outlined { font-size: 20px; color: var(--primary-color); }
+.form-card-body { padding: 24px; }
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group.full { grid-column: 1/-1; }
+
+.form-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.form-control {
+    padding: 10px 14px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s;
+    background: white;
+    width: 100%;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+
+.toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+}
+
+.toggle-row label { font-size: 14px; font-weight: 500; color: var(--text-primary); cursor: pointer; }
+
+/* Permisos */
+.permisos-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.permiso-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg-page);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.permiso-item:hover { background: #eff6ff; border-color: #bfdbfe; }
+.permiso-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary-color); cursor: pointer; flex-shrink: 0; }
+.permiso-item label { font-size: 13px; font-weight: 500; color: var(--text-primary); cursor: pointer; }
+
+.permiso-item-danger {
+    background: #fff1f2;
+    border-color: #fecaca;
+}
+
+.permiso-item-danger:hover { background: #fee2e2; }
+.permiso-item-danger label { color: #991b1b; }
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.btn-primary, .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary { background: var(--primary-color); color: white; }
+.btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
+.btn-secondary { background: #f3f4f6; color: var(--text-primary); border: 1px solid var(--border-color); }
+.btn-secondary:hover { background: #e5e7eb; }
+
+.warning-box {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #92400e;
+    margin-top: 8px;
+}
+
+.warning-box .material-symbols-outlined { font-size: 18px; color: #f59e0b; flex-shrink: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <h1 class="page-title">
+        <span class="material-symbols-outlined">shield_person</span>
+        {% if object %}Editar Rol{% else %}Crear Rol Personalizado{% endif %}
+    </h1>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <!-- Info básica -->
+        <div class="form-card">
+            <div class="form-card-header">
+                <span class="material-symbols-outlined">info</span>
+                Información Básica
+            </div>
+            <div class="form-card-body">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Nombre <span style="color:#ef4444;">*</span></label>
+                        {{ form.nombre }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Alcance de Proyectos <span style="color:#ef4444;">*</span></label>
+                        {{ form.alcance_proyectos }}
+                    </div>
+                    <div class="form-group full">
+                        <label class="form-label">Descripción</label>
+                        {{ form.descripcion }}
+                    </div>
+                </div>
+                <div style="display: flex; gap: 24px;">
+                    <div class="toggle-row">
+                        {{ form.solo_app_movil }}
+                        <label for="{{ form.solo_app_movil.id_for_label }}">Solo App Móvil</label>
+                    </div>
+                    <div class="toggle-row">
+                        {{ form.activo }}
+                        <label for="{{ form.activo.id_for_label }}">Activo</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Proyectos -->
+        <div class="form-card">
+            <div class="form-card-header">
+                <span class="material-symbols-outlined">foundation</span>
+                Proyectos
+            </div>
+            <div class="form-card-body">
+                <div class="permisos-grid">
+                    {% for field in form.proyectos_ver|add:form.proyectos_crear|add:form.proyectos_editar|add:form.proyectos_eliminar %}{% endfor %}
+                    <div class="permiso-item"><input type="checkbox" name="proyectos_ver" id="{{ form.proyectos_ver.id_for_label }}" {% if form.proyectos_ver.value %}checked{% endif %}><label for="{{ form.proyectos_ver.id_for_label }}">Ver proyectos</label></div>
+                    <div class="permiso-item"><input type="checkbox" name="proyectos_crear" id="{{ form.proyectos_crear.id_for_label }}" {% if form.proyectos_crear.value %}checked{% endif %}><label for="{{ form.proyectos_crear.id_for_label }}">Crear proyectos</label></div>
+                    <div class="permiso-item"><input type="checkbox" name="proyectos_editar" id="{{ form.proyectos_editar.id_for_label }}" {% if form.proyectos_editar.value %}checked{% endif %}><label for="{{ form.proyectos_editar.id_for_label }}">Editar proyectos</label></div>
+                    <div class="permiso-item"><input type="checkbox" name="proyectos_eliminar" id="{{ form.proyectos_eliminar.id_for_label }}" {% if form.proyectos_eliminar.value %}checked{% endif %}><label for="{{ form.proyectos_eliminar.id_for_label }}">Eliminar proyectos</label></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trabajadores -->
+        <div class="form-card">
+            <div class="form-card-header">
+                <span class="material-symbols-outlined">group</span>
+                Trabajadores
+            </div>
+            <div class="form-card-body">
+                <div class="permisos-grid">
+                    <div class="permiso-item"><input type="checkbox" name="trabajadores_ver" id="{{ form.trabajadores_ver.id_for_label }}" {% if form.trabajadores_ver.value %}checked{% endif %}><label for="{{ form.trabajadores_ver.id_for_label }}">Ver trabajadores</label></div>
+                    <div class="permiso-item"><input type="checkbox" name="trabajadores_crear" id="{{ form.trabajadores_crear.id_for_label }}" {% if form.trabajadores_crear.value %}checked{% endif %}><label for="{{ form.trabajadores_crear.id_for_label }}">Crear trabajadores</label></div>
+                    <div class="permiso-item"><input type="checkbox" name="trabajadores_editar" id="{{ form.trabajadores_editar.id_for_label }}" {% if form.trabajadores_editar.value %}checked{% endif %}><label for="{{ form.trabajadores_editar.id_for_label }}">Editar trabajadores</label></div>
+                    <div class="permiso-item"><input type="checkbox" name="trabajadores_eliminar" id="{{ form.trabajadores_eliminar.id_for_label }}" {% if form.trabajadores_eliminar.value %}checked{% endif %}><label for="{{ form.trabajadores_eliminar.id_for_label }}">Eliminar trabajadores</label></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Asistencias -->
+        <div class="form-card">
+            <div class="form-card-header">
+                <span class="material-symbols-outlined">today</span>
+                Asistencias
+            </div>
+            <div class="form-card-body">
+                <div class="permisos-grid">
+                    <div class="permiso-item"><input type="checkbox" name="asistencias_ver" id="{{ form.asistencias_ver.id_for_label }}" {% if form.asistencias_ver.value %}checked{% endif %}><label for="{{ form.asistencias_ver.id_for_label }}">Ver asistencias</label></div>
+                    <div class="permiso-item"><input type="checkbox" name="asistencias_crear" id="{{ form.asistencias_crear.id_for_label }}" {% if form.asistencias_crear.value %}checked{% endif %}><label for="{{ form.asistencias_crear.id_for_label }}">Crear asistencias</label></div>
+                    <div class="permiso-item"><input type="checkbox" name="asistencias_validar" id="{{ form.asistencias_validar.id_for_label }}" {% if form.asistencias_validar.value %}checked{% endif %}><label for="{{ form.asistencias_validar.id_for_label }}">Validar asistencias</label></div>
+                    <div class="permiso-item"><input type="checkbox" name="asistencias_corregir" id="{{ form.asistencias_corregir.id_for_label }}" {% if form.asistencias_corregir.value %}checked{% endif %}><label for="{{ form.asistencias_corregir.id_for_label }}">Corregir asistencias</label></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Planillas -->
+        <div class="form-card">
+            <div class="form-card-header">
+                <span class="material-symbols-outlined">receipt_long</span>
+                Planillas
+            </div>
+            <div class="form-card-body">
+                <div class="permisos-grid">
+                    <div class="permiso-item"><input type="checkbox" name="planillas_ver" id="{{ form.planillas_ver.id_for_label }}" {% if form.planillas_ver.value %}checked{% endif %}><label for="{{ form.planillas_ver.id_for_label }}">Ver planillas</label></div>
+                    <div class="permiso-item"><input type="checkbox" name="planillas_crear" id="{{ form.planillas_crear.id_for_label }}" {% if form.planillas_crear.value %}checked{% endif %}><label for="{{ form.planillas_crear.id_for_label }}">Crear planillas</label></div>
+                    <div class="permiso-item"><input type="checkbox" name="planillas_aprobar_gerente" id="{{ form.planillas_aprobar_gerente.id_for_label }}" {% if form.planillas_aprobar_gerente.value %}checked{% endif %}><label for="{{ form.planillas_aprobar_gerente.id_for_label }}">Aprobar (Gerente)</label></div>
+                    <div class="permiso-item"><input type="checkbox" name="planillas_aprobar_contador" id="{{ form.planillas_aprobar_contador.id_for_label }}" {% if form.planillas_aprobar_contador.value %}checked{% endif %}><label for="{{ form.planillas_aprobar_contador.id_for_label }}">Aprobar (Contador)</label></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contratistas -->
+        <div class="form-card">
+            <div class="form-card-header">
+                <span class="material-symbols-outlined">engineering</span>
+                Contratistas
+            </div>
+            <div class="form-card-body">
+                <div class="permisos-grid">
+                    <div class="permiso-item"><input type="checkbox" name="contratistas_ver" id="{{ form.contratistas_ver.id_for_label }}" {% if form.contratistas_ver.value %}checked{% endif %}><label for="{{ form.contratistas_ver.id_for_label }}">Ver contratistas</label></div>
+                    <div class="permiso-item"><input type="checkbox" name="contratistas_crear" id="{{ form.contratistas_crear.id_for_label }}" {% if form.contratistas_crear.value %}checked{% endif %}><label for="{{ form.contratistas_crear.id_for_label }}">Crear contratistas</label></div>
+                    <div class="permiso-item"><input type="checkbox" name="contratistas_editar" id="{{ form.contratistas_editar.id_for_label }}" {% if form.contratistas_editar.value %}checked{% endif %}><label for="{{ form.contratistas_editar.id_for_label }}">Editar contratistas</label></div>
+                    <div class="permiso-item"><input type="checkbox" name="contratistas_eliminar" id="{{ form.contratistas_eliminar.id_for_label }}" {% if form.contratistas_eliminar.value %}checked{% endif %}><label for="{{ form.contratistas_eliminar.id_for_label }}">Eliminar contratistas</label></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reportes -->
+        <div class="form-card">
+            <div class="form-card-header">
+                <span class="material-symbols-outlined">analytics</span>
+                Reportes
+            </div>
+            <div class="form-card-body">
+                <div class="permisos-grid">
+                    <div class="permiso-item"><input type="checkbox" name="reportes_ver" id="{{ form.reportes_ver.id_for_label }}" {% if form.reportes_ver.value %}checked{% endif %}><label for="{{ form.reportes_ver.id_for_label }}">Ver reportes</label></div>
+                    <div class="permiso-item"><input type="checkbox" name="reportes_exportar" id="{{ form.reportes_exportar.id_for_label }}" {% if form.reportes_exportar.value %}checked{% endif %}><label for="{{ form.reportes_exportar.id_for_label }}">Exportar reportes</label></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Panel -->
+        <div class="form-card">
+            <div class="form-card-header">
+                <span class="material-symbols-outlined">admin_panel_settings</span>
+                Panel de Administración
+            </div>
+            <div class="form-card-body">
+                <div class="permiso-item permiso-item-danger" style="max-width: 300px;">
+                    <input type="checkbox" name="admin_panel_acceso" id="{{ form.admin_panel_acceso.id_for_label }}" {% if form.admin_panel_acceso.value %}checked{% endif %}>
+                    <label for="{{ form.admin_panel_acceso.id_for_label }}">Acceso al panel de administración</label>
+                </div>
+                <div class="warning-box">
+                    <span class="material-symbols-outlined">warning</span>
+                    Otorga acceso total a la gestión de usuarios y roles del sistema.
+                </div>
+            </div>
+        </div>
+
+        <!-- Acciones -->
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">
+                <span class="material-symbols-outlined">save</span>
+                Guardar Rol
+            </button>
+            <a href="{% url 'admin_panel:roles_lista' %}" class="btn-secondary">
+                <span class="material-symbols-outlined">arrow_back</span>
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

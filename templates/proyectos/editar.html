@@ -205,17 +205,80 @@
         <div class="accordion-content">
             <div class="form-grid-2" style="grid-template-columns: 1fr 1fr;">
                 <div class="form-group">
-                    <label for="id_personal_asignado">Personal Asignado (Nro.)</label>
-                    <input type="number" name="personal_asignado" class="form-control" value="{{ proyecto.personal_asignado }}" min="0" id="id_personal_asignado">
-                    <small class="form-text">Campo numérico de referencia. No se vincula a trabajadores.</small>
+                    <label>Personal Asignado</label>
+                    <div style="display:flex; align-items:center; gap:12px; padding:10px 14px; background:#f9fafb; border:1px solid #e2e8f0; border-radius:8px;">
+                        <span class="material-symbols-outlined" style="color:#3b82f6; font-size:20px;">group</span>
+                        <span style="font-size:24px; font-weight:700; color:#111827;">{{ proyecto.trabajadores.count }}</span>
+                        <span style="font-size:13px; color:#6b7280;">trabajadores activos</span>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="id_contratistas_asignados">Contratistas Asignados (Nro.)</label>
-                    <input type="number" name="contratistas_asignados" class="form-control" value="{{ proyecto.contratistas_asignados }}" min="0" id="id_contratistas_asignados">
-                    <small class="form-text">Campo numérico de referencia.</small>
+                    <label>Contratistas Asignados</label>
+                    <div style="display:flex; align-items:center; gap:12px; padding:10px 14px; background:#f9fafb; border:1px solid #e2e8f0; border-radius:8px;">
+                        <span class="material-symbols-outlined" style="color:#10b981; font-size:20px;">engineering</span>
+                        <span style="font-size:24px; font-weight:700; color:#111827;">{{ proyecto.contratistas.count }}</span>
+                        <span style="font-size:13px; color:#6b7280;">contratistas</span>
+                    </div>
                 </div>
             </div>
-            <div class="form-grid-2">
+
+            <!-- Personal del Proyecto - ANCHO COMPLETO -->
+            <div style="margin: 20px 0; grid-column: 1/-1;">
+                <label style="font-weight:600; font-size:14px; color:#111827; display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+                    <span class="material-symbols-outlined" style="font-size:18px; color:#3b82f6;">group_add</span>
+                    Personal Asignado al Proyecto
+                </label>
+                <p style="font-size: 13px; color: #6b7280; margin: 0 0 12px 0;">
+                    Residentes y Gerentes de Proyecto con acceso a este proyecto.
+                </p>
+                {% if usuarios_disponibles %}
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px;">
+                    {% for usuario in usuarios_disponibles %}
+                    <label id="label-usuario-{{ usuario.id }}" style="
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        padding: 12px 16px;
+                        border: 2px solid {% if usuario.id in usuarios_asignados_ids %}#3b82f6{% else %}#e2e8f0{% endif %};
+                        border-radius: 8px;
+                        cursor: pointer;
+                        background: {% if usuario.id in usuarios_asignados_ids %}#eff6ff{% else %}white{% endif %};
+                        transition: all 0.2s;
+                    ">
+                        <input type="checkbox"
+                               name="usuarios_proyecto"
+                               value="{{ usuario.id }}"
+                               {% if usuario.id in usuarios_asignados_ids %}checked{% endif %}
+                               style="width:16px; height:16px; accent-color:#3b82f6;"
+                               onchange="
+                                   var lbl = document.getElementById('label-usuario-{{ usuario.id }}');
+                                   lbl.style.borderColor = this.checked ? '#3b82f6' : '#e2e8f0';
+                                   lbl.style.background = this.checked ? '#eff6ff' : 'white';
+                               ">
+                        <div style="flex:1;">
+                            <div style="font-weight:600; font-size:14px; color:#111827;">
+                                {{ usuario.nombre_completo }}
+                            </div>
+                            <div style="font-size:12px; color:#6b7280;">
+                                {{ usuario.rol.nombre }} · {{ usuario.email }}
+                            </div>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="padding: 20px; background: #f9fafb; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; color: #6b7280; font-size: 14px;">
+                    <span class="material-symbols-outlined" style="display:block; font-size:32px; margin-bottom:8px; color:#d1d5db;">group</span>
+                    No hay usuarios con rol Residente o Gerente de Proyecto.
+                    <br>
+                    <a href="{% url 'admin_panel:usuarios_lista' %}" style="color:#3b82f6; font-size:13px; margin-top:8px; display:inline-block;">
+                        Ir a gestión de usuarios →
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="form-grid-2" style="margin-top: 20px;">
                 <div class="form-group">
                     <label for="id_porcentaje_avance_general">% Avance General</label>
                     <input type="number" name="porcentaje_avance_general" class="form-control" value="{{ proyecto.porcentaje_avance_general|floatformat:'-2' }}" step="0.01" min="0" max="100" id="id_porcentaje_avance_general">
@@ -499,14 +562,19 @@
                     </div>
                     <div class="horario-inputs" id="horario_lunes" {% if 1 not in dias %}style="display:none;"{% endif %}>
                         <div class="form-group">
-                            <label>Hora Inicio</label>
+                            <label>Entrada</label>
                             <input type="text" name="hora_inicio_lunes" class="form-control hora-input-12h" 
                                 value="{{ proyecto.hora_inicio_lunes|default:'08:00 AM' }}" placeholder="08:00 AM">
                         </div>
                         <div class="form-group">
-                            <label>Hora Fin</label>
+                            <label>Salida</label>
                             <input type="text" name="hora_fin_lunes" class="form-control hora-input-12h" 
                                 value="{{ proyecto.hora_fin_lunes|default:'05:00 PM' }}" placeholder="05:00 PM">
+                        </div>
+                        <div class="form-group">
+                            <label>Descanso</label>
+                            <input type="text" name="descanso_lunes" class="form-control descanso-input" 
+                                value="{{ proyecto.descanso_lunes|default:'1:00' }}" placeholder="1:00">
                         </div>
                         <div class="horas-calculadas" id="horas_lunes">--</div>
                     </div>
@@ -524,14 +592,19 @@
                     </div>
                     <div class="horario-inputs" id="horario_martes" {% if 2 not in dias %}style="display:none;"{% endif %}>
                         <div class="form-group">
-                            <label>Hora Inicio</label>
+                            <label>Entrada</label>
                             <input type="text" name="hora_inicio_martes" class="form-control hora-input-12h" 
                                 value="{{ proyecto.hora_inicio_martes|default:'08:00 AM' }}" placeholder="08:00 AM">
                         </div>
                         <div class="form-group">
-                            <label>Hora Fin</label>
+                            <label>Salida</label>
                             <input type="text" name="hora_fin_martes" class="form-control hora-input-12h" 
                                 value="{{ proyecto.hora_fin_martes|default:'05:00 PM' }}" placeholder="05:00 PM">
+                        </div>
+                        <div class="form-group">
+                            <label>Descanso</label>
+                            <input type="text" name="descanso_martes" class="form-control descanso-input" 
+                                value="{{ proyecto.descanso_martes|default:'1:00' }}" placeholder="1:00">
                         </div>
                         <div class="horas-calculadas" id="horas_martes">--</div>
                     </div>
@@ -549,14 +622,19 @@
                     </div>
                     <div class="horario-inputs" id="horario_miercoles" {% if 3 not in dias %}style="display:none;"{% endif %}>
                         <div class="form-group">
-                            <label>Hora Inicio</label>
+                            <label>Entrada</label>
                             <input type="text" name="hora_inicio_miercoles" class="form-control hora-input-12h" 
                                 value="{{ proyecto.hora_inicio_miercoles|default:'08:00 AM' }}" placeholder="08:00 AM">
                         </div>
                         <div class="form-group">
-                            <label>Hora Fin</label>
+                            <label>Salida</label>
                             <input type="text" name="hora_fin_miercoles" class="form-control hora-input-12h" 
                                 value="{{ proyecto.hora_fin_miercoles|default:'05:00 PM' }}" placeholder="05:00 PM">
+                        </div>
+                        <div class="form-group">
+                            <label>Descanso</label>
+                            <input type="text" name="descanso_miercoles" class="form-control descanso-input" 
+                                value="{{ proyecto.descanso_miercoles|default:'1:00' }}" placeholder="1:00">
                         </div>
                         <div class="horas-calculadas" id="horas_miercoles">--</div>
                     </div>
@@ -574,14 +652,19 @@
                     </div>
                     <div class="horario-inputs" id="horario_jueves" {% if 4 not in dias %}style="display:none;"{% endif %}>
                         <div class="form-group">
-                            <label>Hora Inicio</label>
+                            <label>Entrada</label>
                             <input type="text" name="hora_inicio_jueves" class="form-control hora-input-12h" 
                                 value="{{ proyecto.hora_inicio_jueves|default:'08:00 AM' }}" placeholder="08:00 AM">
                         </div>
                         <div class="form-group">
-                            <label>Hora Fin</label>
+                            <label>Salida</label>
                             <input type="text" name="hora_fin_jueves" class="form-control hora-input-12h" 
                                 value="{{ proyecto.hora_fin_jueves|default:'05:00 PM' }}" placeholder="05:00 PM">
+                        </div>
+                        <div class="form-group">
+                            <label>Descanso</label>
+                            <input type="text" name="descanso_jueves" class="form-control descanso-input" 
+                                value="{{ proyecto.descanso_jueves|default:'1:00' }}" placeholder="1:00">
                         </div>
                         <div class="horas-calculadas" id="horas_jueves">--</div>
                     </div>
@@ -599,14 +682,19 @@
                     </div>
                     <div class="horario-inputs" id="horario_viernes" {% if 5 not in dias %}style="display:none;"{% endif %}>
                         <div class="form-group">
-                            <label>Hora Inicio</label>
+                            <label>Entrada</label>
                             <input type="text" name="hora_inicio_viernes" class="form-control hora-input-12h" 
                                 value="{{ proyecto.hora_inicio_viernes|default:'08:00 AM' }}" placeholder="08:00 AM">
                         </div>
                         <div class="form-group">
-                            <label>Hora Fin</label>
+                            <label>Salida</label>
                             <input type="text" name="hora_fin_viernes" class="form-control hora-input-12h" 
                                 value="{{ proyecto.hora_fin_viernes|default:'02:00 PM' }}" placeholder="02:00 PM">
+                        </div>
+                        <div class="form-group">
+                            <label>Descanso</label>
+                            <input type="text" name="descanso_viernes" class="form-control descanso-input" 
+                                value="{{ proyecto.descanso_viernes|default:'1:00' }}" placeholder="1:00">
                         </div>
                         <div class="horas-calculadas" id="horas_viernes">--</div>
                     </div>
@@ -624,14 +712,19 @@
                     </div>
                     <div class="horario-inputs" id="horario_sabado" {% if 6 not in dias %}style="display:none;"{% endif %}>
                         <div class="form-group">
-                            <label>Hora Inicio</label>
+                            <label>Entrada</label>
                             <input type="text" name="hora_inicio_sabado" class="form-control hora-input-12h" 
                                 value="{{ proyecto.hora_inicio_sabado|default:'08:00 AM' }}" placeholder="08:00 AM">
                         </div>
                         <div class="form-group">
-                            <label>Hora Fin</label>
+                            <label>Salida</label>
                             <input type="text" name="hora_fin_sabado" class="form-control hora-input-12h" 
                                 value="{{ proyecto.hora_fin_sabado|default:'12:00 PM' }}" placeholder="12:00 PM">
+                        </div>
+                        <div class="form-group">
+                            <label>Descanso</label>
+                            <input type="text" name="descanso_sabado" class="form-control descanso-input" 
+                                value="{{ proyecto.descanso_sabado|default:'0:00' }}" placeholder="0:00">
                         </div>
                         <div class="horas-calculadas" id="horas_sabado">--</div>
                     </div>
@@ -649,14 +742,19 @@
                     </div>
                     <div class="horario-inputs" id="horario_domingo" {% if 7 not in dias %}style="display:none;"{% endif %}>
                         <div class="form-group">
-                            <label>Hora Inicio</label>
+                            <label>Entrada</label>
                             <input type="text" name="hora_inicio_domingo" class="form-control hora-input-12h" 
                                 value="{{ proyecto.hora_inicio_domingo|default:'' }}" placeholder="08:00 AM">
                         </div>
                         <div class="form-group">
-                            <label>Hora Fin</label>
+                            <label>Salida</label>
                             <input type="text" name="hora_fin_domingo" class="form-control hora-input-12h" 
                                 value="{{ proyecto.hora_fin_domingo|default:'' }}" placeholder="12:00 PM">
+                        </div>
+                        <div class="form-group">
+                            <label>Descanso</label>
+                            <input type="text" name="descanso_domingo" class="form-control descanso-input" 
+                                value="{{ proyecto.descanso_domingo|default:'0:00' }}" placeholder="0:00">
                         </div>
                         <div class="horas-calculadas" id="horas_domingo">--</div>
                     </div>
@@ -1135,24 +1233,38 @@
     color: #374151;
 }
 
+/* Ajustar grid de horario para 4 columnas (Entrada, Salida, Descanso, Total) */
 .horario-inputs {
     display: grid;
-    grid-template-columns: 1fr 1fr auto;
-    gap: 16px;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid #e2e8f0;
+    grid-template-columns: 1fr 1fr 90px 60px;
+    gap: 12px;
     align-items: end;
+    padding: 12px 0 12px 36px;
+}
+/* Estilo específico para input de descanso */
+.descanso-input {
+    text-align: center;
+    font-weight: 600;
+    color: #f59e0b !important;
+    background: #fffbeb;
+    border-color: #fcd34d;
+}
+
+.descanso-input:focus {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
 }
 
 .horario-inputs .form-group {
     margin: 0;
 }
 
+/* Labels más compactos */
 .horario-inputs .form-group label {
-    font-size: 12px;
+    font-size: 11px;
     color: #6b7280;
     margin-bottom: 4px;
+    display: block;
 }
 
 .hora-input-12h {
@@ -1177,16 +1289,21 @@
 }
 
 /* Resumen semanal */
+/* Estilo para resumen con descanso */
 .resumen-dia-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: grid;
+    grid-template-columns: 100px 120px 50px 60px;
+    gap: 8px;
     padding: 8px 12px;
-    background: #f1f5f9;
+    background: #f9fafb;
     border-radius: 6px;
     margin-bottom: 6px;
+    align-items: center;
 }
-
+.resumen-dia-descanso {
+    font-size: 11px;
+    color: #f59e0b;
+}
 .resumen-dia-nombre {
     font-weight: 600;
     font-size: 13px;
@@ -1204,15 +1321,43 @@
     color: #3b82f6;
 }
 
+/* Responsive para pantallas pequeñas */
 @media (max-width: 768px) {
     .horario-inputs {
         grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding-left: 12px;
     }
+    
+    .horario-inputs .form-group:nth-child(3) {
+        grid-column: 1;
+    }
+    
     .horas-calculadas {
-        grid-column: 1 / -1;
+        grid-column: 2;
+        justify-self: end;
+    }
+    
+    .resumen-dia-item {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .resumen-dia-descanso {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .horario-inputs {
+        grid-template-columns: 1fr;
+    }
+    
+    .horas-calculadas {
+        grid-column: 1;
         justify-self: start;
     }
 }
+
 </style>
 {% endblock %}
 
@@ -1534,25 +1679,68 @@ function calcularHorasEntre(horaInicio, horaFin) {
     return diferencia / 60;
 }
 
+// Parsear tiempo de descanso (formato H:MM) a horas decimales
+function parsearDescanso(descansoStr) {
+    if (!descansoStr || descansoStr.trim() === '') return 0;
+    try {
+        const partes = descansoStr.split(':');
+        const horas = parseInt(partes[0]) || 0;
+        const minutos = parseInt(partes[1]) || 0;
+        return horas + (minutos / 60);
+    } catch (error) {
+        return 1; // Default 1 hora si hay error
+    }
+}
+
+// Formatear horas decimales a string legible
+function formatearHoras(horasDecimales) {
+    if (horasDecimales <= 0) return '0h';
+    const horas = Math.floor(horasDecimales);
+    const minutos = Math.round((horasDecimales - horas) * 60);
+    if (minutos === 0) {
+        return `${horas}h`;
+    }
+    return `${horas}h ${minutos}m`;
+}
+
+// Actualizar horas de un día específico (CON DESCANSO)
 function actualizarHorasDia(dia) {
     const inputInicio = document.querySelector(`input[name="hora_inicio_${dia}"]`);
     const inputFin = document.querySelector(`input[name="hora_fin_${dia}"]`);
+    const inputDescanso = document.querySelector(`input[name="descanso_${dia}"]`);
     const indicadorHoras = document.getElementById(`horas_${dia}`);
     
     if (!inputInicio || !inputFin || !indicadorHoras) return;
     
-    const horas = calcularHorasEntre(inputInicio.value, inputFin.value);
-    indicadorHoras.textContent = `${horas.toFixed(1)}h`;
+    const horaInicio = inputInicio.value;
+    const horaFin = inputFin.value;
+    const descanso = inputDescanso ? inputDescanso.value : '0:00';
     
-    if (horas >= 8) {
+    // Calcular horas brutas
+    const horasBrutas = calcularHorasEntre(horaInicio, horaFin);
+    
+    // Parsear descanso
+    const horasDescanso = parsearDescanso(descanso);
+    
+    // Horas netas = brutas - descanso
+    const horasNetas = Math.max(0, horasBrutas - horasDescanso);
+    
+    // Actualizar indicador
+    indicadorHoras.textContent = formatearHoras(horasNetas);
+    
+    // Cambiar color según horas
+    if (horasNetas >= 8) {
         indicadorHoras.style.background = '#3b82f6';
-    } else if (horas >= 4) {
+    } else if (horasNetas >= 4) {
         indicadorHoras.style.background = '#f59e0b';
+    } else if (horasNetas > 0) {
+        indicadorHoras.style.background = '#10b981';
     } else {
         indicadorHoras.style.background = '#6b7280';
     }
 }
 
+// Actualizar resumen semanal (CON DESCANSO)
 function actualizarResumenSemanal() {
     const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
     const nombresD = {
@@ -1572,20 +1760,27 @@ function actualizarResumenSemanal() {
         
         const inputInicio = document.querySelector(`input[name="hora_inicio_${dia}"]`);
         const inputFin = document.querySelector(`input[name="hora_fin_${dia}"]`);
+        const inputDescanso = document.querySelector(`input[name="descanso_${dia}"]`);
         
         if (!inputInicio || !inputFin) return;
         
         const horaInicio = inputInicio.value || '--';
         const horaFin = inputFin.value || '--';
-        const horas = calcularHorasEntre(inputInicio.value, inputFin.value);
+        const descanso = inputDescanso ? inputDescanso.value : '0:00';
         
-        totalHoras += horas;
+        // Calcular horas netas
+        const horasBrutas = calcularHorasEntre(inputInicio.value, inputFin.value);
+        const horasDescanso = parsearDescanso(descanso);
+        const horasNetas = Math.max(0, horasBrutas - horasDescanso);
+        
+        totalHoras += horasNetas;
         
         html += `
             <div class="resumen-dia-item">
                 <span class="resumen-dia-nombre">${nombresD[dia]}</span>
                 <span class="resumen-dia-horario">${horaInicio} - ${horaFin}</span>
-                <span class="resumen-dia-horas">${horas.toFixed(1)}h</span>
+                <span class="resumen-dia-descanso" style="color: #f59e0b; font-size: 11px;">-${descanso}</span>
+                <span class="resumen-dia-horas">${formatearHoras(horasNetas)}</span>
             </div>
         `;
     });
@@ -1593,16 +1788,103 @@ function actualizarResumenSemanal() {
     html += `
         <div class="resumen-dia-item" style="background: #dbeafe; border: 2px solid #3b82f6; margin-top: 8px;">
             <span class="resumen-dia-nombre" style="color: #1e40af; font-weight: 700;">TOTAL SEMANAL</span>
-            <span class="resumen-dia-horas" style="font-size: 16px; color: #1e40af;">${totalHoras.toFixed(1)}h</span>
+            <span class="resumen-dia-horas" style="font-size: 16px; color: #1e40af;">${formatearHoras(totalHoras)}</span>
         </div>
     `;
     
     resumen.innerHTML = html;
 }
 
+// Inicializar listeners para campos de descanso
+function inicializarDescansoListeners() {
+    const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+    
+    dias.forEach(dia => {
+        const inputDescanso = document.querySelector(`input[name="descanso_${dia}"]`);
+        if (inputDescanso) {
+            inputDescanso.addEventListener('input', function() {
+                // Validar formato H:MM
+                let valor = this.value.replace(/[^0-9:]/g, '');
+                this.value = valor;
+                actualizarHorasDia(dia);
+                actualizarResumenSemanal();
+            });
+            
+            // Blur: completar formato
+            inputDescanso.addEventListener('blur', function() {
+                let valor = this.value.trim();
+                
+                // Si está vacío, poner 0:00
+                if (!valor) {
+                    this.value = '0:00';
+                    actualizarHorasDia(dia);
+                    actualizarResumenSemanal();
+                    return;
+                }
+                
+                // Si no tiene :, agregar :00
+                if (!valor.includes(':')) {
+                    this.value = valor + ':00';
+                    actualizarHorasDia(dia);
+                    actualizarResumenSemanal();
+                    return;
+                }
+                
+                // Asegurar formato H:MM
+                const partes = valor.split(':');
+                const horas = partes[0] || '0';
+                const minutos = (partes[1] || '00').padStart(2, '0');
+                this.value = `${horas}:${minutos}`;
+                actualizarHorasDia(dia);
+                actualizarResumenSemanal();
+            });
+        }
+    });
+}
+
+// Función para convertir formato 24h a 12h
+function convertir24hA12h(hora24) {
+    if (!hora24 || hora24.trim() === '') return '';
+    if (hora24.toUpperCase().includes('AM') || hora24.toUpperCase().includes('PM')) {
+        return hora24;
+    }
+    try {
+        const partes = hora24.split(':');
+        let horas = parseInt(partes[0]);
+        const minutos = partes[1] ? partes[1].substring(0, 2).padStart(2, '0') : '00';
+        let periodo = 'AM';
+        if (horas >= 12) {
+            periodo = 'PM';
+            if (horas > 12) horas -= 12;
+        }
+        if (horas === 0) horas = 12;
+        return `${String(horas).padStart(2, '0')}:${minutos} ${periodo}`;
+    } catch (error) {
+        return hora24;
+    }
+}
+
+// Normalizar formatos de hora al cargar
+function normalizarFormatosHora() {
+    const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+    dias.forEach(dia => {
+        const inputInicio = document.querySelector(`input[name="hora_inicio_${dia}"]`);
+        const inputFin = document.querySelector(`input[name="hora_fin_${dia}"]`);
+        if (inputInicio && inputInicio.value) {
+            inputInicio.value = convertir24hA12h(inputInicio.value);
+        }
+        if (inputFin && inputFin.value) {
+            inputFin.value = convertir24hA12h(inputFin.value);
+        }
+    });
+}
+
 // Inicializar horarios al cargar
 document.addEventListener('DOMContentLoaded', function() {
     const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+    
+    // PRIMERO: Normalizar formatos
+    normalizarFormatosHora();
     
     dias.forEach(dia => {
         actualizarHorasDia(dia);

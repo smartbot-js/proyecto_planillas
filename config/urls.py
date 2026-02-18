@@ -29,6 +29,8 @@ urlpatterns = [
 
     # core
     path('', include('apps.core.urls')),
+    path('admin-panel/', include('apps.admin_panel.urls')),  # ← AGREGAR ESTA LÍNEA
+
 ]
 
 # API REST

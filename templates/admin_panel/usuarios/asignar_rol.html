@@ -1,0 +1,178 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Asignar Rol - Quadycons{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --primary-color: #3b82f6;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --border-color: #e2e8f0;
+    --bg-page: #f8fafc;
+}
+
+.page-container { max-width: 600px; margin: 0 auto; padding: 24px; }
+
+.page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 24px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-title .material-symbols-outlined { font-size: 32px; color: var(--primary-color); }
+
+.form-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.form-card-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-page);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.user-avatar-lg {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.user-card-name { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.user-card-email { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+.form-card-body { padding: 24px; }
+
+.form-group { margin-bottom: 20px; }
+
+.form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s;
+    background: white;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+
+.check-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.check-group input[type="checkbox"] { width: 18px; height: 18px; accent-color: #10b981; cursor: pointer; }
+.check-group label { font-size: 14px; font-weight: 500; color: #065f46; cursor: pointer; }
+
+.form-actions { display: flex; gap: 12px; margin-top: 24px; }
+
+.btn-primary, .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary { background: var(--primary-color); color: white; }
+.btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
+.btn-secondary { background: #f3f4f6; color: var(--text-primary); border: 1px solid var(--border-color); }
+.btn-secondary:hover { background: #e5e7eb; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <h1 class="page-title">
+        <span class="material-symbols-outlined">badge</span>
+        Asignar Rol
+    </h1>
+
+    <div class="form-card">
+        <div class="form-card-header">
+            <div class="user-avatar-lg">{{ object.nombre_completo|make_list|first }}</div>
+            <div>
+                <div class="user-card-name">{{ object.nombre_completo|default:object.username }}</div>
+                <div class="user-card-email">{{ object.email }}</div>
+            </div>
+        </div>
+
+        <div class="form-card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label class="form-label">Rol <span style="color:#ef4444;">*</span></label>
+                    {{ form.rol }}
+                    {% if form.rol.errors %}
+                        {% for error in form.rol.errors %}
+                        <p style="color: #ef4444; font-size: 12px; margin-top: 4px;">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="check-group">
+                    {{ form.cuenta_aprobada }}
+                    <label for="{{ form.cuenta_aprobada.id_for_label }}">Cuenta Aprobada</label>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
+                        <span class="material-symbols-outlined">save</span>
+                        Guardar
+                    </button>
+                    <a href="{% url 'admin_panel:usuarios_lista' %}" class="btn-secondary">
+                        <span class="material-symbols-outlined">arrow_back</span>
+                        Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

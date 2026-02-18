@@ -48,6 +48,7 @@
                 <button class="tab" data-tab="register">Crear Cuenta</button>
             </div>
 
+            
             <!-- Formulario de Login -->
             <form method="POST" action="{% url 'login' %}" id="login-form" class="auth-form active">
                 {% csrf_token %}
@@ -105,7 +106,7 @@
                         type="text" 
                         id="register-nombre" 
                         name="nombre_completo" 
-                        placeholder="Juan Pérez"
+                        placeholder="Jhon Medina"
                         required
                     >
                 </div>
@@ -116,7 +117,7 @@
                         type="email" 
                         id="register-email" 
                         name="email" 
-                        placeholder="juan@empresa.com"
+                        placeholder="jhon@empresa.com"
                         required
                     >
                 </div>
@@ -156,10 +157,11 @@
                 <div class="form-group">
                     <label for="register-rol">Rol</label>
                     <select id="register-rol" name="rol" required>
-                        <option value="">Seleccionar rol...</option>
-                        {% for value, display_name in roles %}
-                        <option value="{{ value }}">{{ display_name }}</option>
-                        {% endfor %}
+                        <option value="">Selecciona un rol...</option>
+                        {% load static %}
+                        <!-- Solo mostrar roles permitidos para auto-registro -->
+                        <option value="asistencia">Trabajador</option>
+                        <option value="residente">Residente / Maestro de Obra</option>
                     </select>
                 </div>
 

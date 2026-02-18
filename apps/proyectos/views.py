@@ -16,6 +16,7 @@ from apps.trabajadores.models import Trabajador
 from apps.asistencias.models import Asistencia # <--- 1. IMPORTAR ASISTENCIA
 from apps.trabajadores.models import Trabajador, HistorialProyecto
 from apps.core.nicaragua_data import DEPARTAMENTOS
+from apps.admin_panel.permissions import PermissionRequiredMixin
 
 from datetime import time
 
@@ -27,25 +28,22 @@ class ProyectoListView(LoginRequiredMixin, ListView):
     paginate_by = 12
     
     def get_queryset(self):
-        """Retorna el queryset filtrado de proyectos (excluye eliminados)"""
-        queryset = Proyecto.objects.filter(eliminado=False).select_related('supervisor')
+        # Filtrar por proyectos permitidos según rol
+        queryset = self.request.user.get_proyectos_permitidos().select_related('supervisor')
         
-        # Filtro de búsqueda
         search = self.request.GET.get('search')
         if search:
             queryset = queryset.filter(
                 Q(nombre__icontains=search) |
-                Q(ubicacion__icontains=search) |
-                Q(supervisor__nombre_completo__icontains=search)
+                Q(ubicacion__icontains=search)
             )
         
-        # Filtro de estado
         estado = self.request.GET.get('estado')
         if estado and estado != 'todos':
             queryset = queryset.filter(estado=estado)
         
         return queryset
-    
+        
     def get_context_data(self, **kwargs):
         """Agrega datos adicionales al contexto"""
         context = super().get_context_data(**kwargs)
@@ -65,9 +63,11 @@ class ProyectoListView(LoginRequiredMixin, ListView):
         context['proyectos_finalizados'] = base_queryset.filter(estado='finalizado').count()
 
         # [ARREGLO ADICIONAL] Esto llenará tu filtro de Supervisores
+
         context['supervisores'] = Usuario.objects.filter(
             activo=True,
-            rol__in=[Usuario.Rol.ADMINISTRADOR, Usuario.Rol.SUPERVISOR]
+            cuenta_aprobada=True,
+            rol__codigo__in=['admin', 'gerente_general', 'gerente_proyecto']
         ).order_by('nombre_completo')
         
         # --- FIN DE CORRECCIÓN ---
@@ -160,7 +160,9 @@ class ProyectoDetalleView(LoginRequiredMixin, DetailView):
         return context
 
 
-class ProyectoCreateView(LoginRequiredMixin, View):
+class ProyectoCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_modulo = 'proyectos'
+    permission_accion = 'crear'
     """Vista para crear un nuevo proyecto"""
     template_name = 'proyectos/crear.html'
     
@@ -168,7 +170,7 @@ class ProyectoCreateView(LoginRequiredMixin, View):
         """Muestra el formulario de creación"""
         supervisores = Usuario.objects.filter(
             activo=True,
-            rol__in=['administrador', 'supervisor']
+            rol__codigo__in=['admin', 'gerente_general', 'contador']
         ).order_by('nombre_completo')
         
         # ✅ AGREGAR ESTO:
@@ -246,8 +248,8 @@ class ProyectoCreateView(LoginRequiredMixin, View):
             supervisor_id = request.POST.get('supervisor')
             if supervisor_id:
                 proyecto.supervisor = Usuario.objects.get(id=supervisor_id)
-            proyecto.personal_asignado = request.POST.get('personal_asignado', 0)
-            proyecto.contratistas_asignados = request.POST.get('contratistas_asignados', 0)
+            # proyecto.personal_asignado = request.POST.get('personal_asignado', 0)
+            # proyecto.contratistas_asignados = request.POST.get('contratistas_asignados', 0)
             
             # Porcentajes (EXISTENTE - NO CAMBIAR)
             proyecto.porcentaje_avance_general = request.POST.get('porcentaje_avance_general', 0)
@@ -294,6 +296,15 @@ class ProyectoCreateView(LoginRequiredMixin, View):
             proyecto.hora_inicio_domingo = request.POST.get('hora_inicio_domingo', '')
             proyecto.hora_fin_domingo = request.POST.get('hora_fin_domingo', '')
 
+            # DESCANSO POR DÍA
+            proyecto.descanso_lunes = request.POST.get('descanso_lunes', '1:00')
+            proyecto.descanso_martes = request.POST.get('descanso_martes', '1:00')
+            proyecto.descanso_miercoles = request.POST.get('descanso_miercoles', '1:00')
+            proyecto.descanso_jueves = request.POST.get('descanso_jueves', '1:00')
+            proyecto.descanso_viernes = request.POST.get('descanso_viernes', '1:00')
+            proyecto.descanso_sabado = request.POST.get('descanso_sabado', '0:00')
+            proyecto.descanso_domingo = request.POST.get('descanso_domingo', '0:00')
+            
             # TOLERANCIAS
             proyecto.minutos_tolerancia_entrada = int(request.POST.get('minutos_tolerancia_entrada', 15))
             proyecto.minutos_tolerancia_salida = int(request.POST.get('minutos_tolerancia_salida', 10))
@@ -461,7 +472,7 @@ class ProyectoCreateView(LoginRequiredMixin, View):
             
             supervisores = Usuario.objects.filter(
                 activo=True,
-                rol__in=['administrador', 'supervisor']
+                rol__codigo__in=['admin', 'gerente_general', 'contador']
             ).order_by('nombre_completo')
             
             context = {
@@ -471,8 +482,10 @@ class ProyectoCreateView(LoginRequiredMixin, View):
             return render(request, self.template_name, context)
 
 
-class ProyectoEditarView(LoginRequiredMixin, View):
+class ProyectoEditarView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para editar un proyecto existente"""
+    permission_modulo = 'proyectos'
+    permission_accion = 'editar'
     template_name = 'proyectos/editar.html'
     
     def get(self, request, pk):
@@ -489,7 +502,7 @@ class ProyectoEditarView(LoginRequiredMixin, View):
         
         supervisores = Usuario.objects.filter(
             activo=True,
-            rol__in=['administrador', 'supervisor']
+            rol__codigo__in=['admin', 'gerente_general', 'contador']
         ).order_by('nombre_completo')
 
         # AGREGAR: Contratistas y avalúos
@@ -510,14 +523,34 @@ class ProyectoEditarView(LoginRequiredMixin, View):
             contrato__proyecto=proyecto
         ).select_related('contrato__contratista').order_by('-fecha_ingreso')
 
+        # Usuarios disponibles para asignar al proyecto
+        from apps.admin_panel.models import Rol
+        from apps.proyectos.models import UsuarioProyecto
+        roles_restringidos = Rol.objects.filter(
+            codigo__in=['residente', 'gerente_proyecto']
+        )
+        usuarios_disponibles = Usuario.objects.filter(
+            activo=True,
+            cuenta_aprobada=True,
+            rol__in=roles_restringidos
+        ).order_by('nombre_completo')
+
+        usuarios_asignados_ids = list(UsuarioProyecto.objects.filter(
+            proyecto=proyecto,
+            activo=True
+        ).values_list('usuario_id', flat=True))
+
         context = {
             'proyecto': proyecto,
             'supervisores': supervisores,
-            'contratistas_asignados': contratistas_asignados,  # ✅ CAMBIAR
+            'contratistas_asignados': contratistas_asignados,
             'contratistas_proyecto': contratistas_proyecto,
             'avaluos_existentes': avaluos_existentes,
             'departamentos': DEPARTAMENTOS,
+            'usuarios_disponibles': usuarios_disponibles,     
+            'usuarios_asignados_ids': usuarios_asignados_ids,  
         }
+
         return render(request, self.template_name, context)
     
     def post(self, request, pk):
@@ -568,6 +601,23 @@ class ProyectoEditarView(LoginRequiredMixin, View):
             proyecto.personal_asignado = request.POST.get('personal_asignado', 0)
             proyecto.contratistas_asignados = request.POST.get('contratistas_asignados', 0)
             
+            # Guardar asignaciones de usuarios al proyecto
+            from apps.proyectos.models import UsuarioProyecto
+            usuarios_proyecto_ids = request.POST.getlist('usuarios_proyecto')
+            UsuarioProyecto.objects.filter(proyecto=proyecto).update(activo=False)
+            for uid in usuarios_proyecto_ids:
+                UsuarioProyecto.objects.update_or_create(
+                    usuario_id=uid,
+                    proyecto=proyecto,
+                    defaults={
+                        'activo': True,
+                        'asignado_por': request.user
+                    }
+                )
+            # Actualizar contadores automáticamente
+            proyecto.personal_asignado = proyecto.trabajadores.filter(eliminado=False).count()
+            proyecto.contratistas_asignados = proyecto.contratistas.filter(eliminado=False, activo=True).count()
+            proyecto.save()
             # Porcentajes (EXISTENTE - NO CAMBIAR)
             proyecto.porcentaje_avance_general = request.POST.get('porcentaje_avance_general', 0)
             proyecto.porcentaje_asignacion_planilla = request.POST.get('porcentaje_asignacion_planilla', 0)
@@ -627,6 +677,17 @@ class ProyectoEditarView(LoginRequiredMixin, View):
             if request.POST.get('hora_fin_domingo'):
                 proyecto.hora_fin_domingo = request.POST.get('hora_fin_domingo')
 
+            # ============================================================
+            # DESCANSO POR DÍA
+            # ============================================================
+            proyecto.descanso_lunes = request.POST.get('descanso_lunes', '1:00')
+            proyecto.descanso_martes = request.POST.get('descanso_martes', '1:00')
+            proyecto.descanso_miercoles = request.POST.get('descanso_miercoles', '1:00')
+            proyecto.descanso_jueves = request.POST.get('descanso_jueves', '1:00')
+            proyecto.descanso_viernes = request.POST.get('descanso_viernes', '1:00')
+            proyecto.descanso_sabado = request.POST.get('descanso_sabado', '0:00')
+            proyecto.descanso_domingo = request.POST.get('descanso_domingo', '0:00')
+            
             # TOLERANCIAS
             if request.POST.get('minutos_tolerancia_entrada'):
                 proyecto.minutos_tolerancia_entrada = int(request.POST.get('minutos_tolerancia_entrada'))
@@ -725,7 +786,7 @@ class ProyectoEditarView(LoginRequiredMixin, View):
             
             supervisores = Usuario.objects.filter(
                 activo=True,
-                rol__in=['administrador', 'supervisor']
+                rol__codigo__in=['admin', 'gerente_general', 'contador']
             ).order_by('nombre_completo') 
             
             context = {
@@ -737,8 +798,10 @@ class ProyectoEditarView(LoginRequiredMixin, View):
 
 
 
-class ProyectoEliminarView(LoginRequiredMixin, View):
+class ProyectoEliminarView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para eliminar (soft delete) un proyecto"""
+    permission_modulo = 'proyectos'
+    permission_accion = 'eliminar'
     
     def post(self, request, pk):
         """Maneja la eliminación del proyecto"""
@@ -777,8 +840,10 @@ class ProyectoEliminarView(LoginRequiredMixin, View):
             return redirect('proyecto_detalle', pk=pk)
 
 
-class ProyectoRestaurarView(LoginRequiredMixin, View):
+class ProyectoRestaurarView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para restaurar un proyecto eliminado"""
+    permission_modulo = 'proyectos'
+    permission_accion = 'editar'
     
     def post(self, request, pk):
         """Maneja la restauración del proyecto"""
@@ -857,8 +922,10 @@ class ProyectosEliminadosView(LoginRequiredMixin, ListView):
         return context
 
 
-class ProyectoToggleActivoView(LoginRequiredMixin, View):
+class ProyectoToggleActivoView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para activar/desactivar un proyecto"""
+    permission_modulo = 'proyectos'
+    permission_accion = 'editar'
     
     def post(self, request, pk):
         """Maneja el cambio de estado activo"""
@@ -903,8 +970,10 @@ class ProyectoToggleActivoView(LoginRequiredMixin, View):
 # ============================================
 # [NUEVA VISTA] PARA MANEJAR EL MODAL
 # ============================================
-class ProyectoAsignarTrabajadoresView(LoginRequiredMixin, View):
+class ProyectoAsignarTrabajadoresView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para manejar la asignación de trabajadores desde el modal de detalle"""
+    permission_modulo = 'proyectos'
+    permission_accion = 'editar'
     
     def post(self, request, pk):
         proyecto = get_object_or_404(Proyecto, pk=pk, eliminado=False)

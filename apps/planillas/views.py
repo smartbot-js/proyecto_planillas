@@ -37,7 +37,7 @@ from apps.proyectos.models import Proyecto
 from apps.usuarios.models import Usuario
 from apps.asistencias.models import Asistencia
 from apps.core.utils import get_tipo_cambio_actual
-
+from apps.admin_panel.permissions import PermissionRequiredMixin
 
 
 class PlanillaListView(LoginRequiredMixin, ListView):
@@ -129,9 +129,10 @@ class PlanillaListView(LoginRequiredMixin, ListView):
         
         return context
 
-class PlanillaCreateView(LoginRequiredMixin, View):
+class PlanillaCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para crear/generar una nueva planilla"""
-    
+    permission_modulo = 'planillas'
+    permission_accion = 'crear'   
     template_name = 'planillas/crear.html'
     
     def get(self, request):
@@ -592,9 +593,11 @@ class PlanillaDetalleView(LoginRequiredMixin, View):
         return render(request, self.template_name, context)
 
 
-class PlanillaEditarDetalleView(LoginRequiredMixin, View):
+class PlanillaEditarDetalleView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para editar bonos y deducciones de un detalle de planilla"""
-    
+    permission_modulo = 'planillas'
+    permission_accion = 'editar'
+
     def post(self, request, pk):
         """Actualiza los bonos, combustible, otros gastos y feriados de un detalle"""
         
@@ -647,9 +650,11 @@ class PlanillaEditarDetalleView(LoginRequiredMixin, View):
         return redirect('planilla_detalle', pk=planilla.pk)
 
 
-class PlanillaAprobarGerenteView(LoginRequiredMixin, View):
+class PlanillaAprobarGerenteView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para aprobar planilla como gerente"""
-    
+    permission_modulo = 'planillas'
+    permission_accion = 'aprobar_gerente'
+
     def post(self, request, pk):
         """Aprueba la planilla como gerente"""
         
@@ -684,8 +689,10 @@ class PlanillaAprobarGerenteView(LoginRequiredMixin, View):
         return redirect('planilla_detalle', pk=pk)
 
 
-class PlanillaAprobarContadorView(LoginRequiredMixin, View):
+class PlanillaAprobarContadorView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para aprobar planilla como contador"""
+    permission_modulo = 'planillas'
+    permission_accion = 'aprobar_contador'   
     
     def post(self, request, pk):
         """Aprueba la planilla como contador (aprobación final)"""
@@ -721,9 +728,11 @@ class PlanillaAprobarContadorView(LoginRequiredMixin, View):
         return redirect('planilla_detalle', pk=pk)
 
 
-class PlanillaMarcarPagadaView(LoginRequiredMixin, View):
+class PlanillaMarcarPagadaView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para marcar planilla como pagada"""
-    
+    permission_modulo = 'planillas'
+    permission_accion = 'aprobar_contador'
+
     def post(self, request, pk):
         """Marca la planilla como pagada"""
         
@@ -757,9 +766,11 @@ class PlanillaMarcarPagadaView(LoginRequiredMixin, View):
         return redirect('planilla_detalle', pk=pk)
 
 
-class PlanillaEliminarView(LoginRequiredMixin, View):
+class PlanillaEliminarView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para eliminar (soft delete) una planilla"""
-    
+    permission_modulo = 'planillas'
+    permission_accion = 'eliminar'
+
     def post(self, request, pk):
         """Elimina la planilla (soft delete)"""
         
@@ -791,8 +802,11 @@ class PlanillaEliminarView(LoginRequiredMixin, View):
             messages.error(request, f'Error al eliminar: {str(e)}')
             return redirect('planilla_detalle', pk=pk)
 
-class PlanillaExportarExcelView(LoginRequiredMixin, View):
+class PlanillaExportarExcelView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para exportar planilla a Excel"""
+    permission_modulo = 'reportes'
+    permission_accion = 'exportar'
+
     def get(self, request, pk):
             """Genera y descarga el archivo Excel de la planilla"""
             
@@ -1101,9 +1115,11 @@ class PlanillaExportarExcelView(LoginRequiredMixin, View):
             return response
 
 
-class PlanillaExportarPDFView(LoginRequiredMixin, View):
+class PlanillaExportarPDFView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para exportar planilla a PDF"""
-    
+    permission_modulo = 'reportes'
+    permission_accion = 'exportar'
+        
     def get(self, request, pk):
         """Genera y descarga el archivo PDF de la planilla"""
         

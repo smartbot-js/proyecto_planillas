@@ -1522,3 +1522,35 @@ body.sidebar-collapsed-desktop .nav-item:hover span:not(.material-symbols-outlin
 .sidebar-collapsed .nav-item-content span:last-child {
     display: none;
 }
+/* Header de sección */
+.nav-section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    margin: 8px 0 4px 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: #6b7280;
+    text-transform: uppercase;
+}
+
+.nav-section-header .material-symbols-outlined {
+    font-size: 18px;
+    color: #9ca3af;
+}
+
+/* Sidebar colapsado - ocultar texto del header */
+.sidebar.collapsed .nav-section-header .nav-text {
+    display: none;
+}
+
+.sidebar.collapsed .nav-section-header {
+    justify-content: center;
+    padding: 8px;
+}
+
+.sidebar.collapsed .nav-section-header .material-symbols-outlined {
+    margin: 0;
+}

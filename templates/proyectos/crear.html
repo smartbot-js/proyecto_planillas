@@ -256,13 +256,69 @@
         gap: 12px;
     }
 
-    /* Responsive */
-    @media (max-width: 1024px) {
+/* Responsive */
+@media (max-width: 1024px) {
         .modal-body { grid-template-columns: 1fr; }
         .form-sidebar { border-left: none; border-top: 2px solid #e2e8f0; max-height: 300px; }
         .form-grid.cols-2, .form-grid.cols-3 { grid-template-columns: 1fr; }
         .radio-info-cards { grid-template-columns: 1fr; }
         .avaluo-grid { grid-template-columns: 1fr; }
+    }
+    
+    @media (max-width: 768px) {
+        .modal-footer {
+            flex-direction: column;
+            padding: 16px;
+        }
+        
+        .footer-note {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        
+        .footer-buttons {
+            flex-direction: column;
+            width: 100%;
+            gap: 12px;
+        }
+        
+        .footer-buttons .btn {
+            width: 100%;
+            justify-content: center;
+            padding: 14px 20px;
+        }
+        
+        .modal-header {
+            padding: 16px;
+        }
+        
+        .modal-header h2 {
+            font-size: 20px;
+        }
+        
+        .form-main {
+            padding: 16px;
+        }
+        
+        .form-section-title {
+            font-size: 16px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .modal-container {
+            margin: 10px;
+            max-height: calc(100vh - 20px);
+        }
+        
+        .footer-buttons .btn {
+            font-size: 14px;
+            padding: 12px 16px;
+        }
+        
+        .footer-buttons .btn .material-symbols-outlined {
+            font-size: 18px;
+        }
     }
 
     /* ===== ESTILOS HORARIOS ===== */
@@ -659,9 +715,10 @@
 /* Inputs de horarios */
 .horario-inputs {
     display: grid;
-    grid-template-columns: 1fr 1fr auto;
-    gap: 16px;
+    grid-template-columns: 1fr 1fr 100px 60px;
+    gap: 12px;
     align-items: end;
+    padding: 12px 0 12px 36px;
 }
 
 .horario-inputs .form-group {
@@ -754,32 +811,159 @@
     color: #3b82f6;
 }
 
-/* Responsive */
+/* Estilo específico para input de descanso */
+.descanso-input {
+    text-align: center;
+    font-weight: 600;
+    color: #f59e0b;
+}
+
+.descanso-input:focus {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+/* Labels más compactos */
+.horario-inputs .form-group label {
+    font-size: 11px;
+    color: #6b7280;
+    margin-bottom: 4px;
+    display: block;
+}
+
+/* Responsive para pantallas pequeñas */
 @media (max-width: 768px) {
     .horario-inputs {
-        grid-template-columns: 1fr;
-        gap: 12px;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding-left: 12px;
+    }
+    
+    .horario-inputs .form-group:nth-child(3) {
+        grid-column: 1;
     }
     
     .horas-calculadas {
-        width: 100%;
-        padding: 10px;
-    }
-    
-    .dia-checkbox-header label strong {
-        font-size: 14px;
+        grid-column: 2;
+        justify-self: end;
     }
 }
 
 @media (max-width: 480px) {
-    .horario-dia-individual {
-        padding: 12px;
+    .horario-inputs {
+        grid-template-columns: 1fr;
     }
     
-    .dia-checkbox-header {
-        flex-wrap: wrap;
+    .horas-calculadas {
+        grid-column: 1;
+        justify-self: start;
     }
 }
+/* ===== FIX RESPONSIVE MODAL Y BOTONES ===== */
+    
+    /* Asegurar que el modal sea scrollable */
+    .modal-overlay {
+        overflow-y: auto;
+        padding: 20px;
+    }
+    
+    .modal-container {
+        max-height: none;
+        margin: auto;
+    }
+    
+    /* Footer siempre visible y responsivo */
+    .modal-footer {
+        position: sticky;
+        bottom: 0;
+        background: white;
+        border-top: 1px solid #e2e8f0;
+        padding: 16px 24px;
+        z-index: 10;
+    }
+    
+    .footer-buttons {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .footer-buttons .btn {
+        white-space: nowrap;
+    }
+    
+    /* Responsive para pantallas medianas y pequeñas */
+    @media (max-width: 900px) {
+        .modal-footer {
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .footer-note {
+            text-align: center;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .footer-buttons {
+            flex-direction: column;
+            width: 100%;
+        }
+        
+        .footer-buttons .btn {
+            width: 100%;
+            justify-content: center;
+            padding: 12px 20px;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .modal-overlay {
+            padding: 10px;
+        }
+        
+        .modal-container {
+            width: 100%;
+            max-width: 100%;
+        }
+        
+        .modal-header {
+            padding: 16px;
+        }
+        
+        .modal-header h2 {
+            font-size: 18px;
+        }
+        
+        .form-main {
+            padding: 16px;
+        }
+        
+        .modal-body {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-sidebar {
+            display: none; /* Ocultar sidebar en móviles */
+        }
+    }
+    
+    @media (max-height: 700px) {
+        .modal-overlay {
+            align-items: flex-start;
+            padding: 10px;
+        }
+        
+        .modal-container {
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .form-main {
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -1124,24 +1308,13 @@
                             </div>
                         </div>
 
-                        <div class="form-grid cols-3">
+                        <div class="form-grid cols-1">
                             <div class="form-group">
                                 <label for="anticipo">Anticipo</label>
                                 <div class="input-with-icon">
                                     <span class="icon">$</span>
                                     <input type="number" class="form-control" name="anticipo" value="0" step="0.01" min="0" id="anticipo">
                                 </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="valor_avaluo_acumulado">Valor Avalúo Acumulado</label>
-                                <div class="input-with-icon">
-                                    <span class="icon">$</span>
-                                    <input type="number" class="form-control" name="valor_avaluo_acumulado" value="0" step="0.01" min="0" id="valor_avaluo_acumulado">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="fecha_avaluo">Fecha del Avalúo</label>
-                                <input type="date" name="fecha_avaluo" class="form-control" id="fecha_avaluo">
                             </div>
                         </div>
                     </div>
@@ -1237,7 +1410,7 @@
                             </div>
                         </div>
                     
-                        <!-- LUNES -->
+                        <!-- LUNES - ESTRUCTURA COMPLETA CON DESCANSO -->
                         <div class="horario-dia-individual">
                             <div class="dia-checkbox-header">
                                 <input type="checkbox" name="dias_laborales" value="1" id="dia_lunes" checked onchange="toggleHorarioDia('lunes')">
@@ -1248,19 +1421,24 @@
                             </div>
                             <div class="horario-inputs" id="horario_lunes">
                                 <div class="form-group">
-                                    <label>Hora Inicio</label>
+                                    <label>Entrada</label>
                                     <input type="text" name="hora_inicio_lunes" class="form-control hora-input-12h" 
-                                           value="08:00 AM" placeholder="08:00 AM" data-dia="lunes">
+                                        value="08:00 AM" placeholder="08:00 AM" data-dia="lunes">
                                 </div>
                                 <div class="form-group">
-                                    <label>Hora Fin</label>
+                                    <label>Salida</label>
                                     <input type="text" name="hora_fin_lunes" class="form-control hora-input-12h" 
-                                           value="05:00 PM" placeholder="05:00 PM" data-dia="lunes">
+                                        value="05:00 PM" placeholder="05:00 PM" data-dia="lunes">
                                 </div>
-                                <div class="horas-calculadas" id="horas_lunes">9h</div>
+                                <div class="form-group">
+                                    <label>Descanso</label>
+                                    <input type="text" name="descanso_lunes" class="form-control descanso-input" 
+                                        value="1:00" placeholder="1:00" data-dia="lunes">
+                                </div>
+                                <div class="horas-calculadas" id="horas_lunes">8h</div>
                             </div>
                         </div>
-                    
+
                         <!-- MARTES -->
                         <div class="horario-dia-individual">
                             <div class="dia-checkbox-header">
@@ -1272,19 +1450,24 @@
                             </div>
                             <div class="horario-inputs" id="horario_martes">
                                 <div class="form-group">
-                                    <label>Hora Inicio</label>
+                                    <label>Entrada</label>
                                     <input type="text" name="hora_inicio_martes" class="form-control hora-input-12h" 
-                                           value="08:00 AM" placeholder="08:00 AM" data-dia="martes">
+                                        value="08:00 AM" placeholder="08:00 AM" data-dia="martes">
                                 </div>
                                 <div class="form-group">
-                                    <label>Hora Fin</label>
+                                    <label>Salida</label>
                                     <input type="text" name="hora_fin_martes" class="form-control hora-input-12h" 
-                                           value="05:00 PM" placeholder="05:00 PM" data-dia="martes">
+                                        value="05:00 PM" placeholder="05:00 PM" data-dia="martes">
                                 </div>
-                                <div class="horas-calculadas" id="horas_martes">9h</div>
+                                <div class="form-group">
+                                    <label>Descanso</label>
+                                    <input type="text" name="descanso_martes" class="form-control descanso-input" 
+                                        value="1:00" placeholder="1:00" data-dia="martes">
+                                </div>
+                                <div class="horas-calculadas" id="horas_martes">8h</div>
                             </div>
                         </div>
-                    
+
                         <!-- MIÉRCOLES -->
                         <div class="horario-dia-individual">
                             <div class="dia-checkbox-header">
@@ -1296,19 +1479,24 @@
                             </div>
                             <div class="horario-inputs" id="horario_miercoles">
                                 <div class="form-group">
-                                    <label>Hora Inicio</label>
+                                    <label>Entrada</label>
                                     <input type="text" name="hora_inicio_miercoles" class="form-control hora-input-12h" 
-                                           value="08:00 AM" placeholder="08:00 AM" data-dia="miercoles">
+                                        value="08:00 AM" placeholder="08:00 AM" data-dia="miercoles">
                                 </div>
                                 <div class="form-group">
-                                    <label>Hora Fin</label>
+                                    <label>Salida</label>
                                     <input type="text" name="hora_fin_miercoles" class="form-control hora-input-12h" 
-                                           value="05:00 PM" placeholder="05:00 PM" data-dia="miercoles">
+                                        value="05:00 PM" placeholder="05:00 PM" data-dia="miercoles">
                                 </div>
-                                <div class="horas-calculadas" id="horas_miercoles">9h</div>
+                                <div class="form-group">
+                                    <label>Descanso</label>
+                                    <input type="text" name="descanso_miercoles" class="form-control descanso-input" 
+                                        value="1:00" placeholder="1:00" data-dia="miercoles">
+                                </div>
+                                <div class="horas-calculadas" id="horas_miercoles">8h</div>
                             </div>
                         </div>
-                    
+
                         <!-- JUEVES -->
                         <div class="horario-dia-individual">
                             <div class="dia-checkbox-header">
@@ -1320,19 +1508,24 @@
                             </div>
                             <div class="horario-inputs" id="horario_jueves">
                                 <div class="form-group">
-                                    <label>Hora Inicio</label>
+                                    <label>Entrada</label>
                                     <input type="text" name="hora_inicio_jueves" class="form-control hora-input-12h" 
-                                           value="08:00 AM" placeholder="08:00 AM" data-dia="jueves">
+                                        value="08:00 AM" placeholder="08:00 AM" data-dia="jueves">
                                 </div>
                                 <div class="form-group">
-                                    <label>Hora Fin</label>
+                                    <label>Salida</label>
                                     <input type="text" name="hora_fin_jueves" class="form-control hora-input-12h" 
-                                           value="05:00 PM" placeholder="05:00 PM" data-dia="jueves">
+                                        value="05:00 PM" placeholder="05:00 PM" data-dia="jueves">
                                 </div>
-                                <div class="horas-calculadas" id="horas_jueves">9h</div>
+                                <div class="form-group">
+                                    <label>Descanso</label>
+                                    <input type="text" name="descanso_jueves" class="form-control descanso-input" 
+                                        value="1:00" placeholder="1:00" data-dia="jueves">
+                                </div>
+                                <div class="horas-calculadas" id="horas_jueves">8h</div>
                             </div>
                         </div>
-                    
+
                         <!-- VIERNES -->
                         <div class="horario-dia-individual">
                             <div class="dia-checkbox-header">
@@ -1344,19 +1537,24 @@
                             </div>
                             <div class="horario-inputs" id="horario_viernes">
                                 <div class="form-group">
-                                    <label>Hora Inicio</label>
+                                    <label>Entrada</label>
                                     <input type="text" name="hora_inicio_viernes" class="form-control hora-input-12h" 
-                                           value="08:00 AM" placeholder="08:00 AM" data-dia="viernes">
+                                        value="08:00 AM" placeholder="08:00 AM" data-dia="viernes">
                                 </div>
                                 <div class="form-group">
-                                    <label>Hora Fin</label>
+                                    <label>Salida</label>
                                     <input type="text" name="hora_fin_viernes" class="form-control hora-input-12h" 
-                                           value="02:00 PM" placeholder="02:00 PM" data-dia="viernes">
+                                        value="02:00 PM" placeholder="02:00 PM" data-dia="viernes">
                                 </div>
-                                <div class="horas-calculadas" id="horas_viernes">6h</div>
+                                <div class="form-group">
+                                    <label>Descanso</label>
+                                    <input type="text" name="descanso_viernes" class="form-control descanso-input" 
+                                        value="1:00" placeholder="1:00" data-dia="viernes">
+                                </div>
+                                <div class="horas-calculadas" id="horas_viernes">5h</div>
                             </div>
                         </div>
-                    
+
                         <!-- SÁBADO -->
                         <div class="horario-dia-individual">
                             <div class="dia-checkbox-header">
@@ -1368,19 +1566,24 @@
                             </div>
                             <div class="horario-inputs" id="horario_sabado">
                                 <div class="form-group">
-                                    <label>Hora Inicio</label>
+                                    <label>Entrada</label>
                                     <input type="text" name="hora_inicio_sabado" class="form-control hora-input-12h" 
-                                           value="08:00 AM" placeholder="08:00 AM" data-dia="sabado">
+                                        value="08:00 AM" placeholder="08:00 AM" data-dia="sabado">
                                 </div>
                                 <div class="form-group">
-                                    <label>Hora Fin</label>
+                                    <label>Salida</label>
                                     <input type="text" name="hora_fin_sabado" class="form-control hora-input-12h" 
-                                           value="12:00 PM" placeholder="12:00 PM" data-dia="sabado">
+                                        value="12:00 PM" placeholder="12:00 PM" data-dia="sabado">
+                                </div>
+                                <div class="form-group">
+                                    <label>Descanso</label>
+                                    <input type="text" name="descanso_sabado" class="form-control descanso-input" 
+                                        value="0:00" placeholder="0:00" data-dia="sabado">
                                 </div>
                                 <div class="horas-calculadas" id="horas_sabado">4h</div>
                             </div>
                         </div>
-                    
+
                         <!-- DOMINGO -->
                         <div class="horario-dia-individual">
                             <div class="dia-checkbox-header">
@@ -1392,14 +1595,19 @@
                             </div>
                             <div class="horario-inputs" id="horario_domingo" style="display: none;">
                                 <div class="form-group">
-                                    <label>Hora Inicio</label>
+                                    <label>Entrada</label>
                                     <input type="text" name="hora_inicio_domingo" class="form-control hora-input-12h" 
-                                           value="08:00 AM" placeholder="08:00 AM" data-dia="domingo">
+                                        value="" placeholder="08:00 AM" data-dia="domingo">
                                 </div>
                                 <div class="form-group">
-                                    <label>Hora Fin</label>
+                                    <label>Salida</label>
                                     <input type="text" name="hora_fin_domingo" class="form-control hora-input-12h" 
-                                           value="12:00 PM" placeholder="12:00 PM" data-dia="domingo">
+                                        value="" placeholder="12:00 PM" data-dia="domingo">
+                                </div>
+                                <div class="form-group">
+                                    <label>Descanso</label>
+                                    <input type="text" name="descanso_domingo" class="form-control descanso-input" 
+                                        value="0:00" placeholder="0:00" data-dia="domingo">
                                 </div>
                                 <div class="horas-calculadas" id="horas_domingo">0h</div>
                             </div>
@@ -1454,7 +1662,7 @@
                             </div>
                             <div class="sidebar-row">
                                 <span class="sidebar-label">Estado</span>
-                                <span class="sidebar-value">En Planificación</span>
+                                <span class="sidebar-value" id="resumen-estado">En Planificación</span>
                             </div>
                         </div>
 
@@ -1860,12 +2068,21 @@ document.addEventListener('click', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
     const presupuestoInput = document.querySelector('input[name="presupuesto_total"]');
     const avanceInput = document.querySelector('input[name="porcentaje_avance_general"]');
-    
+    const estadoSelect = document.querySelector('select[name="estado"]');
+
     const resumenPresupuesto = document.getElementById('resumen-presupuesto');
     const resumenAvance = document.getElementById('resumen-avance');
+    const resumenEstado = document.getElementById('resumen-estado');
 
     function formatearMoneda(valor) {
         return '$' + new Intl.NumberFormat('es-CO').format(valor.toFixed(0));
+    }
+    
+    // Actualizar estado en el resumen
+    if (estadoSelect && resumenEstado) {
+        estadoSelect.addEventListener('change', function() {
+            resumenEstado.textContent = this.options[this.selectedIndex].text;
+        });
     }
 
     if (presupuestoInput) {
@@ -2137,30 +2354,71 @@ function toggleHorarioDia(dia) {
     actualizarResumenSemanal();
 }
 
+// Parsear tiempo de descanso (formato H:MM) a horas decimales
+function parsearDescanso(descansoStr) {
+    if (!descansoStr || descansoStr.trim() === '') return 0;
+    try {
+        const partes = descansoStr.split(':');
+        const horas = parseInt(partes[0]) || 0;
+        const minutos = parseInt(partes[1]) || 0;
+        return horas + (minutos / 60);
+    } catch (error) {
+        return 1; // Default 1 hora si hay error
+    }
+}
+
+// Formatear horas decimales a string legible
+function formatearHoras(horasDecimales) {
+    if (horasDecimales <= 0) return '0h';
+    const horas = Math.floor(horasDecimales);
+    const minutos = Math.round((horasDecimales - horas) * 60);
+    if (minutos === 0) {
+        return `${horas}h`;
+    }
+    return `${horas}h ${minutos}m`;
+}
+
+// Actualizar horas de un día específico (CON DESCANSO)
 function actualizarHorasDia(dia) {
     const inputInicio = document.querySelector(`input[name="hora_inicio_${dia}"]`);
     const inputFin = document.querySelector(`input[name="hora_fin_${dia}"]`);
+    const inputDescanso = document.querySelector(`input[name="descanso_${dia}"]`);
     const indicadorHoras = document.getElementById(`horas_${dia}`);
     
     if (!inputInicio || !inputFin || !indicadorHoras) return;
     
     const horaInicio = inputInicio.value;
     const horaFin = inputFin.value;
+    const descanso = inputDescanso ? inputDescanso.value : '0:00';
     
-    const horas = calcularHorasEntre(horaInicio, horaFin);
+    // Calcular horas brutas
+    const horasBrutas = calcularHorasEntre(horaInicio, horaFin);
     
-    indicadorHoras.textContent = `${horas.toFixed(1)}h`;
+    // Parsear descanso
+    const horasDescanso = parsearDescanso(descanso);
+    
+    // Horas netas = brutas - descanso
+    const horasNetas = Math.max(0, horasBrutas - horasDescanso);
+    
+    // Actualizar indicador
+    indicadorHoras.textContent = formatearHoras(horasNetas);
     
     // Cambiar color según horas
-    if (horas >= 8) {
+    if (horasNetas >= 8) {
         indicadorHoras.style.background = '#3b82f6';
-    } else if (horas >= 4) {
+    } else if (horasNetas >= 4) {
         indicadorHoras.style.background = '#f59e0b';
+    } else if (horasNetas > 0) {
+        indicadorHoras.style.background = '#10b981';
     } else {
         indicadorHoras.style.background = '#6b7280';
     }
+    
+    // Actualizar resumen semanal
+    actualizarResumenSemanal();
 }
 
+// Actualizar resumen semanal (CON DESCANSO)
 function actualizarResumenSemanal() {
     const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
     const nombresD = {
@@ -2185,35 +2443,102 @@ function actualizarResumenSemanal() {
         
         const inputInicio = document.querySelector(`input[name="hora_inicio_${dia}"]`);
         const inputFin = document.querySelector(`input[name="hora_fin_${dia}"]`);
+        const inputDescanso = document.querySelector(`input[name="descanso_${dia}"]`);
         
         if (!inputInicio || !inputFin) return;
         
         const horaInicio = inputInicio.value || '08:00 AM';
         const horaFin = inputFin.value || '05:00 PM';
-        const horas = calcularHorasEntre(horaInicio, horaFin);
+        const descanso = inputDescanso ? inputDescanso.value : '0:00';
         
-        totalHoras += horas;
+        // Calcular horas netas
+        const horasBrutas = calcularHorasEntre(horaInicio, horaFin);
+        const horasDescanso = parsearDescanso(descanso);
+        const horasNetas = Math.max(0, horasBrutas - horasDescanso);
+        
+        totalHoras += horasNetas;
         
         html += `
             <div class="resumen-dia-item">
                 <span class="resumen-dia-nombre">${nombresD[dia]}</span>
-                <span class="resumen-dia-horario">${horaInicio} - ${horaFin}</span>
-                <span class="resumen-dia-horas">${horas.toFixed(1)}h</span>
+                <span class="resumen-dia-horas">${formatearHoras(horasNetas)}</span>
             </div>
         `;
     });
     
     // Total semanal
     html += `
-        <div class="resumen-dia-item" style="background: #dbeafe; border: 2px solid #3b82f6; margin-top: 8px;">
-            <span class="resumen-dia-nombre" style="color: #1e40af; font-weight: 700;">TOTAL SEMANAL</span>
-            <span class="resumen-dia-horas" style="font-size: 16px; color: #1e40af;">${totalHoras.toFixed(1)}h</span>
+        <div class="resumen-dia-item resumen-total">
+            <span class="resumen-dia-nombre"><strong>Total Semanal</strong></span>
+            <span class="resumen-dia-horas"><strong>${formatearHoras(totalHoras)}</strong></span>
         </div>
     `;
     
     resumen.innerHTML = html;
 }
 
+// Inicializar listeners para campos de descanso
+function inicializarDescansoListeners() {
+    const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+    
+    dias.forEach(dia => {
+        const inputDescanso = document.querySelector(`input[name="descanso_${dia}"]`);
+        if (inputDescanso) {
+            inputDescanso.addEventListener('input', function() {
+                // Validar formato H:MM
+                let valor = this.value.replace(/[^0-9:]/g, '');
+                
+                // Auto-formatear
+                if (valor.length === 1 && valor !== ':') {
+                    // Si es solo un número, esperar más input
+                } else if (valor.length === 2 && !valor.includes(':')) {
+                    // Agregar : después de la hora si hay 2 dígitos
+                    valor = valor.charAt(0) + ':' + valor.charAt(1);
+                }
+                
+                this.value = valor;
+                actualizarHorasDia(dia);
+            });
+            
+            // Blur: completar formato
+            inputDescanso.addEventListener('blur', function() {
+                let valor = this.value.trim();
+                
+                // Si está vacío, poner 0:00
+                if (!valor) {
+                    this.value = '0:00';
+                    actualizarHorasDia(dia);
+                    return;
+                }
+                
+                // Si no tiene :, agregar :00
+                if (!valor.includes(':')) {
+                    this.value = valor + ':00';
+                    actualizarHorasDia(dia);
+                    return;
+                }
+                
+                // Asegurar formato H:MM
+                const partes = valor.split(':');
+                const horas = partes[0] || '0';
+                const minutos = (partes[1] || '00').padStart(2, '0');
+                this.value = `${horas}:${minutos}`;
+                actualizarHorasDia(dia);
+            });
+        }
+    });
+}
+
+// Llamar al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    inicializarDescansoListeners();
+    
+    // Calcular horas iniciales para todos los días
+    const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+    dias.forEach(dia => {
+        actualizarHorasDia(dia);
+    });
+});
 // Inicialización de horarios 12h
 (function() {
     console.log('Inicializando sistema de horarios 12h...');
@@ -2261,5 +2586,6 @@ function actualizarResumenSemanal() {
         console.log('Sistema de horarios 12h inicializado ✓');
     }
 })();
+
 </script>
 {% endblock %}

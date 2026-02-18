@@ -1,0 +1,427 @@
+{% extends 'base/base.html' %}
+{% load static permisos_tags %}
+
+{% block title %}Gestión de Usuarios - Quadycons{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --primary-color: #3b82f6;
+    --primary-hover: #2563eb;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --border-color: #e2e8f0;
+    --bg-page: #f8fafc;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.page-container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+.page-header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-title .material-symbols-outlined { font-size: 32px; color: var(--primary-color); }
+.page-subtitle { font-size: 14px; color: var(--text-secondary); margin: 4px 0 0 0; }
+
+.btn-primary, .btn-secondary, .btn-success, .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary { background: var(--primary-color); color: white; }
+.btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
+.btn-secondary { background: #f3f4f6; color: var(--text-primary); border: 1px solid var(--border-color); }
+.btn-secondary:hover { background: #e5e7eb; }
+.btn-success { background: var(--success-color); color: white; }
+.btn-success:hover { background: #059669; }
+.btn-danger { background: var(--danger-color); color: white; }
+.btn-danger:hover { background: #dc2626; }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-icon .material-symbols-outlined { font-size: 24px; }
+.stat-value { font-size: 28px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+.stat-label { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+.filters-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr auto;
+    gap: 16px;
+    align-items: end;
+}
+
+.filter-group { display: flex; flex-direction: column; gap: 6px; }
+.filter-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+
+.form-control, .form-select {
+    padding: 10px 14px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s;
+    width: 100%;
+    background: white;
+}
+
+.form-control:focus, .form-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+
+.table-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.table-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.table-header h3 { font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0; }
+
+table { width: 100%; border-collapse: collapse; }
+thead { background: var(--bg-page); }
+thead th { padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color); }
+tbody td { padding: 16px; border-bottom: 1px solid #f3f4f6; font-size: 14px; color: var(--text-primary); vertical-align: middle; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: #fafafa; }
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-warning { background: #fef3c7; color: #92400e; }
+.badge-danger { background: #fee2e2; color: #991b1b; }
+.badge-info { background: #dbeafe; color: #1e40af; }
+.badge-gray { background: #f3f4f6; color: #374151; }
+
+.user-info { display: flex; align-items: center; gap: 12px; }
+
+.user-avatar-sm {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.user-name { font-weight: 600; color: var(--text-primary); }
+.user-email { font-size: 12px; color: var(--text-secondary); }
+
+.actions-cell { display: flex; gap: 6px; }
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+}
+
+.empty-state .material-symbols-outlined { font-size: 48px; color: #d1d5db; display: block; margin-bottom: 12px; }
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 24px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <!-- Header -->
+    <div class="page-header-section">
+        <div>
+            <h1 class="page-title">
+                <span class="material-symbols-outlined">manage_accounts</span>
+                Gestión de Usuarios
+            </h1>
+            <p class="page-subtitle">Aprueba cuentas, asigna roles y gestiona el acceso al sistema</p>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #eff6ff;">
+                <span class="material-symbols-outlined" style="color: #3b82f6;">group</span>
+            </div>
+            <div>
+                <div class="stat-value">{{ page_obj.paginator.count }}</div>
+                <div class="stat-label">Total Usuarios</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #fef3c7;">
+                <span class="material-symbols-outlined" style="color: #f59e0b;">pending</span>
+            </div>
+            <div>
+                <div class="stat-value" style="color: #f59e0b;">{{ pendientes_count }}</div>
+                <div class="stat-label">Pendientes Aprobación</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters-card">
+        <form method="get" class="filters-grid">
+            <div class="filter-group">
+                <label class="filter-label">Buscar</label>
+                <input type="text" name="buscar" class="form-control" placeholder="Nombre, email o usuario..." value="{{ request.GET.buscar }}">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Estado</label>
+                <select name="estado" class="form-control">
+                    <option value="">Todos</option>
+                    <option value="pendientes" {% if request.GET.estado == 'pendientes' %}selected{% endif %}>Pendientes</option>
+                    <option value="activos" {% if request.GET.estado == 'activos' %}selected{% endif %}>Activos</option>
+                    <option value="inactivos" {% if request.GET.estado == 'inactivos' %}selected{% endif %}>Inactivos</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Rol</label>
+                <select name="rol" class="form-control">
+                    <option value="">Todos los roles</option>
+                    {% for rol in roles %}
+                    <option value="{{ rol.id }}" {% if request.GET.rol == rol.id|stringformat:"s" %}selected{% endif %}>{{ rol.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button type="submit" class="btn-primary">
+                    <span class="material-symbols-outlined">search</span>
+                    Filtrar
+                </button>
+                <a href="{% url 'admin_panel:usuarios_lista' %}" class="btn-secondary">
+                    <span class="material-symbols-outlined">clear</span>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-card">
+        <div class="table-header">
+            <h3>Usuarios del Sistema</h3>
+            <span style="font-size: 13px; color: var(--text-secondary);">{{ page_obj.paginator.count }} registros</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Usuario</th>
+                    <th>Rol</th>
+                    <th>PROYECTOS</th>
+                    <th>Estado</th>
+                    <th>Registro</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for usuario in usuarios %}
+                <tr>
+                    <td>
+                        <div class="user-info">
+                            <div class="user-avatar-sm">
+                                {{ usuario.nombre_completo|make_list|first }}
+                            </div>
+                            <div>
+                                <div class="user-name">
+                                    {{ usuario.nombre_completo|default:usuario.username }}
+                                    {% if usuario.is_superuser %}
+                                    <span class="badge badge-danger" style="margin-left: 6px;">Superuser</span>
+                                    {% endif %}
+                                </div>
+                                <div class="user-email">{{ usuario.email }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% if usuario.rol %}
+                        <span class="badge badge-info">{{ usuario.rol.nombre }}</span>
+                        {% else %}
+                        <span class="badge badge-gray">Sin rol</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if usuario.rol and usuario.rol.codigo in 'residente,gerente_proyecto' %}
+                            {% for asignacion in usuario.proyectos_asignados.all %}
+                                {% if asignacion.activo %}
+                                <span class="badge badge-info" style="margin-bottom: 4px; display: inline-block;">
+                                    {{ asignacion.proyecto.nombre }}
+                                </span>
+                                {% endif %}
+                            {% empty %}
+                                <span style="font-size: 12px; color: #9ca3af;">Sin asignar</span>
+                            {% endfor %}
+                        {% else %}
+                            <span style="font-size: 12px; color: #9ca3af;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not usuario.cuenta_aprobada %}
+                        <span class="badge badge-warning">
+                            <span class="material-symbols-outlined" style="font-size: 14px;">schedule</span>
+                            Pendiente
+                        </span>
+                        {% elif usuario.is_active %}
+                        <span class="badge badge-success">
+                            <span class="material-symbols-outlined" style="font-size: 14px;">check_circle</span>
+                            Activo
+                        </span>
+                        {% else %}
+                        <span class="badge badge-danger">
+                            <span class="material-symbols-outlined" style="font-size: 14px;">block</span>
+                            Inactivo
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td style="color: var(--text-secondary);">{{ usuario.date_joined|date:"d/m/Y" }}</td>
+                    <td>
+                        <div class="actions-cell">
+                            <a href="{% url 'admin_panel:asignar_rol' usuario.pk %}" class="btn-primary btn-sm" title="Asignar Rol">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">badge</span>
+                            </a>
+
+                            {% if usuario.rol and usuario.rol.codigo in 'residente,gerente_proyecto' %}
+                            <a href="{% url 'admin_panel:asignar_proyectos' usuario.pk %}" 
+                            class="btn-secondary btn-sm" title="Asignar Proyectos">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">domain_add</span>
+                            </a>
+                            {% endif %}
+
+                            {% if not usuario.cuenta_aprobada %}
+                            <form method="post" action="{% url 'admin_panel:aprobar_cuenta' usuario.pk %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-success btn-sm" title="Aprobar Cuenta">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">check</span>
+                                </button>
+                            </form>
+                            {% endif %}
+
+                            {% if usuario.id != request.user.id %}
+                            <form method="post" action="{% url 'admin_panel:cambiar_estado_usuario' usuario.pk %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="{% if usuario.is_active %}btn-danger{% else %}btn-success{% endif %} btn-sm"
+                                    title="{% if usuario.is_active %}Desactivar{% else %}Activar{% endif %}">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">
+                                        {% if usuario.is_active %}block{% else %}check_circle{% endif %}
+                                    </span>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">
+                        <div class="empty-state">
+                            <span class="material-symbols-outlined">person_search</span>
+                            No se encontraron usuarios
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginación -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&buscar={{ request.GET.buscar }}&estado={{ request.GET.estado }}&rol={{ request.GET.rol }}" class="btn-secondary btn-sm">Anterior</a>
+        {% endif %}
+        <span style="font-size: 14px; color: var(--text-secondary);">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&buscar={{ request.GET.buscar }}&estado={{ request.GET.estado }}&rol={{ request.GET.rol }}" class="btn-secondary btn-sm">Siguiente</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

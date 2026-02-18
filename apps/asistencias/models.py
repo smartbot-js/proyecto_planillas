@@ -348,7 +348,12 @@ class Asistencia(models.Model):
             return
         
         # Obtener horario del proyecto según día de la semana
-        hora_inicio_esperada, hora_fin_esperada, jornada_normal = self.proyecto.obtener_horario_dia(self.fecha)
+        resultado_horario = self.proyecto.obtener_horario_dia(self.fecha)
+        if len(resultado_horario) == 4:
+            hora_inicio_esperada, hora_fin_esperada, jornada_normal, descanso_horas = resultado_horario
+        else:
+            hora_inicio_esperada, hora_fin_esperada, jornada_normal = resultado_horario
+            descanso_horas = 0
         
         # Si es domingo, no se trabaja
         if hora_inicio_esperada is None:
@@ -475,7 +480,8 @@ class Asistencia(models.Model):
             return
         
         # Obtener horario del proyecto
-        hora_inicio_esperada, _, _ = self.proyecto.obtener_horario_dia(self.fecha)
+        resultado_horario = self.proyecto.obtener_horario_dia(self.fecha)
+        hora_inicio_esperada = resultado_horario[0]
         
         if not hora_inicio_esperada:
             self.llego_tarde = False
@@ -505,7 +511,8 @@ class Asistencia(models.Model):
             return
         
         # Obtener horario del proyecto
-        _, hora_fin_esperada, _ = self.proyecto.obtener_horario_dia(self.fecha)
+        resultado_horario = self.proyecto.obtener_horario_dia(self.fecha)
+        hora_fin_esperada = resultado_horario[1] if len(resultado_horario) > 1 else None
         
         if not hora_fin_esperada:
             self.salio_temprano = False
@@ -921,7 +928,12 @@ class Asistencia(models.Model):
         
         if self.hora_entrada and self.proyecto and self.fecha:
             # ===== 1. OBTENER HORARIO DEL DÍA ESPECÍFICO =====
-            hora_inicio_esperada, hora_fin_esperada, jornada_normal = self.proyecto.obtener_horario_dia(self.fecha)
+            resultado_horario = self.proyecto.obtener_horario_dia(self.fecha)
+            if len(resultado_horario) == 4:
+                hora_inicio_esperada, hora_fin_esperada, jornada_normal, descanso_horas = resultado_horario
+            else:
+                hora_inicio_esperada, hora_fin_esperada, jornada_normal = resultado_horario
+                descanso_horas = 0
             
             # Si es día no laboral (domingo sin horario)
             if hora_inicio_esperada is None:
