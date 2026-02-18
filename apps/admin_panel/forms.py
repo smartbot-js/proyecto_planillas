@@ -45,12 +45,14 @@ class RolForm(forms.ModelForm):
     
     class Meta:
         model = Rol
-        fields = ['nombre', 'descripcion', 'alcance_proyectos', 'solo_app_movil', 'activo']
+        fields = ['nombre', 'descripcion', 'alcance_proyectos', 'solo_app_movil', 'permite_auto_registro', 'activo']
+
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'alcance_proyectos': forms.Select(attrs={'class': 'form-control'}),
             'solo_app_movil': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'permite_auto_registro': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
     

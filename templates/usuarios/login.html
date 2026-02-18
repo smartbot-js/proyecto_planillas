@@ -158,10 +158,11 @@
                     <label for="register-rol">Rol</label>
                     <select id="register-rol" name="rol" required>
                         <option value="">Selecciona un rol...</option>
-                        {% load static %}
-                        <!-- Solo mostrar roles permitidos para auto-registro -->
-                        <option value="asistencia">Trabajador</option>
-                        <option value="residente">Residente / Maestro de Obra</option>
+                        {% for rol in roles_registro %}
+                        <option value="{{ rol.codigo }}">{{ rol.nombre }}</option>
+                        {% empty %}
+                        <option value="" disabled>No hay roles disponibles</option>
+                        {% endfor %}
                     </select>
                 </div>
 

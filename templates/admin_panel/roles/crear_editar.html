@@ -197,16 +197,26 @@
                         {{ form.descripcion }}
                     </div>
                 </div>
-                <div style="display: flex; gap: 24px;">
+                <div style="display: flex; gap: 24px; flex-wrap: wrap;">
                     <div class="toggle-row">
                         {{ form.solo_app_movil }}
                         <label for="{{ form.solo_app_movil.id_for_label }}">Solo App Móvil</label>
+                    </div>
+                    <div class="toggle-row">
+                        {{ form.permite_auto_registro }}
+                        <label for="{{ form.permite_auto_registro.id_for_label }}">Visible en Registro</label>
                     </div>
                     <div class="toggle-row">
                         {{ form.activo }}
                         <label for="{{ form.activo.id_for_label }}">Activo</label>
                     </div>
                 </div>
+                {% if form.permite_auto_registro.value %}
+                <div class="warning-box" style="margin-top: 12px; background: #eff6ff; border: 1px solid #bfdbfe;">
+                    <span class="material-symbols-outlined" style="color: #3b82f6;">public</span>
+                    Este rol aparece en el formulario de registro público.
+                </div>
+                {% endif %}
             </div>
         </div>
 

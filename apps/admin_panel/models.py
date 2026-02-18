@@ -24,7 +24,11 @@ class Rol(models.Model):
     )
     
     solo_app_movil = models.BooleanField(default=False, verbose_name='Solo app móvil')
-    
+    permite_auto_registro = models.BooleanField(
+        default=False,
+        verbose_name='Permitir auto-registro',
+        help_text='Si está activo, este rol aparecerá como opción en el formulario de registro público'
+    )
     fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de creación')
     creado_por = models.ForeignKey(
         Usuario, 

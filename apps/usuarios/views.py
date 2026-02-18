@@ -26,6 +26,7 @@ from .serializers import (
     UsuarioPerfilSerializer,
 )
 
+from apps.admin_panel.models import Rol
 
 # ========================================
 # VISTAS API REST (para la app móvil)
@@ -223,7 +224,7 @@ class LoginTemplateView(View):
             return redirect('dashboard')
         #return render(request, self.template_name)
         context = {
-        'roles': Usuario.Rol.choices
+            'roles_registro': Rol.objects.filter(activo=True, permite_auto_registro=True).order_by('nombre')
             }
         return render(request, self.template_name, context)
     
@@ -232,7 +233,7 @@ class LoginTemplateView(View):
         password = request.POST.get('password', '')
         remember = request.POST.get('remember')
         context = {
-            'roles': Usuario.Rol.choices
+            'roles_registro': Rol.objects.filter(activo=True, permite_auto_registro=True).order_by('nombre')
         }
         # Debug: Imprimir lo que llega
         print(f"Intento de login - Email: {email}")
@@ -299,7 +300,7 @@ class RegistroTemplateView(View):
         rol_codigo = request.POST.get('rol', '')  # ← Cambiar nombre variable
         
         context = {
-            'roles': Usuario.Rol.choices
+            'roles_registro': Rol.objects.filter(activo=True, permite_auto_registro=True).order_by('nombre')
         }
         
         # Validaciones
