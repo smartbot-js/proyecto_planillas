@@ -40,7 +40,7 @@ class UsuarioManager(BaseUserManager):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
-        extra_fields.setdefault('rol', 'administrador')
+        #extra_fields.setdefault('rol', 'administrador')
 
         if extra_fields.get('is_staff') is not True:
             raise ValueError(_('El superusuario debe tener is_staff=True.'))
@@ -143,6 +143,35 @@ class Usuario(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['nombre_completo']
 
+    # Sistema de roles y aprobación
+    rol = models.ForeignKey(
+        'admin_panel.Rol',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='usuarios',
+        verbose_name=_('Rol')
+    )
+
+    cuenta_aprobada = models.BooleanField(
+        _('Cuenta Aprobada'),
+        default=False
+    )
+
+    aprobada_por = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cuentas_que_aprobo',
+        verbose_name=_('Aprobada por')
+    )
+
+    fecha_aprobacion = models.DateTimeField(
+        _('Fecha de Aprobación'),
+        null=True,
+        blank=True
+    )
     class Meta:
         verbose_name = _('Usuario')
         verbose_name_plural = _('Usuarios')
@@ -150,8 +179,8 @@ class Usuario(AbstractUser):
         db_table = 'usuarios'
 
     def __str__(self):
-        """Representación en string del usuario"""
-        return f"{self.email} - {self.get_rol_display()}"
+        rol_nombre = self.rol.nombre if self.rol else 'Sin rol'
+        return f"{self.email} - {rol_nombre}"
 
     def get_full_name(self):
         """Retorna el nombre completo del usuario"""
@@ -162,26 +191,73 @@ class Usuario(AbstractUser):
         return self.nombre_completo.split()[0] if self.nombre_completo else self.email
 
     def es_administrador(self):
-        """Verifica si el usuario es administrador"""
-        return self.rol == self.Rol.ADMINISTRADOR
+        if self.is_superuser:
+            return True
+        if self.rol:
+            return self.rol.codigo in ['admin', 'gerente_general']
+        return False
 
     def es_supervisor(self):
-        """Verifica si el usuario es supervisor"""
-        return self.rol == self.Rol.SUPERVISOR
+        if self.is_superuser:
+            return True
+        if self.rol:
+            return self.rol.codigo in ['gerente_proyecto', 'residente', 'admin', 'gerente_general']
+        return False
 
     def es_trabajador(self):
-        """Verifica si el usuario es trabajador"""
-        return self.rol == self.Rol.TRABAJADOR
+        if self.rol:
+            return self.rol.codigo == 'asistencia'
+        return False
 
     def puede_validar_asistencias(self):
-        """Verifica si el usuario puede validar asistencias"""
-        return self.rol in [self.Rol.ADMINISTRADOR, self.Rol.SUPERVISOR]
+        return self.es_administrador() or self.es_supervisor()
 
     def puede_gestionar_proyectos(self):
-        """Verifica si el usuario puede gestionar proyectos"""
-        return self.rol == self.Rol.ADMINISTRADOR
+        return self.es_administrador()
 
     def puede_ver_todos_reportes(self):
-        """Verifica si el usuario puede ver todos los reportes"""
-        return self.rol == self.Rol.ADMINISTRADOR
-    
+        return self.es_administrador()
+
+    def tiene_permiso(self, modulo, accion):
+        if self.is_superuser:
+            return True
+        if not self.rol:
+            return False
+        permisos = self.rol.permisos or {}
+        return permisos.get(modulo, {}).get(accion, False)
+
+    def get_proyectos_permitidos(self):
+        """Retorna queryset de proyectos que puede ver según su rol"""
+        from apps.proyectos.models import Proyecto, UsuarioProyecto
+        
+        # Admin, Gerente General, Contador → todos
+        if self.is_superuser:
+            return Proyecto.objects.filter(eliminado=False)
+        
+        if self.rol and self.rol.codigo in ['admin', 'gerente_general', 'contador']:
+            return Proyecto.objects.filter(eliminado=False)
+        
+        # Gerente de Proyecto → proyectos asignados (varios)
+        if self.rol and self.rol.codigo == 'gerente_proyecto':
+            ids = UsuarioProyecto.objects.filter(
+                usuario=self, activo=True
+            ).values_list('proyecto_id', flat=True)
+            return Proyecto.objects.filter(id__in=ids, eliminado=False)
+        
+        # Residente / Maestro de Obra → solo 1 proyecto
+        if self.rol and self.rol.codigo == 'residente':
+            ids = UsuarioProyecto.objects.filter(
+                usuario=self, activo=True
+            ).values_list('proyecto_id', flat=True)
+            return Proyecto.objects.filter(id__in=ids, eliminado=False)
+        
+        # Sin rol → ningún proyecto
+        return Proyecto.objects.none()
+
+    def puede_ver_proyecto(self, proyecto):
+        """Verifica si puede ver un proyecto específico"""
+        if self.is_superuser:
+            return True
+        if self.rol and self.rol.codigo in ['admin', 'gerente_general', 'contador']:
+            return True
+        return self.get_proyectos_permitidos().filter(pk=proyecto.pk).exists()

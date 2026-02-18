@@ -1,0 +1,235 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Gestión de Roles - Quadycons{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --primary-color: #3b82f6;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --border-color: #e2e8f0;
+    --bg-page: #f8fafc;
+}
+
+.page-container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+.page-header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-title .material-symbols-outlined { font-size: 32px; color: var(--primary-color); }
+.page-subtitle { font-size: 14px; color: var(--text-secondary); margin: 4px 0 0 0; }
+
+.btn-primary, .btn-secondary, .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary { background: var(--primary-color); color: white; }
+.btn-primary:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
+.btn-secondary { background: #f3f4f6; color: var(--text-primary); border: 1px solid var(--border-color); }
+.btn-secondary:hover { background: #e5e7eb; }
+.btn-danger { background: #ef4444; color: white; }
+.btn-danger:hover { background: #dc2626; }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+
+.roles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+}
+
+.rol-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.rol-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); }
+
+.rol-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.rol-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rol-icon .material-symbols-outlined { font-size: 22px; color: white; }
+.rol-name { font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 12px 0 4px 0; }
+.rol-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.badge-sistema { background: #fef3c7; color: #92400e; }
+.badge-custom { background: #ede9fe; color: #5b21b6; }
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-danger { background: #fee2e2; color: #991b1b; }
+
+.rol-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 16px 0;
+    padding: 12px 0;
+    border-top: 1px solid #f3f4f6;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.rol-meta-item { display: flex; align-items: center; gap: 6px; }
+.rol-meta-item .material-symbols-outlined { font-size: 16px; }
+
+.rol-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.permisos-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 12px;
+}
+
+.permiso-chip {
+    padding: 2px 8px;
+    background: #eff6ff;
+    color: #1e40af;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <div class="page-header-section">
+        <div>
+            <h1 class="page-title">
+                <span class="material-symbols-outlined">shield_person</span>
+                Gestión de Roles
+            </h1>
+            <p class="page-subtitle">Administra los roles y permisos del sistema</p>
+        </div>
+        <a href="{% url 'admin_panel:rol_crear' %}" class="btn-primary">
+            <span class="material-symbols-outlined">add</span>
+            Crear Rol
+        </a>
+    </div>
+
+    <div class="roles-grid">
+        {% for rol in roles %}
+        <div class="rol-card">
+            <div class="rol-card-header">
+                <div class="rol-icon">
+                    <span class="material-symbols-outlined">shield_person</span>
+                </div>
+                {% if rol.es_sistema %}
+                <span class="badge badge-sistema">Sistema</span>
+                {% else %}
+                <span class="badge badge-custom">Personalizado</span>
+                {% endif %}
+            </div>
+
+            <div class="rol-name">{{ rol.nombre }}</div>
+            <div class="rol-desc">{{ rol.descripcion }}</div>
+
+            <div class="rol-meta">
+                <div class="rol-meta-item">
+                    <span class="material-symbols-outlined">group</span>
+                    {{ rol.num_usuarios }} usuarios
+                </div>
+                <div class="rol-meta-item">
+                    <span class="material-symbols-outlined">
+                        {% if rol.activo %}check_circle{% else %}block{% endif %}
+                    </span>
+                    {% if rol.activo %}Activo{% else %}Inactivo{% endif %}
+                </div>
+                {% if rol.solo_app_movil %}
+                <div class="rol-meta-item">
+                    <span class="material-symbols-outlined">smartphone</span>
+                    Solo App
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Preview de permisos -->
+            <div class="permisos-preview">
+                {% if rol.permisos.proyectos.ver %}<span class="permiso-chip">Proyectos</span>{% endif %}
+                {% if rol.permisos.planillas.ver %}<span class="permiso-chip">Planillas</span>{% endif %}
+                {% if rol.permisos.contratistas.ver %}<span class="permiso-chip">Contratistas</span>{% endif %}
+                {% if rol.permisos.reportes.ver %}<span class="permiso-chip">Reportes</span>{% endif %}
+                {% if rol.permisos.admin_panel.acceso %}<span class="permiso-chip" style="background:#fee2e2; color:#991b1b;">Admin</span>{% endif %}
+            </div>
+
+            <div class="rol-actions" style="margin-top: 16px;">
+                <a href="{% url 'admin_panel:rol_editar' rol.pk %}" class="btn-secondary btn-sm">
+                    <span class="material-symbols-outlined" style="font-size:16px;">edit</span>
+                    Editar
+                </a>
+                {% if not rol.es_sistema and rol.num_usuarios == 0 %}
+                <form method="post" action="{% url 'admin_panel:rol_eliminar' rol.pk %}" style="display:inline;"
+                      onsubmit="return confirm('¿Eliminar este rol?')">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-danger btn-sm">
+                        <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div style="grid-column: 1/-1; text-align: center; padding: 60px; color: var(--text-secondary);">
+            <span class="material-symbols-outlined" style="font-size: 48px; display: block; margin-bottom: 12px;">shield_person</span>
+            No se encontraron roles
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

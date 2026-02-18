@@ -205,17 +205,80 @@
         <div class="accordion-content">
             <div class="form-grid-2" style="grid-template-columns: 1fr 1fr;">
                 <div class="form-group">
-                    <label for="id_personal_asignado">Personal Asignado (Nro.)</label>
-                    <input type="number" name="personal_asignado" class="form-control" value="{{ proyecto.personal_asignado }}" min="0" id="id_personal_asignado">
-                    <small class="form-text">Campo numérico de referencia. No se vincula a trabajadores.</small>
+                    <label>Personal Asignado</label>
+                    <div style="display:flex; align-items:center; gap:12px; padding:10px 14px; background:#f9fafb; border:1px solid #e2e8f0; border-radius:8px;">
+                        <span class="material-symbols-outlined" style="color:#3b82f6; font-size:20px;">group</span>
+                        <span style="font-size:24px; font-weight:700; color:#111827;">{{ proyecto.trabajadores.count }}</span>
+                        <span style="font-size:13px; color:#6b7280;">trabajadores activos</span>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="id_contratistas_asignados">Contratistas Asignados (Nro.)</label>
-                    <input type="number" name="contratistas_asignados" class="form-control" value="{{ proyecto.contratistas_asignados }}" min="0" id="id_contratistas_asignados">
-                    <small class="form-text">Campo numérico de referencia.</small>
+                    <label>Contratistas Asignados</label>
+                    <div style="display:flex; align-items:center; gap:12px; padding:10px 14px; background:#f9fafb; border:1px solid #e2e8f0; border-radius:8px;">
+                        <span class="material-symbols-outlined" style="color:#10b981; font-size:20px;">engineering</span>
+                        <span style="font-size:24px; font-weight:700; color:#111827;">{{ proyecto.contratistas.count }}</span>
+                        <span style="font-size:13px; color:#6b7280;">contratistas</span>
+                    </div>
                 </div>
             </div>
-            <div class="form-grid-2">
+
+            <!-- Personal del Proyecto - ANCHO COMPLETO -->
+            <div style="margin: 20px 0; grid-column: 1/-1;">
+                <label style="font-weight:600; font-size:14px; color:#111827; display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+                    <span class="material-symbols-outlined" style="font-size:18px; color:#3b82f6;">group_add</span>
+                    Personal Asignado al Proyecto
+                </label>
+                <p style="font-size: 13px; color: #6b7280; margin: 0 0 12px 0;">
+                    Residentes y Gerentes de Proyecto con acceso a este proyecto.
+                </p>
+                {% if usuarios_disponibles %}
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px;">
+                    {% for usuario in usuarios_disponibles %}
+                    <label id="label-usuario-{{ usuario.id }}" style="
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        padding: 12px 16px;
+                        border: 2px solid {% if usuario.id in usuarios_asignados_ids %}#3b82f6{% else %}#e2e8f0{% endif %};
+                        border-radius: 8px;
+                        cursor: pointer;
+                        background: {% if usuario.id in usuarios_asignados_ids %}#eff6ff{% else %}white{% endif %};
+                        transition: all 0.2s;
+                    ">
+                        <input type="checkbox"
+                               name="usuarios_proyecto"
+                               value="{{ usuario.id }}"
+                               {% if usuario.id in usuarios_asignados_ids %}checked{% endif %}
+                               style="width:16px; height:16px; accent-color:#3b82f6;"
+                               onchange="
+                                   var lbl = document.getElementById('label-usuario-{{ usuario.id }}');
+                                   lbl.style.borderColor = this.checked ? '#3b82f6' : '#e2e8f0';
+                                   lbl.style.background = this.checked ? '#eff6ff' : 'white';
+                               ">
+                        <div style="flex:1;">
+                            <div style="font-weight:600; font-size:14px; color:#111827;">
+                                {{ usuario.nombre_completo }}
+                            </div>
+                            <div style="font-size:12px; color:#6b7280;">
+                                {{ usuario.rol.nombre }} · {{ usuario.email }}
+                            </div>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="padding: 20px; background: #f9fafb; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; color: #6b7280; font-size: 14px;">
+                    <span class="material-symbols-outlined" style="display:block; font-size:32px; margin-bottom:8px; color:#d1d5db;">group</span>
+                    No hay usuarios con rol Residente o Gerente de Proyecto.
+                    <br>
+                    <a href="{% url 'admin_panel:usuarios_lista' %}" style="color:#3b82f6; font-size:13px; margin-top:8px; display:inline-block;">
+                        Ir a gestión de usuarios →
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="form-grid-2" style="margin-top: 20px;">
                 <div class="form-group">
                     <label for="id_porcentaje_avance_general">% Avance General</label>
                     <input type="number" name="porcentaje_avance_general" class="form-control" value="{{ proyecto.porcentaje_avance_general|floatformat:'-2' }}" step="0.01" min="0" max="100" id="id_porcentaje_avance_general">

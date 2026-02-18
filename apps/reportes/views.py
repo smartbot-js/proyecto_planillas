@@ -21,6 +21,7 @@ from apps.contratistas.models import (
 )
 from apps.core.utils import get_tipo_cambio_actual
 from apps.trabajadores.models import Trabajador
+from apps.admin_panel.permissions import PermissionRequiredMixin
 
 from django.http import HttpResponse
 from openpyxl import Workbook
@@ -1119,11 +1120,13 @@ class ReportePlanillaTotalView(LoginRequiredMixin, TemplateView):
         
         return context
 
-class ExportarReporteProyectoExcelView(LoginRequiredMixin, View):
+class ExportarReporteProyectoExcelView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """
     Vista para exportar el reporte por proyecto a Excel con formato profesional
     """
-    
+    permission_modulo = 'reportes'
+    permission_accion = 'exportar'
+
     def get(self, request, *args, **kwargs):
         # Obtener parámetros
         planilla_id = request.GET.get('planilla_id')
@@ -1520,9 +1523,11 @@ class ExportarReporteProyectoExcelView(LoginRequiredMixin, View):
 # 1. EXPORTAR CONSOLIDADO DE PROYECTOS
 # ============================================================================
 
-class ExportarConsolidadoExcelView(LoginRequiredMixin, View):
+class ExportarConsolidadoExcelView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Exportar consolidado de proyectos a Excel"""
-    
+    permission_modulo = 'reportes'
+    permission_accion = 'exportar'
+
     def get(self, request, *args, **kwargs):
         fecha_inicio = request.GET.get('fecha_inicio')
         fecha_fin = request.GET.get('fecha_fin')
@@ -1669,9 +1674,11 @@ class ExportarConsolidadoExcelView(LoginRequiredMixin, View):
 # 2. EXPORTAR PLANILLA ADMINISTRATIVA
 # ============================================================================
 
-class ExportarAdministrativaExcelView(LoginRequiredMixin, View):
+class ExportarAdministrativaExcelView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Exportar planilla administrativa a Excel"""
-    
+    permission_modulo = 'reportes'
+    permission_accion = 'exportar'
+
     def get(self, request, *args, **kwargs):
         planilla_id = request.GET.get('planilla_id')
         
@@ -1797,9 +1804,11 @@ class ExportarAdministrativaExcelView(LoginRequiredMixin, View):
 # 3. EXPORTAR GASTOS VARIOS
 # ============================================================================
 
-class ExportarGastosVariosExcelView(LoginRequiredMixin, View):
+class ExportarGastosVariosExcelView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Exportar gastos varios a Excel"""
-    
+    permission_modulo = 'reportes'
+    permission_accion = 'exportar'
+
     def get(self, request, *args, **kwargs):
         fecha_inicio = request.GET.get('fecha_inicio')
         fecha_fin = request.GET.get('fecha_fin')
@@ -1988,9 +1997,11 @@ class ExportarGastosVariosExcelView(LoginRequiredMixin, View):
 # 4. EXPORTAR PLANILLA TOTAL
 # ============================================================================
 
-class ExportarPlanillaTotalExcelView(LoginRequiredMixin, View):
+class ExportarPlanillaTotalExcelView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Exportar planilla total consolidada a Excel"""
-    
+    permission_modulo = 'reportes'
+    permission_accion = 'exportar'
+        
     def get(self, request, *args, **kwargs):
         fecha_inicio = request.GET.get('fecha_inicio')
         fecha_fin = request.GET.get('fecha_fin')

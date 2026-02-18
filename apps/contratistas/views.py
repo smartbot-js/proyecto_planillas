@@ -15,6 +15,7 @@ from .models import Contratista, ContratoProyecto, AvaluoContratista, PlanillaCo
 from apps.proyectos.models import Proyecto
 from .forms import ContratistaForm, ContratoProyectoForm, PagoContratistaForm
 from apps.core.utils import get_tipo_cambio_actual
+from apps.admin_panel.permissions import PermissionRequiredMixin
 
 from django.http import JsonResponse
 from django.views import View
@@ -252,8 +253,10 @@ class ContratistaListView(LoginRequiredMixin, ListView):
         
         return context
 
-class ContratistaCreateView(LoginRequiredMixin, CreateView):
+class ContratistaCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     """Vista para crear un nuevo contratista"""
+    permission_modulo = 'contratistas'
+    permission_accion = 'crear'
     model = Contratista
     form_class = ContratistaForm
     template_name = 'contratistas/crear.html'
@@ -278,8 +281,10 @@ class ContratistaCreateView(LoginRequiredMixin, CreateView):
         return super().form_invalid(form)
 
 
-class ContratistaUpdateView(LoginRequiredMixin, UpdateView):
+class ContratistaUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """Vista para editar un contratista existente"""
+    permission_modulo = 'contratistas'
+    permission_accion = 'editar'    
     model = Contratista
     form_class = ContratistaForm
     template_name = 'contratistas/editar.html'
@@ -756,7 +761,9 @@ class ContratoUpdateView(LoginRequiredMixin, UpdateView):
         return reverse('proyecto_detalle', kwargs={'pk': self.object.proyecto.id})
 
 
-class ContratoDeleteView(LoginRequiredMixin, DeleteView):
+class ContratoDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+    permission_modulo = 'contratistas'
+    permission_accion = 'eliminar'    
     model = ContratoProyecto
     
     def post(self, request, *args, **kwargs):
@@ -799,8 +806,10 @@ class ContratistaDetalleView(DetailView):
         
         return context
     
-class PagoContratistaCreateView(LoginRequiredMixin, CreateView):
+class PagoContratistaCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     """Vista para crear un nuevo pago a contratista"""
+    permission_modulo = 'contratistas'
+    permission_accion = 'crear'    
     model = AvaluoContratista
     form_class = PagoContratistaForm
     template_name = 'contratistas/pago_form.html'
@@ -866,8 +875,10 @@ class PagoContratistaCreateView(LoginRequiredMixin, CreateView):
         # Redirigir al detalle del contrato
         return reverse('proyecto_detalle', kwargs={'pk': self.contrato.proyecto.id})
 
-class PagoContratistaUpdateView(LoginRequiredMixin, UpdateView):
+class PagoContratistaUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """Vista para editar un pago (solo si está pendiente)"""
+    permission_modulo = 'contratistas'
+    permission_accion = 'editar'
     model = PagoContratista
     form_class = PagoContratistaForm
     template_name = 'contratistas/pago_form.html'
@@ -927,8 +938,10 @@ class PagoContratistaUpdateView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse('proyecto_detalle', kwargs={'pk': self.contrato.proyecto.id})
 
-class PagoContratistaDeleteView(LoginRequiredMixin, DeleteView):
+class PagoContratistaDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     """Vista para eliminar un pago (soft delete)"""
+    permission_modulo = 'contratistas'
+    permission_accion = 'eliminar'    
     model = PagoContratista
     
     def get_queryset(self):

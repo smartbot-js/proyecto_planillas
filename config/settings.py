@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'apps.contratistas',
     'apps.core',
     'apps.reportes',
+    'apps.admin_panel'
 ]
 
 MIDDLEWARE = [
@@ -92,6 +93,7 @@ TEMPLATES = [
                 'django.template.context_processors.media',
                 'django.template.context_processors.static',
                 'apps.core.context_processors.configuracion_global',
+                'apps.admin_panel.context_processors.admin_panel_context', 
             ],
         },
     },

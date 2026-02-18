@@ -820,4 +820,41 @@ class Proyecto(models.Model):
         self.fecha_eliminacion = None
         self.eliminado_por = None
         self.save()
+
+class UsuarioProyecto(models.Model):
+    """Asignación de usuarios a proyectos"""
+    
+    usuario = models.ForeignKey(
+        'usuarios.Usuario',
+        on_delete=models.CASCADE,
+        related_name='proyectos_asignados',
+        verbose_name='Usuario'
+    )
+    proyecto = models.ForeignKey(
+        Proyecto,
+        on_delete=models.CASCADE,
+        related_name='usuarios_asignados',
+        verbose_name='Proyecto'
+    )
+    fecha_asignacion = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Fecha de Asignación'
+    )
+    asignado_por = models.ForeignKey(
+        'usuarios.Usuario',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='asignaciones_realizadas',
+        verbose_name='Asignado por'
+    )
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'usuario_proyecto'
+        unique_together = ['usuario', 'proyecto']
+        verbose_name = 'Asignación Usuario-Proyecto'
+
+    def __str__(self):
+        return f"{self.usuario.nombre_completo} → {self.proyecto.nombre}"
         
