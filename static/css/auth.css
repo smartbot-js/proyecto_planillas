@@ -405,3 +405,69 @@ select:focus {
         align-items: flex-start;
     }
 }
+/* ==================== MENSAJES DE ALERTA ==================== */
+.messages-container {
+    margin-bottom: 20px;
+}
+
+.messages-container .message {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 10px;
+    animation: slideIn 0.3s ease;
+}
+
+.messages-container .message svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.messages-container .message.error {
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    color: #991b1b;
+}
+
+.messages-container .message.error svg {
+    stroke: #ef4444;
+}
+
+.messages-container .message.success {
+    background: #d1fae5;
+    border: 1px solid #6ee7b7;
+    color: #065f46;
+}
+
+.messages-container .message.success svg {
+    stroke: #10b981;
+}
+
+.messages-container .message.warning {
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+}
+
+.messages-container .message.warning svg {
+    stroke: #f59e0b;
+}
+
+.messages-container .message.info {
+    background: #dbeafe;
+    border: 1px solid #93c5fd;
+    color: #1e40af;
+}
+
+.messages-container .message.info svg {
+    stroke: #3b82f6;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
