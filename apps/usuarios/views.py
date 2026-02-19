@@ -312,10 +312,7 @@ class RegistroTemplateView(View):
             messages.error(request, 'El email ya está registrado.')
             return render(request, self.template_name, context)
         
-        try:
-            # ========== OBTENER ROL OBJETO ==========
-            from apps.admin_panel.models import Rol
-            
+        try:            
             # Buscar rol por código (si viene del formulario)
             rol_obj = None
             if rol_codigo:
