@@ -12,8 +12,9 @@ class UsuarioSerializer(serializers.ModelSerializer):
     """
     Serializer para listar y ver detalles de usuarios
     """
-    rol_display = serializers.CharField(source='get_rol_display', read_only=True)
-    
+   # rol_display = serializers.CharField(source='get_rol_display', read_only=True)
+    rol_id = serializers.IntegerField(source='rol.id', read_only=True, default=None)
+    rol = serializers.SerializerMethodField()
     class Meta:
         model = Usuario
         fields = [
@@ -21,7 +22,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
             'email',
             'nombre_completo',
             'rol',
-            'rol_display',
+            'rol_id',
             'activo',
             'is_staff',
             'fecha_creacion',
@@ -30,6 +31,10 @@ class UsuarioSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'fecha_creacion', 'fecha_actualizacion', 'last_login']
 
+    def get_rol(self, obj):
+        if obj.rol:
+            return obj.rol.nombre
+        return None
 
 class UsuarioCreateSerializer(serializers.ModelSerializer):
     """
@@ -205,8 +210,10 @@ class UsuarioPerfilSerializer(serializers.ModelSerializer):
     """
     Serializer para ver y actualizar el perfil del usuario actual
     """
-    rol_display = serializers.CharField(source='get_rol_display', read_only=True)
-    
+    #rol_display = serializers.CharField(source='get_rol_display', read_only=True)
+    rol_id = serializers.IntegerField(source='rol.id', read_only=True, default=None)
+    rol = serializers.SerializerMethodField()
+
     class Meta:
         model = Usuario
         fields = [
@@ -214,9 +221,13 @@ class UsuarioPerfilSerializer(serializers.ModelSerializer):
             'email',
             'nombre_completo',
             'rol',
-            'rol_display',
+            'rol_id',
             'fecha_creacion',
             'last_login',
         ]
         read_only_fields = ['id', 'rol', 'fecha_creacion', 'last_login']
         
+    def get_rol(self, obj):
+            if obj.rol:
+                return obj.rol.nombre
+            return None

@@ -230,34 +230,29 @@ class Usuario(AbstractUser):
         """Retorna queryset de proyectos que puede ver según su rol"""
         from apps.proyectos.models import Proyecto, UsuarioProyecto
         
-        # Admin, Gerente General, Contador → todos
         if self.is_superuser:
             return Proyecto.objects.filter(eliminado=False)
         
-        if self.rol and self.rol.codigo in ['admin', 'gerente_general', 'contador']:
+        if not self.rol:
+            return Proyecto.objects.none()
+        
+        # Usar alcance_proyectos del rol (dinámico, sin hardcodear códigos)
+        if self.rol.alcance_proyectos == 'todos':
             return Proyecto.objects.filter(eliminado=False)
         
-        # Gerente de Proyecto → proyectos asignados (varios)
-        if self.rol and self.rol.codigo == 'gerente_proyecto':
+        if self.rol.alcance_proyectos in ['asignados', 'propio']:
             ids = UsuarioProyecto.objects.filter(
                 usuario=self, activo=True
             ).values_list('proyecto_id', flat=True)
             return Proyecto.objects.filter(id__in=ids, eliminado=False)
         
-        # Residente / Maestro de Obra → solo 1 proyecto
-        if self.rol and self.rol.codigo == 'residente':
-            ids = UsuarioProyecto.objects.filter(
-                usuario=self, activo=True
-            ).values_list('proyecto_id', flat=True)
-            return Proyecto.objects.filter(id__in=ids, eliminado=False)
-        
-        # Sin rol → ningún proyecto
+        # 'ninguno' o cualquier otro valor
         return Proyecto.objects.none()
 
     def puede_ver_proyecto(self, proyecto):
         """Verifica si puede ver un proyecto específico"""
         if self.is_superuser:
             return True
-        if self.rol and self.rol.codigo in ['admin', 'gerente_general', 'contador']:
+        if self.rol and self.rol.alcance_proyectos == 'todos':
             return True
         return self.get_proyectos_permitidos().filter(pk=proyecto.pk).exists()

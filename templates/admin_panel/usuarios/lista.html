@@ -327,7 +327,7 @@ tbody tr:hover { background: #fafafa; }
                         {% endif %}
                     </td>
                     <td>
-                        {% if usuario.rol and usuario.rol.codigo in 'residente,gerente_proyecto' %}
+                        {% if usuario.rol and usuario.rol.alcance_proyectos in 'asignados,propio' %}
                             {% for asignacion in usuario.proyectos_asignados.all %}
                                 {% if asignacion.activo %}
                                 <span class="badge badge-info" style="margin-bottom: 4px; display: inline-block;">
@@ -366,7 +366,7 @@ tbody tr:hover { background: #fafafa; }
                                 <span class="material-symbols-outlined" style="font-size: 16px;">badge</span>
                             </a>
 
-                            {% if usuario.rol and usuario.rol.codigo in 'residente,gerente_proyecto' %}
+                            {% if usuario.rol and usuario.rol.alcance_proyectos in 'asignados,propio' %}
                             <a href="{% url 'admin_panel:asignar_proyectos' usuario.pk %}" 
                             class="btn-secondary btn-sm" title="Asignar Proyectos">
                                 <span class="material-symbols-outlined" style="font-size: 16px;">domain_add</span>

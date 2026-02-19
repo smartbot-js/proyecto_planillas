@@ -526,13 +526,13 @@ class ProyectoEditarView(LoginRequiredMixin, PermissionRequiredMixin, View):
         # Usuarios disponibles para asignar al proyecto
         from apps.admin_panel.models import Rol
         from apps.proyectos.models import UsuarioProyecto
-        roles_restringidos = Rol.objects.filter(
-            codigo__in=['residente', 'gerente_proyecto']
+        roles_con_asignacion = Rol.objects.filter(
+            alcance_proyectos__in=['asignados', 'propio']
         )
         usuarios_disponibles = Usuario.objects.filter(
             activo=True,
             cuenta_aprobada=True,
-            rol__in=roles_restringidos
+            rol__in=roles_con_asignacion
         ).order_by('nombre_completo')
 
         usuarios_asignados_ids = list(UsuarioProyecto.objects.filter(
