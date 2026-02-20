@@ -1253,20 +1253,21 @@ class TrabajadorViewSet(viewsets.ModelViewSet):
         
         return queryset
     
-    @action(detail=False, methods=['get'], url_path='por-cedula/(?P<cedula>[^/.]+)')
+    @action(detail=False, methods=['get'], url_path='por-cedula/(?P<cedula>[^/]+)')
     def por_cedula(self, request, cedula=None):
         """
         Endpoint para buscar trabajador por número de cédula
         Usado por la app móvil para escaneo de asistencias
+        Acepta cédula con o sin guiones
         """
-        try:
-            trabajador = Trabajador.objects.get(
-                numero_cedula=cedula,
-                eliminado=False
-            )
+        from .utils import buscar_trabajador_por_cedula
+        
+        trabajador = buscar_trabajador_por_cedula(cedula)
+        
+        if trabajador:
             serializer = self.get_serializer(trabajador)
             return Response(serializer.data)
-        except Trabajador.DoesNotExist:
+        else:
             return Response(
                 {'error': 'Trabajador no encontrado'},
                 status=status.HTTP_404_NOT_FOUND

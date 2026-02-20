@@ -13,6 +13,48 @@ from django.core.files import File
 from django.utils import timezone
 from PIL import Image, ImageDraw, ImageFont
 
+# ============================================
+# NORMALIZACIÓN DE CÉDULA PARA BÚSQUEDA
+# ============================================
+
+def normalizar_cedula(cedula):
+    """Quita guiones y espacios para comparación"""
+    return cedula.replace('-', '').replace(' ', '').strip().upper()
+
+
+def buscar_trabajador_por_cedula(cedula):
+    """
+    Busca un trabajador por cédula, sin importar si viene
+    con guiones (287-221289-0000J) o sin ellos (2872212890000J).
+    
+    Args:
+        cedula (str): Número de cédula en cualquier formato
+    
+    Returns:
+        Trabajador o None
+    """
+    from .models import Trabajador
+    from django.db.models.functions import Replace
+    from django.db.models import Value
+    
+    cedula_limpia = normalizar_cedula(cedula)
+    
+    # Primero intenta búsqueda exacta (más rápido)
+    try:
+        return Trabajador.objects.get(numero_cedula=cedula, eliminado=False)
+    except Trabajador.DoesNotExist:
+        pass
+    
+    # Si no encuentra, busca normalizando los guiones de la BD
+    try:
+        return Trabajador.objects.annotate(
+            cedula_limpia=Replace(
+                Replace('numero_cedula', Value('-'), Value('')),
+                Value(' '), Value('')
+            )
+        ).get(cedula_limpia=cedula_limpia, eliminado=False)
+    except Trabajador.DoesNotExist:
+        return None
 
 # ============================================
 # PARSER DE CÓDIGO DE BARRAS - CÉDULA PARAGUAYA
@@ -129,37 +171,33 @@ def validar_cedula_fisica(codigo_barras_raw):
     datos = resultado_parser['datos']
     numero_cedula = datos['numero_cedula']
     
-    # Buscar trabajador en BD
+    # Buscar trabajador en BD (normalizado, acepta con/sin guiones)
     try:
-        trabajador = Trabajador.objects.get(
-            numero_cedula=numero_cedula,
-            eliminado=False
-        )
+        trabajador = buscar_trabajador_por_cedula(numero_cedula)
         
-        # Validar que los datos coincidan (opcional pero recomendado)
-        coincidencias = {
-            'cedula': True,  # Ya coincidió
-            'nombre': validar_similitud_nombre(
-                trabajador.nombre_completo, 
-                datos['nombre_completo']
-            ),
-        }
-        
-        return {
-            'valido': True,
-            'trabajador': trabajador,
-            'error': None,
-            'datos_extraidos': datos,
-            'coincidencias': coincidencias
-        }
-    
-    except Trabajador.DoesNotExist:
-        return {
-            'valido': False,
-            'trabajador': None,
-            'error': f'No se encontró trabajador con cédula {numero_cedula}',
-            'datos_extraidos': datos
-        }
+        if trabajador:
+            coincidencias = {
+                'cedula': True,
+                'nombre': validar_similitud_nombre(
+                    trabajador.nombre_completo, 
+                    datos['nombre_completo']
+                ),
+            }
+            
+            return {
+                'valido': True,
+                'trabajador': trabajador,
+                'error': None,
+                'datos_extraidos': datos,
+                'coincidencias': coincidencias
+            }
+        else:
+            return {
+                'valido': False,
+                'trabajador': None,
+                'error': f'No se encontró trabajador con cédula {numero_cedula}',
+                'datos_extraidos': datos
+            }
     
     except Exception as e:
         return {
@@ -383,20 +421,16 @@ def validar_identificacion_trabajador(codigo_escaneado):
         # Es nuestro QR (solo cédula)
         tipo_codigo = 'QR_GENERADO'
         
-        try:
-            trabajador = Trabajador.objects.get(
-                numero_cedula=codigo_escaneado,
-                eliminado=False
-            )
-            
+        trabajador = buscar_trabajador_por_cedula(codigo_escaneado)
+        
+        if trabajador:
             return {
                 'valido': True,
                 'trabajador': trabajador,
                 'tipo_codigo': tipo_codigo,
                 'error': None
             }
-        
-        except Trabajador.DoesNotExist:
+        else:
             return {
                 'valido': False,
                 'trabajador': None,

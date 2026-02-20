@@ -1073,11 +1073,19 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
         
         try:
             # Buscar trabajador
-            trabajador = Trabajador.objects.get(
-                numero_cedula=data['trabajador_cedula'],
-                eliminado=False,
-                estado='activo' # Solo trabajadores activos pueden marcar
-            )
+            # Buscar trabajador (acepta cédula con/sin guiones)
+            from apps.trabajadores.utils import buscar_trabajador_por_cedula
+            
+            trabajador = buscar_trabajador_por_cedula(data['trabajador_cedula'])
+            
+            if not trabajador:
+                raise Trabajador.DoesNotExist
+            
+            if trabajador.estado != 'activo':
+                return Response(
+                    {'error': 'El trabajador no está activo'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             
             # Buscar proyecto
             proyecto = Proyecto.objects.get(id=data['proyecto_id'], eliminado=False)
