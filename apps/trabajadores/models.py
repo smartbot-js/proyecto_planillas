@@ -99,6 +99,8 @@ class Trabajador(models.Model):
     numero_cedula = models.CharField(
         max_length=50,
         unique=True,
+        blank=True,
+        null=True,
         verbose_name='Número de Cédula',
         help_text='Documento de identidad único'
     )

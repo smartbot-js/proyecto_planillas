@@ -151,10 +151,10 @@ class TrabajadorCreateSerializer(serializers.ModelSerializer):
         ]
     
     def validate_numero_cedula(self, value):
-        """Valida que la cédula sea única"""
-        if Trabajador.objects.filter(numero_cedula=value, eliminado=False).exists():
+        """Valida que la cédula sea única si se proporciona"""
+        if value and Trabajador.objects.filter(numero_cedula=value, eliminado=False).exists():
             raise serializers.ValidationError("Ya existe un trabajador con esta cédula.")
-        return value
+        return value or None
     
     def create(self, validated_data):
         """Crea el trabajador con el usuario actual"""

@@ -147,8 +147,8 @@ class TrabajadorCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
         """Procesa el formulario de creación"""
         try:
             # Verificar si ya existe un trabajador con esa cédula
-            numero_cedula = request.POST.get('numero_cedula')
-            if Trabajador.objects.filter(numero_cedula=numero_cedula, eliminado=False).exists():
+            numero_cedula = request.POST.get('numero_cedula', '').strip()
+            if numero_cedula and Trabajador.objects.filter(numero_cedula=numero_cedula, eliminado=False).exists():
                 messages.error(
                     request,
                     f'❌ Ya existe un trabajador registrado con la cédula {numero_cedula}'
@@ -163,7 +163,7 @@ class TrabajadorCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
             
             trabajador.nombre = request.POST.get('nombre') or (partes_nombre[0] if partes_nombre else '')
             trabajador.apellido = request.POST.get('apellido') or (partes_nombre[1] if len(partes_nombre) > 1 else '')
-            trabajador.numero_cedula = numero_cedula
+            trabajador.numero_cedula = numero_cedula or None
             trabajador.fecha_nacimiento = request.POST.get('fecha_nacimiento') or None
             trabajador.sexo = request.POST.get('sexo', 'masculino')
             trabajador.tipo_sangre = request.POST.get('tipo_sangre', '')
@@ -700,7 +700,7 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, PermissionRequiredMixin, Vie
                     continue
                 
                 # Verificar si ya existe
-                if Trabajador.objects.filter(numero_cedula=numero_cedula, eliminado=False).exists():
+                if numero_cedula and Trabajador.objects.filter(numero_cedula=numero_cedula, eliminado=False).exists():
                     trabajadores_duplicados.append({
                         'fila': idx,
                         'cedula': numero_cedula,
@@ -718,8 +718,6 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, PermissionRequiredMixin, Vie
                     campos_faltantes.append('nombre')
                 if not apellido:
                     campos_faltantes.append('apellido')
-                if not telefono:
-                    campos_faltantes.append('telefono')
                 if not puesto_laboral:
                     campos_faltantes.append('puesto_laboral')
                 
@@ -738,7 +736,7 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, PermissionRequiredMixin, Vie
                 trabajador_data = {
                     'nombre': nombre,
                     'apellido': apellido,
-                    'numero_cedula': numero_cedula,
+                    'numero_cedula': numero_cedula or None,
                     'telefono': telefono,
                     'puesto_laboral': puesto_laboral,
                     'area_cargo': row.get('area_cargo', '').strip(),
