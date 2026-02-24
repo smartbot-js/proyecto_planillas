@@ -1116,16 +1116,9 @@ class ProyectoViewSet(viewsets.ModelViewSet):
         user = request.user
         
         # Filtrar proyectos según el rol
-        if user.es_administrador():
-            proyectos = Proyecto.objects.filter(
-                eliminado=False,
-                ).select_related('supervisor').order_by('-fecha_creacion')
-        else:
-            # Solo proyectos donde es supervisor
-            proyectos = Proyecto.objects.filter(
-                supervisor=user,
-                eliminado=False,
-            ).select_related('supervisor').order_by('-fecha_creacion')
+        proyectos = user.get_proyectos_permitidos().select_related(
+                    'supervisor'
+                ).order_by('-fecha_creacion')
         
         # Serializar
         serializer = MisProyectosSerializer(proyectos, many=True)
