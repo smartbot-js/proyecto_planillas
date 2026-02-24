@@ -1136,7 +1136,7 @@ class ProyectoViewSet(viewsets.ModelViewSet):
             'usuario': {
                 'id': user.id,
                 'nombre': user.nombre_completo,
-                'rol': user.get_rol_display()
+                'rol': user.rol.nombre if user.rol else 'Sin rol'
             }
         }, status=status.HTTP_200_OK)
 
