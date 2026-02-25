@@ -151,19 +151,30 @@ class TrabajadorCreateSerializer(serializers.ModelSerializer):
         ]
     
     def validate_numero_cedula(self, value):
-        """Valida que la cédula sea única si se proporciona"""
+        """Valida que la cédula sea única si se proporciona.
+        Permite cédulas de trabajadores eliminados (serán restaurados)."""
         if value and Trabajador.objects.filter(numero_cedula=value, eliminado=False).exists():
             raise serializers.ValidationError("Ya existe un trabajador con esta cédula.")
         return value or None
     
     def create(self, validated_data):
-        """Crea el trabajador con el usuario actual"""
-        request = self.context.get('request')
-        if request and hasattr(request, 'user'):
-            validated_data['creado_por'] = request.user
-            validated_data['modificado_por'] = request.user
+        """Si la cédula existe con eliminado=True, restaura en vez de crear."""
+        cedula = validated_data.get('numero_cedula')
+        
+        if cedula:
+            eliminado = Trabajador.objects.filter(
+                numero_cedula=cedula, eliminado=True
+            ).first()
+            
+            if eliminado:
+                for campo, valor in validated_data.items():
+                    setattr(eliminado, campo, valor)
+                eliminado.eliminado = False
+                eliminado.estado = 'activo'
+                eliminado.save()
+                return eliminado
+        
         return super().create(validated_data)
-
 
 class HistorialProyectoSerializer(serializers.ModelSerializer):
     """Serializer para historial de proyectos del trabajador"""

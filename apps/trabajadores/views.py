@@ -148,12 +148,49 @@ class TrabajadorCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
         try:
             # Verificar si ya existe un trabajador con esa cédula
             numero_cedula = request.POST.get('numero_cedula', '').strip()
-            if numero_cedula and Trabajador.objects.filter(numero_cedula=numero_cedula, eliminado=False).exists():
-                messages.error(
-                    request,
-                    f'❌ Ya existe un trabajador registrado con la cédula {numero_cedula}'
-                )
-                return redirect('trabajador_crear')
+            if numero_cedula:
+                # Verificar duplicado activo
+                if Trabajador.objects.filter(numero_cedula=numero_cedula, eliminado=False).exists():
+                    messages.error(
+                        request,
+                        f'❌ Ya existe un trabajador registrado con la cédula {numero_cedula}'
+                    )
+                    return redirect('trabajador_crear')
+                
+                # Verificar si existe uno eliminado → restaurar
+                trabajador_eliminado = Trabajador.objects.filter(
+                    numero_cedula=numero_cedula, eliminado=True
+                ).first()
+                
+                if trabajador_eliminado:
+                    trabajador_eliminado.eliminado = False
+                    trabajador_eliminado.estado = 'activo'
+                    trabajador_eliminado.nombre = request.POST.get('nombre', trabajador_eliminado.nombre)
+                    trabajador_eliminado.apellido = request.POST.get('apellido', trabajador_eliminado.apellido)
+                    trabajador_eliminado.telefono = request.POST.get('telefono', '')
+                    trabajador_eliminado.email = request.POST.get('email', '')
+                    trabajador_eliminado.direccion = request.POST.get('direccion', '')
+                    trabajador_eliminado.departamento = request.POST.get('departamento', '')
+                    trabajador_eliminado.municipio = request.POST.get('municipio', '')
+                    trabajador_eliminado.puesto_laboral = request.POST.get('puesto_laboral') or request.POST.get('cargo', '')
+                    trabajador_eliminado.area_cargo = request.POST.get('area_cargo') or request.POST.get('cargo', '')
+                    trabajador_eliminado.contacto_emergencia = request.POST.get('contacto_emergencia', '')
+                    trabajador_eliminado.salario_normal = request.POST.get('salario_normal') or 0
+                    trabajador_eliminado.tarifa_hora_extra = request.POST.get('tarifa_hora_extra') or 0
+                    trabajador_eliminado.fecha_ingreso = request.POST.get('fecha_ingreso') or timezone.now().date()
+                    trabajador_eliminado.modificado_por = request.user
+                    
+                    proyecto_id = request.POST.get('proyecto_asignado')
+                    if proyecto_id:
+                        trabajador_eliminado.proyecto_asignado = Proyecto.objects.get(id=proyecto_id)
+                    
+                    trabajador_eliminado.save()
+                    
+                    messages.success(
+                        request,
+                        f'✅ Trabajador "{trabajador_eliminado.nombre_completo}" restaurado y actualizado exitosamente.'
+                    )
+                    return redirect('trabajadores_lista')
             
             trabajador = Trabajador()
             
@@ -865,13 +902,31 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, PermissionRequiredMixin, Vie
             return redirect('trabajadores_lista')
     
     def _crear_trabajadores(self, trabajadores_data):
-        """Crea trabajadores en lote y genera QRs automáticamente"""
+        """Crea trabajadores en lote y genera QRs automáticamente.
+        Si la cédula existe con eliminado=True, restaura el registro."""
         from .utils import generar_qr_trabajador
         
         trabajadores = []
         
         for data in trabajadores_data:
             try:
+                cedula = data.get('numero_cedula')
+                
+                # Intentar restaurar si fue eliminado previamente
+                if cedula:
+                    eliminado = Trabajador.objects.filter(
+                        numero_cedula=cedula, eliminado=True
+                    ).first()
+                    
+                    if eliminado:
+                        for campo, valor in data.items():
+                            setattr(eliminado, campo, valor)
+                        eliminado.eliminado = False
+                        eliminado.estado = 'activo'
+                        eliminado.save()
+                        trabajadores.append(eliminado)
+                        continue
+                
                 trabajador = Trabajador(**data)
                 trabajador.save()
                 
