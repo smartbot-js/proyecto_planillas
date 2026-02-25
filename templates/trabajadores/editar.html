@@ -226,18 +226,20 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="salario_normal">Salario Base <span class="required">*</span></label>
+                            <label for="salario_display">Salario Base <span class="required">*</span></label>
                             <div class="input-group">
-                                <span class="input-prefix">$</span>
-                                <input type="number" id="salario_normal" name="salario_normal" class="form-control" step="0.01" min="0" value="{{ trabajador.salario_normal|floatformat:"-2" }}" required>
+                                <span class="input-prefix">C$</span>
+                                <input type="text" id="salario_display" class="form-control" required autocomplete="off">
+                                <input type="hidden" id="salario_normal" name="salario_normal" value="{{ trabajador.salario_normal|floatformat:"-2" }}">
                             </div>
                         </div>
                         
                         <div class="form-group">
-                            <label for="tarifa_hora_extra">Tarifa Hora Extra <span class="required">*</span></label>
+                            <label for="tarifa_display">Tarifa Hora Extra <span class="required">*</span></label>
                             <div class="input-group">
-                                <span class="input-prefix">$</span>
-                                <input type="number" id="tarifa_hora_extra" name="tarifa_hora_extra" class="form-control" step="0.01" min="0" value="{{ trabajador.tarifa_hora_extra|floatformat:"-2" }}" required>
+                                <span class="input-prefix">C$</span>
+                                <input type="text" id="tarifa_display" class="form-control" readonly style="background: #f9fafb; cursor: default;">
+                                <input type="hidden" id="tarifa_hora_extra" name="tarifa_hora_extra" value="{{ trabajador.tarifa_hora_extra|floatformat:"-2" }}">
                             </div>
                         </div>
                         
@@ -468,6 +470,66 @@ document.addEventListener('DOMContentLoaded', function() {
             fileInput.value = ''; 
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+    // =============================================
+    // FORMATO DE MONEDA C$ CON MILES - EDITAR
+    // =============================================
+    const salarioDisplay = document.getElementById('salario_display');
+    const salarioHidden = document.getElementById('salario_normal');
+    const tarifaDisplay = document.getElementById('tarifa_display');
+    const tarifaHidden = document.getElementById('tarifa_hora_extra');
+
+    function formatearCordobas(valor) {
+        if (!valor || valor === 0) return '';
+        return valor.toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function limpiarValor(texto) {
+        return parseFloat(texto.replace(/[^0-9.]/g, '')) || 0;
+    }
+
+    // Cargar valores iniciales formateados
+    if (salarioDisplay && salarioHidden) {
+        let salarioInicial = parseFloat(salarioHidden.value) || 0;
+        if (salarioInicial > 0) {
+            salarioDisplay.value = formatearCordobas(salarioInicial);
+        }
+    }
+    if (tarifaDisplay && tarifaHidden) {
+        let tarifaInicial = parseFloat(tarifaHidden.value) || 0;
+        if (tarifaInicial > 0) {
+            tarifaDisplay.value = formatearCordobas(tarifaInicial);
+        }
+    }
+
+    if (salarioDisplay && tarifaDisplay) {
+        salarioDisplay.addEventListener('input', function() {
+            let valorNumerico = limpiarValor(this.value);
+            salarioHidden.value = valorNumerico;
+
+            let tarifaValor = valorNumerico * 2;
+            tarifaHidden.value = tarifaValor;
+            tarifaDisplay.value = tarifaValor > 0 ? formatearCordobas(tarifaValor) : '';
+        });
+
+        salarioDisplay.addEventListener('blur', function() {
+            let valorNumerico = limpiarValor(this.value);
+            if (valorNumerico > 0) {
+                this.value = formatearCordobas(valorNumerico);
+            }
+        });
+
+        salarioDisplay.addEventListener('focus', function() {
+            let valorNumerico = limpiarValor(this.value);
+            if (valorNumerico > 0) {
+                this.value = valorNumerico;
+            } else {
+                this.value = '';
+            }
+        });
+    }
+});
 </script>
 
 <style>
@@ -774,7 +836,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .input-group .form-control {
-    padding-left: 32px;
+    padding-left: 38px;
 }
 
 /* Form Checks */
