@@ -31,7 +31,7 @@ class UsuariosListView(LoginRequiredMixin, SuperAdminRequiredMixin, ListView):
         buscar = self.request.GET.get('buscar', '').strip()
         if buscar:
             queryset = queryset.filter(
-                Q(username__icontains=buscar) |
+                Q(nombre_completo__icontains=buscar) |
                 Q(first_name__icontains=buscar) |
                 Q(last_name__icontains=buscar) |
                 Q(email__icontains=buscar)
