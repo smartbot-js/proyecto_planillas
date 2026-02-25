@@ -1056,14 +1056,22 @@ textarea.form-control {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    inicializarUbicacionNicaragua('id_departamento', 'id_municipio');
-});
-document.addEventListener('DOMContentLoaded', function() {
     // Ubicación Nicaragua
     inicializarUbicacionNicaragua('id_departamento', 'id_municipio');
     
     // Puestos laborales
     inicializarPuestosLaborales('id_area_cargo', 'id_puesto_laboral');
+    
+    // Auto-calcular tarifa hora extra = salario x 2
+    const salarioInput = document.getElementById('salario_normal');
+    const tarifaExtraInput = document.getElementById('tarifa_hora_extra');
+    
+    if (salarioInput && tarifaExtraInput) {
+        salarioInput.addEventListener('input', function() {
+            const salario = parseFloat(this.value) || 0;
+            tarifaExtraInput.value = (salario * 2).toFixed(2);
+        });
+    }
 });
 document.addEventListener('DOMContentLoaded', function() {
     
