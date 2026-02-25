@@ -216,13 +216,20 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="puesto_laboral">Puesto Laboral <span class="required">*</span></label>
-                            <input type="text" id="puesto_laboral" name="puesto_laboral" class="form-control" value="{{ trabajador.puesto_laboral }}" required>
+                            <label for="id_area_cargo">Área de Trabajo <span class="required">*</span></label>
+                            <select id="id_area_cargo" name="area_cargo" class="form-control" required>
+                                <option value="">Seleccione un área</option>
+                                {% for area in areas_trabajo %}
+                                <option value="{{ area }}" {% if trabajador.area_cargo == area %}selected{% endif %}>{{ area }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         
                         <div class="form-group">
-                            <label for="area_cargo">Área/Cargo <span class="required">*</span></label>
-                            <input type="text" id="area_cargo" name="area_cargo" class="form-control" value="{{ trabajador.area_cargo }}" required>
+                            <label for="id_puesto_laboral">Puesto Laboral <span class="required">*</span></label>
+                            <select id="id_puesto_laboral" name="puesto_laboral" class="form-control" required>
+                                <option value="">Seleccione un puesto</option>
+                            </select>
                         </div>
                         
                         <div class="form-group">
@@ -531,6 +538,40 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+{% block extra_js %}
+<script src="{% static 'js/puestos_laborales.js' %}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar el sistema de puestos (mismo JS que crear)
+    inicializarPuestosLaborales('id_area_cargo', 'id_puesto_laboral');
+    
+    // Pre-seleccionar el puesto actual del trabajador
+    const puestoActual = '{{ trabajador.puesto_laboral|escapejs }}';
+    const areaSelect = document.getElementById('id_area_cargo');
+    
+    if (areaSelect.value && puestoActual) {
+        // Disparar el change para que cargue los puestos del área seleccionada
+        const evento = new Event('change');
+        areaSelect.dispatchEvent(evento);
+        
+        // Esperar a que se carguen los puestos y seleccionar el actual
+        setTimeout(function() {
+            const puestoSelect = document.getElementById('id_puesto_laboral');
+            if (puestoSelect) {
+                puestoSelect.value = puestoActual;
+                // Si el valor no coincide exactamente, forzar
+                if (puestoSelect.value !== puestoActual) {
+                    const option = new Option(puestoActual, puestoActual, true, true);
+                    puestoSelect.appendChild(option);
+                }
+            }
+        }, 500);
+    }
+});
+</script>
+{% endblock %}
 
 <style>
 /* =================================

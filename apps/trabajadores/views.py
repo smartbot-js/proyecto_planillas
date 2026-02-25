@@ -25,6 +25,9 @@ from apps.proyectos.models import Proyecto
 from apps.core.nicaragua_data import DEPARTAMENTOS
 from apps.core.puestos_data import AREAS_TRABAJO
 from apps.admin_panel.permissions import PermissionRequiredMixin
+
+from apps.core.puestos_data import AREAS_TRABAJO
+
 # ============================================
 # VISTAS WEB (TEMPLATES)
 # ============================================
@@ -347,6 +350,7 @@ class TrabajadorEditarView(LoginRequiredMixin, PermissionRequiredMixin, View):
             'sexos': Trabajador.Sexo.choices,
             'estados': Trabajador.Estado.choices,
             'departamentos': DEPARTAMENTOS,
+            'areas_trabajo': AREAS_TRABAJO,
         }
         
         return render(request, self.template_name, context)
