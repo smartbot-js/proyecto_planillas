@@ -1064,6 +1064,7 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
         """
         Endpoint para marcar entrada (check-in)
         """
+        print(f"DATA CHECK-IN: {request.data}")
         serializer = self.get_serializer(data=request.data)
         
         if not serializer.is_valid():
