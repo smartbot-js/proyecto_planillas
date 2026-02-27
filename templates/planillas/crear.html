@@ -111,8 +111,12 @@
 
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
+}
+
+.form-grid.cols-4 {
+    grid-template-columns: repeat(4, 1fr);
 }
 
 .form-group {
@@ -506,13 +510,13 @@
             Configuración de la Planilla
         </h2>
         
-        <div class="form-grid">
+        <div class="form-grid" id="config-grid">
             <div class="form-group">
                 <label class="required">Proyecto</label>
-                <select name="proyecto" class="form-select" required>
+                <select name="proyecto" id="select-proyecto" class="form-select" required>
                     <option value="">Selecciona un proyecto</option>
                     {% for proyecto in proyectos %}
-                    <option value="{{ proyecto.id }}">{{ proyecto.nombre }}</option>
+                    <option value="{{ proyecto.id }}" data-admin="{{ proyecto.is_administrativo|yesno:'1,0' }}">{{ proyecto.nombre }}</option>
                     {% endfor %}
                 </select>
                 <span class="form-help">Proyecto para el cual se generará la planilla</span>
@@ -541,7 +545,22 @@
                 >
                 <span class="form-help">Se recomienda terminar en martes (13 días)</span>
             </div>
+            
+            <div class="form-group" id="dias-periodo-group" style="display: none;">
+                <label class="required">Días del Período</label>
+                <input 
+                type="number" 
+                name="dias_periodo" 
+                id="dias_periodo"
+                class="form-input"
+                value="12" 
+                min="1" 
+                step="1"
+            >
+            <span class="form-help">Normal: 12 días (2 semanas × 6 días)</span>
+            </div>
         </div>
+
         
         <div class="alert alert-info" style="margin-top: 20px;">
             <span class="material-symbols-outlined">info</span>
@@ -745,5 +764,31 @@ setTimeout(function() {
         }, 500);
     });
 }, 5000);
+// Mostrar/ocultar Días del Período según proyecto administrativo
+const selectProyecto = document.getElementById('select-proyecto');
+const diasGroup = document.getElementById('dias-periodo-group');
+const configGrid = document.getElementById('config-grid');
+
+if (selectProyecto && diasGroup) {
+    selectProyecto.addEventListener('change', function() {
+        const option = this.options[this.selectedIndex];
+        const esAdmin = option.getAttribute('data-admin') === '1';
+        
+        if (esAdmin) {
+            diasGroup.style.display = '';
+            configGrid.classList.add('cols-4');
+        } else {
+            diasGroup.style.display = 'none';
+            configGrid.classList.remove('cols-4');
+        }
+    });
+    
+    // Estado inicial
+    const optionInicial = selectProyecto.options[selectProyecto.selectedIndex];
+    if (optionInicial && optionInicial.getAttribute('data-admin') === '1') {
+        diasGroup.style.display = '';
+        configGrid.classList.add('cols-4');
+    }
+}
 </script>
 {% endblock %}

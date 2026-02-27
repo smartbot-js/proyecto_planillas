@@ -61,7 +61,12 @@ class Proyecto(models.Model):
         default=TipoProyecto.RESIDENCIAL,
         verbose_name='Tipo de Proyecto'
     )
-    
+    # Flag para proyecto administrativo (planilla con fórmulas diferentes)
+    is_administrativo = models.BooleanField(
+        default=False,
+        verbose_name='Proyecto Administrativo',
+        help_text='Proyecto virtual para personal administrativo (sueldo fijo, no por horas)'
+    )
     # Ubicación
     ubicacion = models.CharField(max_length=300, verbose_name='Dirección')
     ubicacion_coordenadas = models.CharField(

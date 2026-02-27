@@ -11,7 +11,7 @@ from django.utils import timezone
 from .models import Planilla, DetallePlanilla, DiaFeriado, TipoCambio
 from apps.asistencias.models import Asistencia
 from apps.trabajadores.models import Trabajador
-
+from apps.asistencias.models import Asistencia
 
 def generar_planilla_desde_asistencias(proyecto, periodo_inicio, periodo_fin, usuario):
     """
@@ -278,3 +278,142 @@ def obtener_resumen_asistencias(proyecto, periodo_inicio, periodo_fin):
         'total_horas_extras': float(total_horas_extras),
         'puede_generar': asistencias_validadas > 0
     }
+
+def generar_planilla_administrativa(proyecto, periodo_inicio, periodo_fin, dias_periodo, usuario):
+    """
+    Genera planilla para personal administrativo.
+    
+    A diferencia de la planilla de construcción:
+    - dias_periodo es input manual (no se calcula de asistencias)
+    - Salario = salario_hora × 8 = día_base
+    - 7mo día, vacaciones, aguinaldo, antigüedad se calculan automáticamente
+    - Horas extras vienen de asistencias (>= 8.5h diarias)
+    - Días feriados se detectan automáticamente
+    
+    Args:
+        proyecto: Proyecto con is_administrativo=True
+        periodo_inicio: fecha inicio del período
+        periodo_fin: fecha fin del período  
+        dias_periodo: días laborados del período (input manual, default 12)
+        usuario: usuario que genera la planilla
+    
+    Returns:
+        tuple: (planilla, detalles_list, errores_list)
+    """
+    errores = []
+    
+    # 1. Validaciones
+    planilla_existente = Planilla.objects.filter(
+        proyecto=proyecto,
+        periodo_inicio=periodo_inicio,
+        periodo_fin=periodo_fin,
+        eliminado=False
+    ).first()
+    
+    if planilla_existente:
+        errores.append(f"Ya existe una planilla para este proyecto y período: {planilla_existente.codigo}")
+        return None, [], errores
+    
+    # 2. Obtener trabajadores asignados al proyecto administrativo
+    trabajadores = Trabajador.objects.filter(
+        proyecto_asignado=proyecto,
+        eliminado=False,
+        estado='activo'
+    ).order_by('area_cargo', 'apellido', 'nombre')
+    
+    if not trabajadores.exists():
+        errores.append("No hay trabajadores activos asignados al proyecto administrativo")
+        return None, [], errores
+    
+    # 3. Tipo de cambio
+    tipo_cambio = TipoCambio.get_actual()
+    
+    # 4. Crear planilla
+    try:
+        planilla = Planilla.objects.create(
+            proyecto=proyecto,
+            periodo_inicio=periodo_inicio,
+            periodo_fin=periodo_fin,
+            tipo_cambio=tipo_cambio.valor,
+            estado='borrador',
+            generada_por=usuario
+        )
+    except Exception as e:
+        errores.append(f"Error al crear la planilla: {str(e)}")
+        return None, [], errores
+    
+    # 5. Obtener días feriados en el período
+    dias_feriados_periodo = DiaFeriado.objects.filter(
+        fecha__gte=periodo_inicio,
+        fecha__lte=periodo_fin,
+        activo=True
+    ).values_list('fecha', flat=True)
+    
+    # 6. Generar detalle por trabajador
+    detalles_list = []
+    
+    for trabajador in trabajadores:
+        salario_hora = trabajador.salario_normal or Decimal('0.00')
+        dia_base = salario_hora * Decimal('8')  # Día Base = salario_hora × 8
+        
+        # Horas extras del período (de asistencias, solo >= 8.5h diarias)
+        horas_extras_total = Decimal('0.00')
+        dias_feriados_trabajados = 0
+        horas_en_feriados = Decimal('0.00')
+        
+        asistencias = Asistencia.objects.filter(
+            trabajador=trabajador,
+            proyecto=proyecto,
+            fecha__gte=periodo_inicio,
+            fecha__lte=periodo_fin,
+            eliminado=False,
+            estado='cerrado'
+        )
+        
+        for asistencia in asistencias:
+            horas_trabajadas = asistencia.horas_normales or Decimal('0.00')
+            he = asistencia.horas_extras or Decimal('0.00')
+            
+            # Solo cuenta hora extra si >= 8.5h (8.1-8.4 NO cuenta)
+            if horas_trabajadas >= Decimal('8.5'):
+                horas_extras_total += he
+            
+            # Verificar si es día feriado
+            if asistencia.fecha in dias_feriados_periodo:
+                dias_feriados_trabajados += 1
+                # Las horas trabajadas en feriado se pagan como hora extra
+                horas_en_feriados += horas_trabajadas
+        
+        # Clasificar área
+        puesto = trabajador.puesto_laboral.lower() if trabajador.puesto_laboral else ''
+        if any(w in puesto for w in ['contador', 'gerente', 'administrador', 'asistente', 'secretaria']):
+            area = 'administrativo'
+        elif any(w in puesto for w in ['conductor', 'mensajero', 'conserje', 'auxiliar']):
+            area = 'ayudantes'
+        elif any(w in puesto for w in ['ingeniero', 'arquitecto', 'supervisor', 'fiscal']):
+            area = 'oficiales'
+        else:
+            area = 'administrativo'
+        
+        # Crear detalle (el save() llamará calcular_valores_administrativo automáticamente)
+        try:
+            detalle = DetallePlanilla.objects.create(
+                planilla=planilla,
+                trabajador=trabajador,
+                area=area,
+                cargo=trabajador.puesto_laboral or '',
+                dias_laborados=dias_periodo,
+                horas_extras=horas_extras_total,
+                dias_feriados=dias_feriados_trabajados,
+                horas_feriado=horas_en_feriados,
+                salario_dia_base=dia_base,
+            )
+            detalles_list.append(detalle)
+        except Exception as e:
+            errores.append(f"Error con {trabajador.nombre_completo}: {str(e)}")
+    
+    # 7. Recalcular totales de la planilla
+    if detalles_list:
+        planilla.calcular_totales()
+    
+    return planilla, detalles_list, errores

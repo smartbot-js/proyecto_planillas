@@ -149,13 +149,19 @@ class Command(BaseCommand):
                     nombre='Administración General',
                     defaults={
                         'descripcion': 'Proyecto virtual para agrupar personal administrativo (secretarias, contadores, gerencia, etc.)',
-                        'ubicacion': 'Oficina Central',  # ✅ Cambio: direccion → ubicacion
+                        'ubicacion': 'Oficina Central',
                         'estado': 'ejecucion',
                         'fecha_inicio': timezone.now().date(),
-                        'supervisor_id': 1,  # ✅ Asume que el superuser tiene ID 1
-                        'tipo_proyecto': 'comercial',  # ✅ Campo requerido
+                        'supervisor_id': 1,
+                        'tipo_proyecto': 'comercial',
+                        'is_administrativo': True,
                     }
                 )
+                
+                # Si ya existía pero no tenía el flag, actualizarlo
+                if not created and not proyecto_admin.is_administrativo:
+                    proyecto_admin.is_administrativo = True
+                    proyecto_admin.save(update_fields=['is_administrativo'])
                 
                 if created:
                     self.stdout.write(

@@ -816,6 +816,11 @@ class ProyectoEliminarView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 )
                 return redirect('proyecto_detalle', pk=pk)
             
+            # No permitir eliminar proyecto administrativo
+            if proyecto.is_administrativo:
+                messages.error(request, '❌ No se puede eliminar el proyecto administrativo.')
+                return redirect('proyecto_detalle', pk=pk)
+                
             # Soft delete
             nombre_proyecto = proyecto.nombre
             proyecto.soft_delete(request.user)

@@ -29,6 +29,7 @@ import io
 
 from .models import Planilla, DetallePlanilla, TipoCambio, DiaFeriado
 from .utils import (
+    generar_planilla_administrativa,
     generar_planilla_desde_asistencias,
     validar_periodo_planilla,
     obtener_resumen_asistencias
@@ -452,12 +453,23 @@ class PlanillaCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
             # ============================================================
             # GENERAR PLANILLA
             # ============================================================
-            planilla, detalles, errores = generar_planilla_desde_asistencias(
-                proyecto=proyecto,
-                periodo_inicio=periodo_inicio,
-                periodo_fin=periodo_fin,
-                usuario=request.user
-            )
+            # Detectar tipo de planilla
+            if proyecto.is_administrativo:
+                dias_periodo = int(request.POST.get('dias_periodo', 12))
+                planilla, detalles, errores = generar_planilla_administrativa(
+                    proyecto=proyecto,
+                    periodo_inicio=periodo_inicio,
+                    periodo_fin=periodo_fin,
+                    dias_periodo=dias_periodo,
+                    usuario=request.user
+                )
+            else:
+                planilla, detalles, errores = generar_planilla_desde_asistencias(
+                    proyecto=proyecto,
+                    periodo_inicio=periodo_inicio,
+                    periodo_fin=periodo_fin,
+                    usuario=request.user
+                )
             
             # Mostrar errores si los hay
             if errores:
