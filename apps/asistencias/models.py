@@ -531,7 +531,7 @@ class Asistencia(models.Model):
     def cerrar_turno(self, hora_salida=None):
         """Cierra el turno y calcula las horas trabajadas"""
         if not hora_salida:
-            hora_salida = timezone.now().time()
+            hora_salida = timezone.localtime().time()
         
         self.hora_salida = hora_salida
         self.estado = 'cerrado'

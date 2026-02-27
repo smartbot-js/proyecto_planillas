@@ -569,7 +569,7 @@ class AsistenciaMarcarEntradaView(LoginRequiredMixin, PermissionRequiredMixin, V
             if hora_entrada_str:
                 hora_entrada = datetime.strptime(hora_entrada_str, '%H:%M').time()
             else:
-                hora_entrada = timezone.now().time()
+                hora_entrada = timezone.localtime().time()
             
             # Crear asistencia
             asistencia = Asistencia.objects.create(
@@ -629,7 +629,7 @@ class AsistenciaCerrarTurnoView(LoginRequiredMixin, PermissionRequiredMixin, Vie
             if hora_salida_str:
                 hora_salida = datetime.strptime(hora_salida_str, '%H:%M').time()
             else:
-                hora_salida = timezone.now().time()
+                hora_salida = timezone.localtime().time()
             
             # Cerrar turno usando el método del modelo
             asistencia.cerrar_turno(hora_salida=hora_salida)

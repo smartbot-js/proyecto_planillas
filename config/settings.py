@@ -159,9 +159,12 @@ CORS_ALLOWED_ORIGINS = config(
 CORS_ALLOW_CREDENTIALS = True
 
 
-LANGUAGE_CODE = 'es-co'  # Español Colombia
+#LANGUAGE_CODE = 'es-co'  # Español Colombia
 
-TIME_ZONE = 'America/Bogota'  # Zona horaria de Colombia
+#TIME_ZONE = 'America/Bogota'  # Zona horaria de Colombia
+LANGUAGE_CODE = 'es-ni'  # Español Nicaragua
+
+TIME_ZONE = 'America/Managua'  # Zona horaria de Nicaragua (UTC-6)
 
 USE_I18N = True
 
