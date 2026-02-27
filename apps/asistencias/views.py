@@ -1091,11 +1091,22 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
             # Buscar proyecto
             proyecto = Proyecto.objects.get(id=data['proyecto_id'], eliminado=False)
             
-            # Verificar si ya tiene asistencia hoy
+            # Parsear fecha del dispositivo para verificación
             hoy = timezone.now().date()
+            fecha_registro = hoy
+            
+            fecha_app_str = data.get('fecha_app')
+            if fecha_app_str:
+                try:
+                    from datetime import datetime as dt
+                    fecha_app_dt = dt.strptime(fecha_app_str.strip(), '%Y-%m-%d %H:%M')
+                    fecha_registro = fecha_app_dt.date()
+                except (ValueError, AttributeError):
+                    pass
+            
             asistencia_existente = Asistencia.objects.filter(
                 trabajador=trabajador,
-                fecha=hoy
+                fecha=fecha_registro
             ).first()
             
             if asistencia_existente:
@@ -1116,14 +1127,25 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
-            # Hora de entrada
+            # Parsear fecha y hora del dispositivo
+            fecha_registro = hoy
             hora_entrada = data.get('hora_entrada') or timezone.localtime().time()
+            
+            fecha_app_str = data.get('fecha_app')
+            if fecha_app_str:
+                try:
+                    from datetime import datetime as dt
+                    fecha_app_dt = dt.strptime(fecha_app_str.strip(), '%Y-%m-%d %H:%M')
+                    fecha_registro = fecha_app_dt.date()
+                    hora_entrada = fecha_app_dt.time()
+                except (ValueError, AttributeError):
+                    pass  # Si falla el parseo, usar valores del servidor
 
             # Crear asistencia
             asistencia = Asistencia.objects.create(
                 trabajador=trabajador,
                 proyecto=proyecto,
-                fecha=hoy,
+                fecha=fecha_registro,
                 puesto_laboral=trabajador.puesto_laboral,
                 hora_entrada=hora_entrada,
                 latitud_entrada=data.get('latitud'),
@@ -1186,6 +1208,16 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
                 )
             
             hora_salida = data.get('hora_salida') or timezone.localtime().time()
+            
+            # Parsear fecha/hora del dispositivo
+            fecha_app_str = data.get('fecha_app')
+            if fecha_app_str:
+                try:
+                    from datetime import datetime as dt
+                    fecha_app_dt = dt.strptime(fecha_app_str.strip(), '%Y-%m-%d %H:%M')
+                    hora_salida = fecha_app_dt.time()
+                except (ValueError, AttributeError):
+                    pass
 
             # Usar el método del modelo para cerrar el turno
             asistencia.cerrar_turno(hora_salida=hora_salida)
