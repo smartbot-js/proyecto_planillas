@@ -182,7 +182,7 @@ class CheckOutSerializer(serializers.Serializer):
     fecha_app = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     latitud = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
     longitud = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
-    observaciones = serializers.Cha
+    observaciones = serializers.CharField(required=False, allow_blank=True)
 
 class SincronizarAsistenciaItemSerializer(serializers.Serializer):
     """
