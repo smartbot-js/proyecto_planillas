@@ -807,7 +807,7 @@ class Proyecto(models.Model):
                     # No romper guardado por error de formato
                     print(f"[GEO NORMALIZE ERROR] {coords} -> {e}")
         # Sincronizar activo con estado
-        self.activo = self.estado in ('ejecucion', 'planificacion')
+        self.activo = self.estado in ('ejecucion')
         super().save(*args, **kwargs)
 
     def soft_delete(self, usuario):
