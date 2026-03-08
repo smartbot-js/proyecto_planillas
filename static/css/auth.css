@@ -471,3 +471,59 @@ select:focus {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+/* ========================================
+   CAMPOS NUEVOS REGISTRO - DATOS LABORALES
+   ======================================== */
+
+/* Separador de sección dentro del formulario */
+.form-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #6b7280;
+    padding: 16px 0 8px 0;
+    margin-top: 8px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.form-section-label:first-of-type {
+    border-top: none;
+    margin-top: 0;
+    padding-top: 0;
+}
+
+/* Fila de 2 columnas dentro del formulario de registro */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+@media (max-width: 480px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Checkbox inline (para "Asegurado") */
+.checkbox-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding-top: 28px; /* Alinear con el input de al lado */
+    font-size: 14px;
+    color: #374151;
+}
+
+.checkbox-inline input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #3b82f6;
+    cursor: pointer;
+}
+
+.checkbox-inline span {
+    font-weight: 500;
+}

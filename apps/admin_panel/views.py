@@ -12,6 +12,9 @@ from .forms import RolForm, AsignarRolForm
 from apps.usuarios.models import Usuario
 from apps.proyectos.models import Proyecto, UsuarioProyecto
 
+from apps.trabajadores.models import Trabajador
+from apps.trabajadores.utils import generar_qr_trabajador
+from apps.core.puestos_data import AREAS_TRABAJO
 # ============================================
 # GESTIÓN DE USUARIOS
 # ============================================

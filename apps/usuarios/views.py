@@ -2,6 +2,7 @@
 Views para la aplicación de usuarios
 """
 
+from apps.core.puestos_data import AREAS_TRABAJO
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -224,7 +225,8 @@ class LoginTemplateView(View):
             return redirect('dashboard')
         #return render(request, self.template_name)
         context = {
-            'roles_registro': Rol.objects.filter(activo=True, permite_auto_registro=True).order_by('nombre')
+            'roles_registro': Rol.objects.filter(activo=True, permite_auto_registro=True).order_by('nombre'),
+            'areas_trabajo': AREAS_TRABAJO,
             }
         return render(request, self.template_name, context)
     
@@ -289,18 +291,36 @@ class LoginTemplateView(View):
         return render(request, self.template_name, context)
 
 class RegistroTemplateView(View):
-    """Vista para registro de nuevos usuarios"""
+    """Vista para registro de nuevos usuarios + auto-creación de trabajador"""
     template_name = 'usuarios/login.html'
+    
+    def get(self, request):
+        """Proporcionar contexto para el formulario de registro"""
+        from apps.core.puestos_data import AREAS_TRABAJO
+        context = {
+            'roles': Usuario.Rol.choices,
+            'areas_trabajo': AREAS_TRABAJO,
+        }
+        return render(request, self.template_name, context)
     
     def post(self, request):
         email = request.POST.get('email', '').strip()
         nombre_completo = request.POST.get('nombre_completo', '').strip()
         password = request.POST.get('password', '')
         password_confirm = request.POST.get('password_confirm', '')
-        rol_codigo = request.POST.get('rol', '')  # ← Cambiar nombre variable
+        rol_codigo = request.POST.get('rol', '')
         
+        # Campos nuevos para trabajador
+        numero_cedula = request.POST.get('numero_cedula', '').strip()
+        area_cargo = request.POST.get('area_cargo', '').strip()
+        puesto_laboral = request.POST.get('puesto_laboral', '').strip()
+        salario_normal = request.POST.get('salario_normal', '0').strip()
+        asegurado = False
+        
+        from apps.core.puestos_data import AREAS_TRABAJO
         context = {
-            'roles_registro': Rol.objects.filter(activo=True, permite_auto_registro=True).order_by('nombre')
+            'roles': Usuario.Rol.choices,
+            'areas_trabajo': AREAS_TRABAJO,
         }
         
         # Validaciones
@@ -312,14 +332,22 @@ class RegistroTemplateView(View):
             messages.error(request, 'El email ya está registrado.')
             return render(request, self.template_name, context)
         
-        try:            
-            # Buscar rol por código (si viene del formulario)
+        # Validar cédula duplicada (si se proporcionó)
+        if numero_cedula:
+            from apps.trabajadores.models import Trabajador
+            if Trabajador.objects.filter(numero_cedula=numero_cedula, eliminado=False).exists():
+                messages.error(request, f'Ya existe un trabajador con la cédula {numero_cedula}.')
+                return render(request, self.template_name, context)
+        
+        try:
+            # ========== OBTENER ROL OBJETO ==========
+            from apps.admin_panel.models import Rol
+            
             rol_obj = None
             if rol_codigo:
                 try:
                     rol_obj = Rol.objects.get(codigo=rol_codigo, activo=True)
                 except Rol.DoesNotExist:
-                    # Si no existe, dejarlo sin rol (admin lo asignará)
                     rol_obj = None
             # ========================================
             
@@ -327,10 +355,49 @@ class RegistroTemplateView(View):
                 email=email,
                 nombre_completo=nombre_completo,
                 password=password,
-                rol=rol_obj,  # ← Asignar objeto Rol, no string
+                rol=rol_obj,
                 activo=True,
                 cuenta_aprobada=False,
             )
+            
+            # ========================================================
+            # AUTO-CREAR TRABAJADOR
+            # ========================================================
+            from apps.trabajadores.models import Trabajador
+            from apps.trabajadores.utils import generar_qr_trabajador
+            
+            partes = nombre_completo.split(' ', 1)
+            nombre = partes[0]
+            apellido = partes[1] if len(partes) > 1 else ''
+            
+            try:
+                salario = float(salario_normal) if salario_normal else 0
+            except (ValueError, TypeError):
+                salario = 0
+            
+            cedula_final = numero_cedula if numero_cedula else f'USR-{usuario.id}'
+            
+            trabajador = Trabajador.objects.create(
+                nombre=nombre,
+                apellido=apellido,
+                numero_cedula=cedula_final,
+                email=email,
+                area_cargo=area_cargo,
+                puesto_laboral=puesto_laboral,
+                salario_normal=salario,
+                tarifa_hora_extra=salario * 2,
+                asegurado=asegurado,
+                estado='activo',
+            )
+            
+            # Generar QR si tiene cédula real
+            #if numero_cedula:
+            try:
+                generar_qr_trabajador(trabajador)
+                trabajador.save(update_fields=['codigo_qr'])
+            except Exception:
+                pass  # QR no es crítico, no bloquear registro
+            # ========================================================
             
             messages.success(
                 request, 
@@ -342,7 +409,7 @@ class RegistroTemplateView(View):
         except Exception as e:
             messages.error(request, f'Error al crear la cuenta: {str(e)}')
             return render(request, self.template_name, context)
-        
+
 class LogoutTemplateView(View):
     """Vista para cerrar sesión"""
     def get(self, request):

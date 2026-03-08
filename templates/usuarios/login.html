@@ -100,13 +100,16 @@
             <form method="POST" action="{% url 'registro' %}" id="register-form" class="auth-form">
                 {% csrf_token %}
                 
+                <!-- Separador: Datos de Cuenta -->
+                <div class="form-section-label">Datos de Cuenta</div>
+                
                 <div class="form-group">
                     <label for="register-nombre">Nombre completo</label>
                     <input 
                         type="text" 
                         id="register-nombre" 
                         name="nombre_completo" 
-                        placeholder="Jhon Medina"
+                        placeholder="Harold Cortez Hernandez"
                         required
                     >
                 </div>
@@ -117,58 +120,98 @@
                         type="email" 
                         id="register-email" 
                         name="email" 
-                        placeholder="jhon@empresa.com"
+                        placeholder="usuario@empresa.com"
                         required
                     >
                 </div>
 
-                <div class="form-group">
-                    <label for="register-password">Contraseña</label>
-                    <div class="password-input">
-                        <input 
-                            type="password" 
-                            id="register-password" 
-                            name="password" 
-                            placeholder="Crear contraseña"
-                            required
-                        >
-                        <button type="button" class="toggle-password" data-target="register-password">
-                            <svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                        </button>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="register-password">Contraseña</label>
+                        <div class="password-input">
+                            <input 
+                                type="password" 
+                                id="register-password" 
+                                name="password" 
+                                placeholder="Crear contraseña"
+                                required
+                            >
+                            <button type="button" class="toggle-password" data-target="register-password">
+                                <svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password-confirm">Confirmar contraseña</label>
+                        <div class="password-input">
+                            <input 
+                                type="password" 
+                                id="register-password-confirm" 
+                                name="password_confirm" 
+                                placeholder="Confirmar contraseña"
+                                required
+                            >
+                        </div>
                     </div>
                 </div>
-
-                <div class="form-group">
-                    <label for="register-password-confirm">Confirmar contraseña</label>
-                    <div class="password-input">
-                        <input 
-                            type="password" 
-                            id="register-password-confirm" 
-                            name="password_confirm" 
-                            placeholder="Confirmar contraseña"
-                            required
-                        >
-                    </div>
-                </div>
-
                 <div class="form-group">
                     <label for="register-rol">Rol</label>
                     <select id="register-rol" name="rol" required>
                         <option value="">Selecciona un rol...</option>
                         {% for rol in roles_registro %}
                         <option value="{{ rol.codigo }}">{{ rol.nombre }}</option>
-                        {% empty %}
-                        <option value="" disabled>No hay roles disponibles</option>
                         {% endfor %}
                     </select>
+                </div>
+                
+                <!-- Separador: Datos Laborales -->
+                <div class="form-section-label">Datos Laborales</div>
+                
+                <div class="form-group">
+                    <label for="register-cedula">Número de cédula</label>
+                    <input 
+                        type="text" 
+                        id="register-cedula" 
+                        name="numero_cedula" 
+                        placeholder="001-120590-0012X"
+                    >
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="register-area">Área de trabajo</label>
+                        <select id="register-area" name="area_cargo">
+                            <option value="">Selecciona un área...</option>
+                            {% for area in areas_trabajo %}
+                            <option value="{{ area }}">{{ area }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-puesto">Puesto laboral</label>
+                        <select id="register-puesto" name="puesto_laboral" disabled>
+                            <option value="">Primero selecciona un área</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="register-salario">Salario por hora (C$)</label>
+                    <input 
+                        type="text" 
+                        id="register-salario" 
+                        name="salario_normal_display" 
+                        placeholder="C$ 0.00"
+                        autocomplete="off"
+                    >
+                    <input type="hidden" id="register-salario-real" name="salario_normal" value="0">
                 </div>
 
                 <button type="submit" class="btn btn-primary">Crear cuenta</button>
             </form>
-
             <!-- Términos y condiciones -->
             <p class="terms">
                 Al continuar aceptas los <a href="#">Términos</a> y la <a href="#">Política de privacidad</a>.
@@ -177,5 +220,88 @@
     </div>
 
     <script src="{% static 'js/auth.js' %}"></script>
+    <script>
+        // Cargar puestos laborales según área seleccionada (registro)
+        document.addEventListener('DOMContentLoaded', function() {
+            const areaSelect = document.getElementById('register-area');
+            const puestoSelect = document.getElementById('register-puesto');
+            // Formateo de salario en tiempo real mientras escribe
+            const salarioDisplay = document.getElementById('register-salario');
+            const salarioReal = document.getElementById('register-salario-real');
+                
+            if (salarioDisplay && salarioReal) {
+                salarioDisplay.addEventListener('input', function() {
+                    // Extraer solo dígitos y punto
+                    let limpio = this.value.replace(/[^0-9.]/g, '');
+                    
+                    // Evitar múltiples puntos
+                    const partes = limpio.split('.');
+                    if (partes.length > 2) {
+                        limpio = partes[0] + '.' + partes.slice(1).join('');
+                    }
+                    
+                    // Guardar valor real
+                    const num = parseFloat(limpio) || 0;
+                    salarioReal.value = num;
+                    
+                    // Formatear parte entera con comas mientras escribe
+                    if (limpio) {
+                        const entero = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                        const formato = partes.length > 1 ? entero + '.' + partes[1] : entero;
+                        this.value = 'C$ ' + formato;
+                    }
+                });
+                
+                // Al hacer focus, mostrar solo número limpio para editar fácil
+                salarioDisplay.addEventListener('focus', function() {
+                    const num = salarioReal.value;
+                    this.value = num && num !== '0' ? num : '';
+                });
+                
+                // Al salir, formatear completo
+                salarioDisplay.addEventListener('blur', function() {
+                    const num = parseFloat(salarioReal.value) || 0;
+                    if (num > 0) {
+                        this.value = 'C$ ' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    } else {
+                        this.value = '';
+                    }
+                });
+            }           
+        
+            if (areaSelect && puestoSelect) {
+            areaSelect.addEventListener('change', function() {
+                const area = this.value;
+                puestoSelect.innerHTML = '<option value="">Cargando...</option>';
+                puestoSelect.disabled = true;
+                
+                if (!area) {
+                    puestoSelect.innerHTML = '<option value="">Primero selecciona un área</option>';
+                    return;
+                }
+                
+                fetch('/api/core/puestos-por-area/?area=' + encodeURIComponent(area))
+                    .then(response => response.json())
+                    .then(data => {
+                        puestoSelect.innerHTML = '<option value="">Selecciona un puesto...</option>';
+                        if (data.puestos) {
+                            data.puestos.forEach(function(puesto) {
+                                const option = document.createElement('option');
+                                option.value = puesto;
+                                option.textContent = puesto;
+                                puestoSelect.appendChild(option);
+                            });
+                        }
+                        puestoSelect.disabled = false;
+                    })
+                    .catch(function() {
+                        puestoSelect.innerHTML = '<option value="">Error al cargar puestos</option>';
+                        puestoSelect.disabled = false;
+                    });
+            });
+        }
+        
+            });
+        </script>
 </body>
 </html>
