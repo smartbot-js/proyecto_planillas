@@ -718,29 +718,42 @@ class Asistencia(models.Model):
         minutos = int((self.horas_totales - horas) * 60)
         return f"{horas}h {minutos}min"
 
+########! se quita la validacion mientras se sale a produccion
+    # @property
+    # def puede_editar(self):
+    #     """Solo se pueden editar asistencias de los últimos 2 días"""
+    #     if self.eliminado:
+    #         return False
+        
+    #     hoy = timezone.now().date()
+    #     return self.fecha >= (hoy - timedelta(days=2))
+    #     #return True
     @property
     def puede_editar(self):
-        """Solo se pueden editar asistencias de los últimos 2 días"""
+        """Permitir edición sin restricción de días (temporal para pre-producción)"""
         if self.eliminado:
             return False
+        return True
+    #! se comenta  mientras se prueba el sistema y se sale a producciom        
+    # @property
+    # def motivo_no_editable(self):
+    #     """Retorna el motivo por el cual no se puede editar"""
+    #     if self.eliminado:
+    #         return "La asistencia ha sido eliminada"
         
-        hoy = timezone.now().date()
-        return self.fecha >= (hoy - timedelta(days=2))
-        #return True
-
+    #     hoy = timezone.now().date()
+    #     dias_diferencia = (hoy - self.fecha).days
+        
+    #     if dias_diferencia > 2:
+    #         return f"Han pasado {dias_diferencia} días desde el registro. Solo se pueden editar asistencias de los últimos 2 días."
+        
+    #     return "Puede ser editada"
     @property
     def motivo_no_editable(self):
         """Retorna el motivo por el cual no se puede editar"""
         if self.eliminado:
             return "La asistencia ha sido eliminada"
-        
-        hoy = timezone.now().date()
-        dias_diferencia = (hoy - self.fecha).days
-        
-        if dias_diferencia > 2:
-            return f"Han pasado {dias_diferencia} días desde el registro. Solo se pueden editar asistencias de los últimos 2 días."
-        
-        return "Puede ser editada"
+        return None
 
     @property
     def dias_desde_registro(self):
