@@ -297,6 +297,7 @@ class AsistenciaCorregirView(LoginRequiredMixin, PermissionRequiredMixin, View):
         
         context = {
             'asistencia': asistencia,
+            'puede_editar': asistencia.puede_editar,
         }
         
         return render(request, self.template_name, context)
