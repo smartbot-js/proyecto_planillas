@@ -22,7 +22,18 @@ class SuperAdminRequiredMixin(UserPassesTestMixin):
                (self.request.user.rol and self.request.user.rol.codigo == 'admin')
     
     def handle_no_permission(self):
-        messages.error(self.request, 'No tienes permisos para acceder a esta sección')
+        modulo = self.permission_modulo or 'sistema'
+        accion = self.permission_accion or 'acceder'
+        rol_nombre = self.request.user.rol.nombre if self.request.user.rol else 'Sin rol'
+        messages.error(
+            self.request,
+            f'⛔ Tu rol ({rol_nombre}) no tiene permiso para "{accion}" en "{modulo}". '
+            f'Contacta al administrador si necesitas este acceso.'
+        )
+        # Volver a la página donde estaba, no al dashboard
+        referer = self.request.META.get('HTTP_REFERER')
+        if referer:
+            return redirect(referer)
         return redirect('dashboard')
 
 def permission_required(modulo, accion):
@@ -39,18 +50,31 @@ def permission_required(modulo, accion):
         return wrapper
     return decorator
 
-class PermissionRequiredMixin(UserPassesTestMixin):
+class PermissionRequiredMixin:
+    """Mixin de permisos basado en el JSON del rol"""
     permission_modulo = None
     permission_accion = None
 
-    def test_func(self):
-        # SUPERUSER siempre puede todo
-        if self.request.user.is_superuser:
-            return True
-        if not self.permission_modulo or not self.permission_accion:
-            return False
-        return self.request.user.tiene_permiso(self.permission_modulo, self.permission_accion)
-
-    def handle_no_permission(self):
-        messages.error(self.request, 'No tienes permiso para realizar esta acción')
-        return redirect('dashboard')
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('login')
+        
+        # Superuser siempre puede
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        
+        # Verificar permiso
+        if self.permission_modulo and self.permission_accion:
+            if not request.user.tiene_permiso(self.permission_modulo, self.permission_accion):
+                rol_nombre = request.user.rol.nombre if request.user.rol else 'Sin rol'
+                messages.error(
+                    request,
+                    f'⛔ Tu rol ({rol_nombre}) no tiene permiso para "{self.permission_accion}" en "{self.permission_modulo}". '
+                    f'Contacta al administrador si necesitas este acceso.'
+                )
+                referer = request.META.get('HTTP_REFERER')
+                if referer:
+                    return redirect(referer)
+                return redirect('dashboard')
+        
+        return super().dispatch(request, *args, **kwargs)

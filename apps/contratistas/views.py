@@ -1053,17 +1053,18 @@ class PagoContratistaDetalleView(LoginRequiredMixin, DetailView):
         
         # Verificar permisos del usuario actual
         user = self.request.user
+        rc = user.rol_codigo
         context['puede_aprobar_gerente'] = (
             pago.estado == 'pendiente' and 
-            (user.rol in ['administrador', 'gerente'])
+            (user.is_superuser or rc in ['admin', 'gerente_general'])
         )
         context['puede_aprobar_contador'] = (
             pago.estado == 'aprobado_gerente' and 
-            (user.rol in ['administrador', 'contador'])
+            (user.is_superuser or rc in ['admin', 'contador', 'gerente_general'])
         )
         context['puede_rechazar'] = (
             pago.estado in ['pendiente', 'aprobado_gerente'] and
-            (user.rol in ['administrador', 'gerente', 'contador'])
+            (user.is_superuser or rc in ['admin', 'gerente_general', 'contador'])
         )
         
         return context
@@ -1080,10 +1081,10 @@ class PagoAprobarGerenteView(LoginRequiredMixin, View):
         )
         
         # Verificar permisos
-        if request.user.rol not in ['administrador', 'gerente']:
+        if not (request.user.is_superuser or request.user.rol_codigo in ['admin', 'gerente_general']):
             messages.error(
                 request,
-                '❌ No tienes permisos para aprobar pagos como gerente.'
+                '⛔ No tienes permisos para aprobar pagos como gerente.'
             )
             return redirect('pago_detalle', pk=pago.id)
         
@@ -1124,10 +1125,10 @@ class PagoAprobarContadorView(LoginRequiredMixin, View):
         )
         
         # Verificar permisos
-        if request.user.rol not in ['administrador', 'contador']:
+        if not (request.user.is_superuser or request.user.rol_codigo in ['admin', 'contador', 'gerente_general']):
             messages.error(
                 request,
-                '❌ No tienes permisos para aprobar pagos como contador.'
+                '⛔ No tienes permisos para aprobar pagos como contador.'
             )
             return redirect('pago_detalle', pk=pago.id)
         
@@ -1168,10 +1169,10 @@ class PagoRechazarView(LoginRequiredMixin, View):
         )
         
         # Verificar permisos
-        if request.user.rol not in ['administrador', 'gerente', 'contador']:
+        if not (request.user.is_superuser or request.user.rol_codigo in ['admin', 'gerente_general', 'contador']):
             messages.error(
                 request,
-                '❌ No tienes permisos para rechazar pagos.'
+                '⛔ No tienes permisos para rechazar pagos.'
             )
             return redirect('pago_detalle', pk=pago.id)
         

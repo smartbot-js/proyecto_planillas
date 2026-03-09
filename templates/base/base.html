@@ -146,20 +146,35 @@
         
     </div>
     
-    <div class="messages-container">
-        {% if messages %}
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible">
-                <span>{{ message }}</span>
-                <button type="button" class="alert-close" onclick="this.parentElement.remove()">×</button>
-            </div>
-            {% endfor %}
-        {% endif %}
+    {% if messages %}
+    <div class="toast-container" id="toastContainer">
+        {% for message in messages %}
+        <div class="toast toast-{{ message.tags }}">
+            <span class="toast-icon material-symbols-outlined">
+                {% if message.tags == 'success' %}check_circle
+                {% elif message.tags == 'error' %}error
+                {% elif message.tags == 'warning' %}warning
+                {% else %}info{% endif %}
+            </span>
+            <span class="toast-text">{{ message }}</span>
+            <button type="button" class="toast-close" onclick="this.parentElement.remove()">×</button>
+        </div>
+        {% endfor %}
     </div>
+    {% endif %}
     
     {% block modal %}{% endblock modal %}
     
     <script src="{% static 'js/dashboard.js' %}"></script>
+    <script>
+        // Auto-cerrar toasts después de 5 segundos
+        document.querySelectorAll('.toast').forEach(function(toast) {
+            setTimeout(function() {
+                toast.style.animation = 'slideIn 0.3s ease-out reverse';
+                setTimeout(function() { toast.remove(); }, 300);
+            }, 5000);
+        });
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

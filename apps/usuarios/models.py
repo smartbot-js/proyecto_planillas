@@ -226,6 +226,15 @@ class Usuario(AbstractUser):
         permisos = self.rol.permisos or {}
         return permisos.get(modulo, {}).get(accion, False)
 
+    @property
+    def rol_codigo(self):
+        """Retorna el código del rol como string para comparaciones"""
+        if self.is_superuser:
+            return 'admin'
+        if self.rol:
+            return self.rol.codigo
+        return None
+        
     def get_proyectos_permitidos(self):
         """Retorna queryset de proyectos que puede ver según su rol"""
         from apps.proyectos.models import Proyecto, UsuarioProyecto

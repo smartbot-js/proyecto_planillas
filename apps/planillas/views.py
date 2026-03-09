@@ -567,10 +567,9 @@ class PlanillaDetalleView(LoginRequiredMixin, View):
                 'total_dolares': total_dolares
             }
         
-        # Obtener rol del usuario de forma segura
-        user_rol = getattr(request.user, 'rol', None)
+        # Permisos del usuario (usa rol_codigo property)
+        rc = request.user.rol_codigo
         
-        # Permisos del usuario
         puede_editar = planilla.estado == 'borrador' and (
             request.user.is_superuser or 
             request.user == planilla.generada_por
@@ -578,17 +577,17 @@ class PlanillaDetalleView(LoginRequiredMixin, View):
         
         puede_aprobar_gerente = (
             planilla.estado == 'borrador' and
-            (request.user.is_superuser or user_rol in ['gerente', 'administrador'])
+            (request.user.is_superuser or rc in ['admin', 'gerente_general'])
         )
         
         puede_aprobar_contador = (
             planilla.estado == 'aprobada_gerente' and
-            (request.user.is_superuser or user_rol in ['contador', 'administrador'])
+            (request.user.is_superuser or rc in ['admin', 'contador', 'gerente_general'])
         )
         
         puede_marcar_pagada = (
             planilla.estado == 'aprobada_final' and
-            (request.user.is_superuser or user_rol in ['contador', 'administrador'])
+            (request.user.is_superuser or rc in ['admin', 'contador', 'gerente_general'])
         )
         
         context = {
@@ -679,9 +678,8 @@ class PlanillaAprobarGerenteView(LoginRequiredMixin, PermissionRequiredMixin, Vi
                 return redirect('planilla_detalle', pk=pk)
             
             # Verificar permisos
-            user_rol = getattr(request.user, 'rol', None)
-            if not (request.user.is_superuser or user_rol in ['gerente', 'administrador']):
-                messages.error(request, 'No tienes permisos para aprobar como gerente')
+            if not (request.user.is_superuser or request.user.rol_codigo in ['admin', 'gerente_general']):
+                messages.error(request, '⛔ No tienes permisos para aprobar como gerente')
                 return redirect('planilla_detalle', pk=pk)
             
             # Aprobar
@@ -718,9 +716,8 @@ class PlanillaAprobarContadorView(LoginRequiredMixin, PermissionRequiredMixin, V
                 return redirect('planilla_detalle', pk=pk)
             
             # Verificar permisos
-            user_rol = getattr(request.user, 'rol', None)
-            if not (request.user.is_superuser or user_rol in ['contador', 'administrador']):
-                messages.error(request, 'No tienes permisos para aprobar como contador')
+            if not (request.user.is_superuser or request.user.rol_codigo in ['admin', 'contador', 'gerente_general']):
+                messages.error(request, '⛔ No tienes permisos para aprobar como contador')
                 return redirect('planilla_detalle', pk=pk)
             
             # Aprobar
@@ -757,9 +754,8 @@ class PlanillaMarcarPagadaView(LoginRequiredMixin, PermissionRequiredMixin, View
                 return redirect('planilla_detalle', pk=pk)
             
             # Verificar permisos
-            user_rol = getattr(request.user, 'rol', None)
-            if not (request.user.is_superuser or user_rol in ['contador', 'administrador']):
-                messages.error(request, 'No tienes permisos para marcar como pagada')
+            if not (request.user.is_superuser or request.user.rol_codigo in ['admin', 'contador', 'gerente_general']):
+                messages.error(request, '⛔ No tienes permisos para marcar como pagada')
                 return redirect('planilla_detalle', pk=pk)
             
             # Marcar como pagada
