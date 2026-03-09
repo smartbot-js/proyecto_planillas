@@ -798,7 +798,22 @@
                 <span class="material-symbols-outlined">list_alt</span>
                 Asistencias Pendientes de Validación
             </h2>
-            <span class="badge badge-warning">{{ asistencias|length }} pendiente{{ asistencias|length|pluralize:"s" }}</span>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="badge badge-warning">{{ asistencias|length }} pendiente{{ asistencias|length|pluralize:"s" }}</span>
+                {% if asistencias %}
+                <form method="POST" action="{% url 'asistencias_validar_todas' %}" id="formValidarTodas" style="margin: 0;">
+                    {% csrf_token %}
+                    <!-- Pasar filtros actuales -->
+                    {% if filtros.proyecto %}<input type="hidden" name="proyecto" value="{{ filtros.proyecto }}">{% endif %}
+                    {% if filtros.fecha_inicio %}<input type="hidden" name="fecha_inicio" value="{{ filtros.fecha_inicio }}">{% endif %}
+                    {% if filtros.fecha_fin %}<input type="hidden" name="fecha_fin" value="{{ filtros.fecha_fin }}">{% endif %}
+                    <button type="submit" class="btn-filter-primary" style="background: #10b981; white-space: nowrap;">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">done_all</span>
+                        Validar Todas
+                    </button>
+                </form>
+                {% endif %}
+            </div>
         </div>
         
         {% if asistencias %}
@@ -936,4 +951,16 @@
     </div>
     
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('formValidarTodas');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                if (!confirm('¿Estás seguro de validar TODAS las asistencias pendientes mostradas?')) {
+                    e.preventDefault();
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

@@ -12,6 +12,7 @@ from .views import (
     AsistenciaCerrarTurnoView,
     AsistenciaEditarView,
     AsistenciaReportesView,
+    AsistenciaValidarTodasView,
     asistencias_exportar_csv,
     AsistenciaValidarListView,
     AsistenciaValidarView,
@@ -36,6 +37,7 @@ urlpatterns = [
 
     # Validación de asistencias
     path('validar/', AsistenciaValidarListView.as_view(), name='asistencias_validar_lista'),
+    path('validar-todas/', AsistenciaValidarTodasView.as_view(), name='asistencias_validar_todas'),
     path('<int:pk>/validar/', AsistenciaValidarView.as_view(), name='asistencia_validar'),
     path('<int:pk>/corregir/', AsistenciaCorregirView.as_view(), name='asistencia_corregir'),
 

@@ -265,7 +265,53 @@ class AsistenciaValidarView(LoginRequiredMixin, PermissionRequiredMixin, View):
         
         return False
 
+class AsistenciaValidarTodasView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """Validar todas las asistencias pendientes de golpe"""
+    permission_modulo = 'asistencias'
+    permission_accion = 'validar'
 
+    def post(self, request):
+        # Filtro base: cerradas, no validadas, no eliminadas
+        queryset = Asistencia.objects.filter(
+            estado='cerrado',
+            validado=False,
+            eliminado=False
+        )
+
+        # Si es supervisor (no admin), solo sus proyectos
+        if not request.user.es_administrador() and request.user.es_supervisor():
+            queryset = queryset.filter(proyecto__supervisor=request.user)
+
+        # Aplicar mismos filtros del GET (si vienen del form)
+        proyecto_id = request.POST.get('proyecto')
+        if proyecto_id:
+            queryset = queryset.filter(proyecto_id=proyecto_id)
+
+        fecha_inicio = request.POST.get('fecha_inicio')
+        if fecha_inicio:
+            queryset = queryset.filter(fecha__gte=fecha_inicio)
+
+        fecha_fin = request.POST.get('fecha_fin')
+        if fecha_fin:
+            queryset = queryset.filter(fecha__lte=fecha_fin)
+
+        total = queryset.count()
+
+        if total == 0:
+            messages.info(request, 'No hay asistencias pendientes de validación.')
+            return redirect('asistencias_validar_lista')
+
+        # Validar masivamente
+        queryset.update(
+            validado=True,
+            validado_por=request.user,
+            validado_fecha=timezone.now(),
+            observaciones_validacion='Validada masivamente'
+        )
+
+        messages.success(request, f'✅ {total} asistencias validadas exitosamente.')
+        return redirect('asistencias_validar_lista')
+        
 # ========================================
 # VISTA: CORREGIR MARCACIONES
 # ========================================
