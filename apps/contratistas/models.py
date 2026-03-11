@@ -15,7 +15,8 @@ from django.core.validators import MinValueValidator
 from django.utils import timezone
 from decimal import Decimal
 from datetime import datetime
-
+from django.db.models import Max
+import re
 
 class Contratista(models.Model):
     """
@@ -485,17 +486,24 @@ class AvaluoContratista(models.Model):
     
     def generar_codigo(self):
         """Genera código único: AV0825-001"""
+
         fecha = datetime.now()
         mes = fecha.strftime('%m')
         anio = fecha.strftime('%y')
+        prefijo = f"AV{mes}{anio}-"
         
-        # Contar avalúos del mes actual
-        numero = AvaluoContratista.objects.filter(
-            fecha_pago__year=fecha.year,
-            fecha_pago__month=fecha.month
-        ).count() + 1
+        # Buscar el número más alto existente (incluye eliminados)
+        ultimo = AvaluoContratista.objects.filter(
+            codigo__startswith=prefijo
+        ).aggregate(max_codigo=Max('codigo'))['max_codigo']
         
-        return f"AV{mes}{anio}-{numero:03d}"
+        if ultimo:
+            match = re.search(r'-(\d+)$', ultimo)
+            numero = int(match.group(1)) + 1 if match else 1
+        else:
+            numero = 1
+        
+        return f"{prefijo}{numero:03d}"
     
     def calcular_monto_desde_porcentaje(self):
         """Calcula el monto basado en el % de avance y valor del contrato"""
