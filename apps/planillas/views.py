@@ -229,6 +229,10 @@ class PlanillaCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 messages.error(request, 'Proyecto no encontrado')
                 return redirect('planilla_crear')
             
+            # Bifurcación administrativa (NO requiere asistencias)
+            if proyecto.is_administrativo:
+                return self.preview_administrativa(request, proyecto, periodo_inicio, periodo_fin)
+            
             # Validar período
             validacion = validar_periodo_planilla(periodo_inicio, periodo_fin)
             print(f"DEBUG: Validación período: {validacion}")
@@ -375,6 +379,21 @@ class PlanillaCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
             proyecto = get_object_or_404(Proyecto, id=proyecto_id, eliminado=False)
             
             print(f"DEBUG: Generando planilla para {proyecto.nombre}")
+            
+            # Bifurcación administrativa (NO requiere asistencias)
+            if proyecto.is_administrativo:
+                dias_periodo = int(request.POST.get('dias_periodo', 12))
+                planilla, detalles, errores = generar_planilla_administrativa(
+                    proyecto=proyecto, periodo_inicio=periodo_inicio,
+                    periodo_fin=periodo_fin, dias_periodo=dias_periodo, usuario=request.user
+                )
+                if errores:
+                    for error in errores:
+                        messages.error(request, f'❌ {error}')
+                    if not planilla:
+                        return redirect('planilla_crear')
+                messages.success(request, f'✅ Planilla administrativa {planilla.codigo} generada con {len(detalles)} trabajadores.')
+                return redirect('planilla_detalle', pk=planilla.pk)
             
             # ============================================================
             # ✅ VALIDACIÓN 1: Verificar si ya existe planilla
