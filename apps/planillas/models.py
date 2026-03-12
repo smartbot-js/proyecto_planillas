@@ -437,13 +437,24 @@ class Planilla(models.Model):
     def generar_codigo(self):
         """Genera código único para la planilla"""
         from datetime import datetime
+        from django.db.models import Max
+        import re
+        
         fecha = datetime.now()
         proyecto_codigo = self.proyecto.codigo[:4].upper() if hasattr(self.proyecto, 'codigo') and self.proyecto.codigo else 'PROY'
-        numero = Planilla.objects.filter(
-            proyecto=self.proyecto,
-            fecha_generacion__year=fecha.year
-        ).count() + 1
-        return f"PL-{proyecto_codigo}-{fecha.year}-{numero:04d}"
+        prefijo = f"PL-{proyecto_codigo}-{fecha.year}-"
+        
+        ultimo = Planilla.objects.filter(
+            codigo__startswith=prefijo
+        ).aggregate(max_codigo=Max('codigo'))['max_codigo']
+        
+        if ultimo:
+            match = re.search(r'-(\d+)$', ultimo)
+            numero = int(match.group(1)) + 1 if match else 1
+        else:
+            numero = 1
+        
+        return f"{prefijo}{numero:04d}"
     
     def calcular_totales(self):
         """Calcula los totales de la planilla sumando todos los detalles"""
