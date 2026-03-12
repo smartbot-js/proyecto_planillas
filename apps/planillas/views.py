@@ -39,7 +39,7 @@ from apps.usuarios.models import Usuario
 from apps.asistencias.models import Asistencia
 from apps.core.utils import get_tipo_cambio_actual
 from apps.admin_panel.permissions import PermissionRequiredMixin
-
+from apps.trabajadores.models import Trabajador
 
 class PlanillaListView(LoginRequiredMixin, ListView):
     """Vista para listar todas las planillas"""
@@ -363,7 +363,71 @@ class PlanillaCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
             print(f"Traceback: {traceback.format_exc()}")
             messages.error(request, f'Error al generar preview: {str(e)}')
             return redirect('planilla_crear')
-    
+
+    def preview_administrativa(self, request, proyecto, periodo_inicio, periodo_fin):
+        """Preview planilla administrativa — no depende de asistencias"""
+        try:
+            dias_periodo = int(request.POST.get('dias_periodo', 12))
+            tipo_cambio = TipoCambio.get_actual()
+
+            trabajadores = Trabajador.objects.filter(
+                proyecto_asignado=proyecto, eliminado=False, estado='activo'
+            ).order_by('apellido', 'nombre')
+
+            if not trabajadores.exists():
+                messages.error(request, 'No hay trabajadores asignados a "Administración General"')
+                return redirect('planilla_crear')
+
+            preview_detalles = []
+            total_general_cordobas = Decimal('0.00')
+
+            for t in trabajadores:
+                salario_hora = t.salario_normal or Decimal('0.00')
+                dia_base = (salario_hora * Decimal('8')).quantize(Decimal('0.01'))
+                dias = Decimal(str(dias_periodo))
+
+                salario_base = (dias * dia_base).quantize(Decimal('0.01'))
+                septimo = ((dia_base / Decimal('6')) * dias).quantize(Decimal('0.01'))
+                factor = Decimal('2.5') / Decimal('30')
+                vac = (factor * salario_base).quantize(Decimal('0.01'))
+                prestacionado = (salario_base + vac + vac + vac).quantize(Decimal('0.01'))
+                total_general_cordobas += prestacionado
+
+                preview_detalles.append({
+                    'trabajador': t, 'dias': dias_periodo,
+                    'dia_base': dia_base, 'septimo_dia': septimo,
+                    'salario_base': salario_base, 'vacaciones': vac,
+                    'aguinaldo': vac, 'antiguedad': vac,
+                    'prestacionado': prestacionado,
+                    'ingreso_total': prestacionado,
+                    'ingreso_total_dolares': (prestacionado / tipo_cambio.valor).quantize(Decimal('0.01')),
+                })
+
+            total_general_dolares = (total_general_cordobas / tipo_cambio.valor).quantize(Decimal('0.01'))
+
+            proyectos = Proyecto.objects.filter(
+                eliminado=False, estado__in=['planificacion', 'ejecucion']
+            ).order_by('nombre')
+
+            context = {
+                'proyectos': proyectos,
+                'proyecto': proyecto,
+                'periodo_inicio': periodo_inicio,
+                'periodo_fin': periodo_fin,
+                'dias_periodo': dias_periodo,
+                'preview_detalles': preview_detalles,
+                'total_general_cordobas': total_general_cordobas,
+                'total_general_dolares': total_general_dolares,
+                'tipo_cambio': tipo_cambio,
+                'mostrar_preview': True,
+                'es_administrativa': True,
+            }
+            return render(request, self.template_name, context)
+
+        except Exception as e:
+            messages.error(request, f'Error al generar preview administrativo: {str(e)}')
+            return redirect('planilla_crear')
+
     def generar_planilla(self, request):
         """Genera la planilla final y la guarda en BD"""
         
