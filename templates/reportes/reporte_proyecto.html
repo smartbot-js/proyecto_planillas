@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Reporte por Proyecto - Sistema de Planillas{% endblock %}
 
@@ -853,8 +854,8 @@
                 </div>
                 <div class="reporte-item-right">
                     <div class="reporte-total">Total</div>
-                    <div class="reporte-amount">C$ {{ reporte.total_cordobas|floatformat:2 }}</div>
-                    <div class="reporte-amount" style="font-size: 14px; color: #6b7280;">$ {{ reporte.total_dolares|floatformat:2 }}</div>
+                    <div class="reporte-amount">{{ reporte.total_cordobas|moneda }}</div>
+                    <div class="reporte-amount" style="font-size: 14px; color: #6b7280;">{{ reporte.total_dolares|dolares }}</div>
                     <div class="reporte-arrow">
                         <span class="material-symbols-outlined">arrow_forward</span>
                     </div>
@@ -952,16 +953,16 @@
                             <td>{{ oficial.nombre }}</td>
                             <td>{{ oficial.cargo }}</td>
                             <td class="text-center">{{ oficial.dias_trabajados }}</td>
-                            <td class="text-right">C$ {{ oficial.total_cordobas|floatformat:2 }}</td>
-                            <td class="text-right">$ {{ oficial.total_dolares|floatformat:2 }}</td>
+                            <td class="text-right">{{ oficial.total_cordobas|moneda }}</td>
+                            <td class="text-right">{{ oficial.total_dolares|dolares }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                     <tfoot>
                         <tr>
                             <td colspan="3">TOTAL OFICIALES</td>
-                            <td class="text-right">C$ {{ total_oficiales_cordobas|floatformat:2 }}</td>
-                            <td class="text-right">$ {{ total_oficiales_dolares|floatformat:2 }}</td>
+                            <td class="text-right">{{ total_oficiales_cordobas|moneda }}</td>
+                            <td class="text-right">{{ total_oficiales_dolares|dolares }}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -996,16 +997,16 @@
                             <td>{{ ayudante.nombre }}</td>
                             <td>{{ ayudante.cargo }}</td>
                             <td class="text-center">{{ ayudante.dias_trabajados }}</td>
-                            <td class="text-right">C$ {{ ayudante.total_cordobas|floatformat:2 }}</td>
-                            <td class="text-right">$ {{ ayudante.total_dolares|floatformat:2 }}</td>
+                            <td class="text-right">{{ ayudante.total_cordobas|moneda }}</td>
+                            <td class="text-right">{{ ayudante.total_dolares|dolares }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                     <tfoot>
                         <tr>
                             <td colspan="3">TOTAL AYUDANTES</td>
-                            <td class="text-right">C$ {{ total_ayudantes_cordobas|floatformat:2 }}</td>
-                            <td class="text-right">$ {{ total_ayudantes_dolares|floatformat:2 }}</td>
+                            <td class="text-right">{{ total_ayudantes_cordobas|moneda }}</td>
+                            <td class="text-right">{{ total_ayudantes_dolares|dolares }}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -1040,16 +1041,16 @@
                             <td>{{ contratista.nombre }}</td>
                             <td>{{ contratista.contrato }}</td>
                             <td>{{ contratista.descripcion }}</td>
-                            <td class="text-right">C$ {{ contratista.monto_cordobas|floatformat:2 }}</td>
-                            <td class="text-right">$ {{ contratista.monto_dolares|floatformat:2 }}</td>
+                            <td class="text-right">{{ contratista.monto_cordobas|moneda }}</td>
+                            <td class="text-right">{{ contratista.monto_dolares|dolares }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                     <tfoot>
                         <tr>
                             <td colspan="3">TOTAL SUB-CONTRATISTAS</td>
-                            <td class="text-right">C$ {{ total_contratistas_cordobas|floatformat:2 }}</td>
-                            <td class="text-right">$ {{ total_contratistas_dolares|floatformat:2 }}</td>
+                            <td class="text-right">{{ total_contratistas_cordobas|moneda }}</td>
+                            <td class="text-right">{{ total_contratistas_dolares|dolares }}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -1080,8 +1081,8 @@
                         {% for item in resumen %}
                         <tr>
                             <td>{{ item.area }}</td>
-                            <td class="text-right">C$ {{ item.total_cordobas|floatformat:2 }}</td>
-                            <td class="text-right">$ {{ item.total_dolares|floatformat:2 }}</td>
+                            <td class="text-right">{{ item.total_cordobas|moneda }}</td>
+                            <td class="text-right">{{ item.total_dolares|dolares }}</td>
                             <td class="text-right">
                                 {% if gran_total_cordobas > 0 %}
                                     {% widthratio item.total_cordobas gran_total_cordobas 100 %}%
@@ -1103,11 +1104,11 @@
                 <div class="grand-total-values">
                     <div class="grand-total-item">
                         <div class="grand-total-currency">Córdobas</div>
-                        <div class="grand-total-amount">C$ {{ gran_total_cordobas|floatformat:2 }}</div>
+                        <div class="grand-total-amount">{{ gran_total_cordobas|moneda }}</div>
                     </div>
                     <div class="grand-total-item">
                         <div class="grand-total-currency">Dólares</div>
-                        <div class="grand-total-amount">$ {{ gran_total_dolares|floatformat:2 }}</div>
+                        <div class="grand-total-amount">{{ gran_total_dolares|dolares }}</div>
                     </div>
                 </div>
             </div>

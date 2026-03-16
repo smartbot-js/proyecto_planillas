@@ -1,5 +1,6 @@
-{% extends 'base/base.html' %}
+﻿{% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}{{ proyecto.nombre }} - Detalle del Proyecto{% endblock %}
 
@@ -822,15 +823,15 @@
                         <div class="contrato-metrics-grid">
                             <div class="metric-box">
                                 <span class="metric-label">Valor Contrato</span>
-                                <span class="metric-value">C$ {{ contrato.valor_contrato|floatformat:2 }}</span>
+                                <span class="metric-value">{{ contrato.valor_contrato|moneda }}</span>
                             </div>
                             <div class="metric-box success">
                                 <span class="metric-label">Pagado</span>
-                                <span class="metric-value">C$ {{ contrato.total_pagado|floatformat:2 }}</span>
+                                <span class="metric-value">{{ contrato.total_pagado|moneda }}</span>
                             </div>
                             <div class="metric-box warning">
                                 <span class="metric-label">Pendiente</span>
-                                <span class="metric-value">C$ {{ contrato.total_pendiente|floatformat:2 }}</span>
+                                <span class="metric-value">{{ contrato.total_pendiente|moneda }}</span>
                             </div>
                             <div class="metric-box info">
                                 <span class="metric-label">Avance</span>
@@ -871,7 +872,7 @@
                                         <p class="avaluo-concepto">{{ avaluo.concepto|truncatewords:15 }}</p>
                                         <div class="avaluo-meta-info">
                                             <span><span class="material-symbols-outlined">calendar_today</span> {{ avaluo.fecha_pago|date:"d/m/Y" }}</span>
-                                            <span><span class="material-symbols-outlined">payments</span> C$ {{ avaluo.monto_cordobas|floatformat:2 }}</span>
+                                            <span><span class="material-symbols-outlined">payments</span> {{ avaluo.monto_cordobas|moneda }}</span>
                                             <span><span class="material-symbols-outlined">show_chart</span> {{ avaluo.porcentaje_avance }}%</span>
                                         </div>
                                     </div>
@@ -1145,13 +1146,10 @@
 {% endblock %}
 
 {% block extra_css %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background-color: #f8fafc; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+body { background-color: #f8fafc; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 .page-header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; }
 .page-header h1 { font-size: 28px; font-weight: 700; color: #111827; margin: 8px 0; letter-spacing: -0.02em; }
 .header-title { display: flex; align-items: center; gap: 12px; }

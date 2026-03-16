@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Estado de Cuenta - {{ contratista.nombre_completo }}{% endblock %}
 
@@ -586,7 +587,7 @@
                     <div class="resumen-card-title">Valor Total Contratos</div>
                 </div>
             </div>
-            <div class="resumen-card-value">C$ {{ resumen.valor_total_contratos|floatformat:2 }}</div>
+            <div class="resumen-card-value">{{ resumen.valor_total_contratos|moneda }}</div>
             <div class="resumen-card-subtitle">{{ resumen.cantidad_contratos }} contrato{{ resumen.cantidad_contratos|pluralize }}</div>
         </div>
 
@@ -599,7 +600,7 @@
                     <div class="resumen-card-title">Total Pagado</div>
                 </div>
             </div>
-            <div class="resumen-card-value">C$ {{ resumen.total_pagado|floatformat:2 }}</div>
+            <div class="resumen-card-value">{{ resumen.total_pagado|moneda }}</div>
             <div class="resumen-card-subtitle">{{ resumen.cantidad_pagos }} pago{{ resumen.cantidad_pagos|pluralize }}</div>
         </div>
 
@@ -612,7 +613,7 @@
                     <div class="resumen-card-title">Saldo Pendiente</div>
                 </div>
             </div>
-            <div class="resumen-card-value">C$ {{ resumen.saldo_pendiente|floatformat:2 }}</div>
+            <div class="resumen-card-value">{{ resumen.saldo_pendiente|moneda }}</div>
             <div class="resumen-card-subtitle">Por pagar</div>
         </div>
 
@@ -657,15 +658,15 @@
                 <div class="contrato-stats">
                     <div class="contrato-stat">
                         <div class="contrato-stat-label">Valor Contrato</div>
-                        <div class="contrato-stat-value">C$ {{ item.contrato.valor_contrato|floatformat:2 }}</div>
+                        <div class="contrato-stat-value">{{ item.contrato.valor_contrato|moneda }}</div>
                     </div>
                     <div class="contrato-stat">
                         <div class="contrato-stat-label">Pagado</div>
-                        <div class="contrato-stat-value" style="color: #10b981;">C$ {{ item.pagado|floatformat:2 }}</div>
+                        <div class="contrato-stat-value" style="color: #10b981;">{{ item.pagado|moneda }}</div>
                     </div>
                     <div class="contrato-stat">
                         <div class="contrato-stat-label">Pendiente</div>
-                        <div class="contrato-stat-value" style="color: #f59e0b;">C$ {{ item.pendiente|floatformat:2 }}</div>
+                        <div class="contrato-stat-value" style="color: #f59e0b;">{{ item.pendiente|moneda }}</div>
                     </div>
                     <div class="contrato-stat">
                         <div class="contrato-stat-label">Avance</div>
@@ -683,7 +684,7 @@
                         <span class="pago-mini-fecha">
                             {{ pago.planilla.fecha_generacion|date:"d/m/Y" }} - {{ pago.planilla.codigo }}
                         </span>
-                        <span class="pago-mini-monto">C$ {{ pago.monto_cordobas|floatformat:2 }}</span>
+                        <span class="pago-mini-monto">{{ pago.monto_cordobas|moneda }}</span>
                     </div>
                     {% endfor %}
                 </div>
@@ -729,10 +730,10 @@
                     <td>{{ item.detalle.avaluo.contrato.proyecto.nombre }}</td>
                     <td>{{ item.detalle.actividad|truncatewords:8 }}</td>
                     <td style="text-align: right;">
-                        <span class="monto-positivo">+ C$ {{ item.detalle.monto_cordobas|floatformat:2 }}</span>
+                        <span class="monto-positivo">+ {{ item.detalle.monto_cordobas|moneda }}</span>
                     </td>
                     <td style="text-align: right;">
-                        <span class="saldo-acumulado">C$ {{ item.saldo_acumulado|floatformat:2 }}</span>
+                        <span class="saldo-acumulado">{{ item.saldo_acumulado|moneda }}</span>
                     </td>
                 </tr>
                 {% endfor %}
@@ -767,15 +768,15 @@
                     </div>
                     <div class="proyecto-card-stat">
                         <span class="proyecto-card-stat-label">Valor Total</span>
-                        <span class="proyecto-card-stat-value">C$ {{ proyecto_item.valor_contratos|floatformat:2 }}</span>
+                        <span class="proyecto-card-stat-value">{{ proyecto_item.valor_contratos|moneda }}</span>
                     </div>
                     <div class="proyecto-card-stat">
                         <span class="proyecto-card-stat-label">Pagado</span>
-                        <span class="proyecto-card-stat-value">C$ {{ proyecto_item.pagado|floatformat:2 }}</span>
+                        <span class="proyecto-card-stat-value">{{ proyecto_item.pagado|moneda }}</span>
                     </div>
                     <div class="proyecto-card-stat">
                         <span class="proyecto-card-stat-label">Pendiente</span>
-                        <span class="proyecto-card-stat-value">C$ {{ proyecto_item.pendiente|floatformat:2 }}</span>
+                        <span class="proyecto-card-stat-value">{{ proyecto_item.pendiente|moneda }}</span>
                     </div>
                 </div>
             </div>

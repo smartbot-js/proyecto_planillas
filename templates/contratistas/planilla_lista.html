@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Planillas de Contratistas{% endblock %}
 
@@ -454,7 +455,7 @@ tbody tr:hover {
             <span class="material-symbols-outlined">payments</span>
         </div>
         <div class="stat-label">Total Córdobas</div>
-        <div class="stat-value">C$ {{ total_cordobas|floatformat:2 }}</div>
+        <div class="stat-value">{{ total_cordobas|moneda }}</div>
     </div>
     
     <div class="stat-card">
@@ -462,7 +463,7 @@ tbody tr:hover {
             <span class="material-symbols-outlined">attach_money</span>
         </div>
         <div class="stat-label">Total Dólares</div>
-        <div class="stat-value">$ {{ total_dolares|floatformat:2 }}</div>
+        <div class="stat-value">{{ total_dolares|dolares }}</div>
     </div>
 </div>
 
@@ -551,8 +552,8 @@ tbody tr:hover {
                     <td><strong>{{ planilla.codigo }}</strong></td>
                     <td>{{ planilla.proyecto.nombre }}</td>
                     <td>{{ planilla.periodo_inicio|date:"d/m/Y" }} - {{ planilla.periodo_fin|date:"d/m/Y" }}</td>
-                    <td>C$ {{ planilla.total_cordobas|floatformat:2 }}</td>
-                    <td>$ {{ planilla.total_dolares|floatformat:2 }}</td>
+                    <td>{{ planilla.total_cordobas|moneda }}</td>
+                    <td>{{ planilla.total_dolares|dolares }}</td>
                     <td>
                         {% if planilla.estado == 'borrador' %}
                         <span class="badge badge-yellow">

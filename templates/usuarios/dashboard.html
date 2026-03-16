@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Dashboard - Sistema de Planillas{% endblock %}
 
@@ -802,7 +803,7 @@
                 </div>
                 <div class="stat-content">
                     <div class="stat-title">Pagado Este Mes</div>
-                    <div class="stat-value">C$ {{ total_pagado_mes|floatformat:2 }}</div>
+                    <div class="stat-value">{{ total_pagado_mes|moneda }}</div>
                     <div class="stat-description">{{ planillas_pagadas_mes }} planillas pagadas</div>
                 </div>
             </div>
@@ -828,7 +829,7 @@
                 </div>
                 <div class="stat-content">
                     <div class="stat-title">Pagado a Contratistas</div>
-                    <div class="stat-value">C$ {{ total_pagado_contratistas|floatformat:2 }}</div>
+                    <div class="stat-value">{{ total_pagado_contratistas|moneda }}</div>
                     <div class="stat-description">Total acumulado</div>
                 </div>
             </div>
@@ -922,7 +923,7 @@
                         </div>
                         <div class="planilla-footer">
                             <span>{{ planilla.fecha_generacion|date:"d/m/Y" }}</span>
-                            <span class="planilla-monto">C$ {{ planilla.total_cordobas|floatformat:2 }}</span>
+                            <span class="planilla-monto">{{ planilla.total_cordobas|moneda }}</span>
                         </div>
                     </div>
                     {% endfor %}

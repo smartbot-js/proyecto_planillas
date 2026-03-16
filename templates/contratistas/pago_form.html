@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}{{ object|yesno:"Editar,Registrar" }} Avalúo - {{ contrato.codigo }}{% endblock %}
 
@@ -348,15 +349,15 @@
         <div class="financial-grid">
             <div class="financial-item">
                 <div class="financial-label">Valor Contrato</div>
-                <div class="financial-value">C$ {{ info_financiera.valor_contrato|floatformat:2 }}</div>
+                <div class="financial-value">{{ info_financiera.valor_contrato|moneda }}</div>
             </div>
             <div class="financial-item">
                 <div class="financial-label">Total Pagado</div>
-                <div class="financial-value">C$ {{ info_financiera.total_pagado|floatformat:2 }}</div>
+                <div class="financial-value">{{ info_financiera.total_pagado|moneda }}</div>
             </div>
             <div class="financial-item">
                 <div class="financial-label">Pendiente</div>
-                <div class="financial-value">C$ {{ info_financiera.total_pendiente|floatformat:2 }}</div>
+                <div class="financial-value">{{ info_financiera.total_pendiente|moneda }}</div>
             </div>
             <div class="financial-item">
                 <div class="financial-label">% Avance</div>
@@ -370,7 +371,7 @@
     
     <!-- Alert -->
     <div class="alert-box">
-        <strong>⚠️ Importante:</strong> El monto del avalúo no puede exceder el pendiente del contrato (C$ {{ info_financiera.total_pendiente|floatformat:2 }})
+        <strong>⚠️ Importante:</strong> El monto del avalúo no puede exceder el pendiente del contrato ({{ info_financiera.total_pendiente|moneda }})
     </div>
     
     <!-- Form -->

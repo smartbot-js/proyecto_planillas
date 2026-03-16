@@ -1,4 +1,4 @@
-/* ===================================================================
+﻿/* ===================================================================
    1. VARIABLES GLOBALES, RESET Y FUENTES
    =================================================================== */
    :root {
@@ -57,7 +57,7 @@
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg-page);
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;

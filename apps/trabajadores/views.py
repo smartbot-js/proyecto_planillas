@@ -3,6 +3,7 @@ Vistas para el módulo de trabajadores
 Gestiona CRUD, importación/exportación CSV, traslados y reportes
 """
 
+from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
@@ -227,6 +228,7 @@ class TrabajadorCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
             trabajador.area_cargo = request.POST.get('area_cargo') or request.POST.get('cargo', '')
             trabajador.salario_normal = request.POST.get('salario_normal') or 0
             trabajador.tarifa_hora_extra = request.POST.get('tarifa_hora_extra') or 0
+            trabajador.bonos = Decimal(request.POST.get('bonos', '0') or '0')
             trabajador.numero_seguro_social = request.POST.get('numero_seguro_social', '')
             
             # Extras
@@ -466,6 +468,9 @@ class TrabajadorEditarView(LoginRequiredMixin, PermissionRequiredMixin, View):
             tarifa_hora_extra = request.POST.get('tarifa_hora_extra')
             if tarifa_hora_extra:
                 trabajador.tarifa_hora_extra = tarifa_hora_extra
+            
+            bonos = request.POST.get('bonos', '0')
+            trabajador.bonos = Decimal(bonos) if bonos else Decimal('0')
             
             trabajador.numero_seguro_social = request.POST.get('numero_seguro_social', trabajador.numero_seguro_social)
             trabajador.notas = request.POST.get('notas', trabajador.notas)

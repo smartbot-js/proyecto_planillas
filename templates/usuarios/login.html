@@ -1,4 +1,5 @@
 {% load static %}
+{% load formato_moneda %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -91,6 +92,9 @@
                         <input type="checkbox" name="remember" value="1">
                         <span>Mantener sesión iniciada</span>
                     </label>
+                    <a href="{% url 'recuperar_password' %}" style="font-size: 13px; color: #3b82f6; text-decoration: none;">
+                        ¿Olvidaste tu contraseña?
+                    </a>
                 </div>
 
                 <button type="submit" class="btn btn-primary">Entrar</button>

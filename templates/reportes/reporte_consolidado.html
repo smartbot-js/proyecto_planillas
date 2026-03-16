@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Reporte Consolidado de Proyectos - Sistema de Planillas{% endblock %}
 
@@ -463,14 +464,14 @@
                         {% for dato in datos_proyectos %}
                         <tr>
                             <td>{{ dato.proyecto.nombre }}</td>
-                            <td class="text-right">C$ {{ dato.total_cordobas|floatformat:2 }}</td>
-                            <td class="text-right">$ {{ dato.total_dolares|floatformat:2 }}</td>
+                            <td class="text-right">{{ dato.total_cordobas|moneda }}</td>
+                            <td class="text-right">{{ dato.total_dolares|dolares }}</td>
                             {% if comparar == 'si' %}
                             <td class="text-right {% if dato.variacion_cordobas > 0 %}variacion-positiva{% elif dato.variacion_cordobas < 0 %}variacion-negativa{% else %}variacion-neutral{% endif %}">
-                                {% if dato.variacion_cordobas > 0 %}+{% endif %}C$ {{ dato.variacion_cordobas|floatformat:2 }}
+                                {% if dato.variacion_cordobas > 0 %}+{% endif %}{{ dato.variacion_cordobas|moneda }}
                             </td>
                             <td class="text-right {% if dato.variacion_dolares > 0 %}variacion-positiva{% elif dato.variacion_dolares < 0 %}variacion-negativa{% else %}variacion-neutral{% endif %}">
-                                {% if dato.variacion_dolares > 0 %}+{% endif %}$ {{ dato.variacion_dolares|floatformat:2 }}
+                                {% if dato.variacion_dolares > 0 %}+{% endif %}{{ dato.variacion_dolares|dolares }}
                             </td>
                             <td class="text-center {% if dato.porcentaje_variacion > 0 %}variacion-positiva{% elif dato.porcentaje_variacion < 0 %}variacion-negativa{% else %}variacion-neutral{% endif %}">
                                 {% if dato.porcentaje_variacion > 0 %}+{% endif %}{{ dato.porcentaje_variacion|floatformat:1 }}%
@@ -483,8 +484,8 @@
                     <tfoot>
                         <tr>
                             <td>TOTAL GENERAL</td>
-                            <td class="text-right">C$ {{ total_general_cordobas|floatformat:2 }}</td>
-                            <td class="text-right">$ {{ total_general_dolares|floatformat:2 }}</td>
+                            <td class="text-right">{{ total_general_cordobas|moneda }}</td>
+                            <td class="text-right">{{ total_general_dolares|dolares }}</td>
                             {% if comparar == 'si' %}
                             <td colspan="3"></td>
                             {% endif %}

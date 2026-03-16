@@ -9,10 +9,14 @@ PUESTOS_DATA = {
         'Seguridad',
         'Bodega',
         'Maestro de Obra',
+        'Ingeniero Residente'
     ],
     'Oficiales': [
         'Albañil',
         'Fontanero',
+        'Pintor',
+        'Soldador',
+        'Electricista'
     ],
     'Ayudante': [
         'Ayudante',

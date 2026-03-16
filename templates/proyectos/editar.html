@@ -1,12 +1,13 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Editar Proyecto - {{ proyecto.nombre }}{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
-        <a href="{% url 'proyecto_detalle' proyecto.id %}" class="back-link">
+        <a href="javascript:void(0)" class="back-link" onclick="confirmarSalida()">
             <span class="material-symbols-outlined">arrow_back</span>
             Volver al Detalle
         </a>
@@ -462,7 +463,7 @@
                                 Avance: {{ avaluo.porcentaje_avance }}%
                             </p>
                             <p style="font-size: 14px; font-weight: 600; color: #111827; margin-top: 8px;">
-                                C$ {{ avaluo.monto_cordobas|floatformat:2 }}
+                                {{ avaluo.monto_cordobas|moneda }}
                             </p>
                             {% if avaluo.archivo_soporte %}
                             <a href="{{ avaluo.archivo_soporte.url }}" target="_blank" style="font-size: 12px; color: #3b82f6; text-decoration: none; display: flex; align-items: center; gap: 4px; margin-top: 8px;">
@@ -777,10 +778,10 @@
     <!-- FIN SECCIÓN HORARIOS -->
 
     <div class="form-actions">
-        <a href="{% url 'proyecto_detalle' proyecto.id %}" class="btn btn-secondary">
+        <button type="button" class="btn btn-secondary" onclick="confirmarSalida()">
             <span class="material-symbols-outlined">close</span>
             Cancelar
-        </a>
+        </button>
         <button type="submit" class="btn btn-primary">
             <span class="material-symbols-outlined">save</span>
             Guardar Cambios
@@ -1907,6 +1908,54 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     actualizarResumenSemanal();
+});
+// ==========================================
+// CONFIRMAR SALIDA SIN GUARDAR
+// ==========================================
+
+let valoresOriginales = {};
+
+(function() {
+    const campos = document.querySelectorAll('#formProyecto input[type="text"], #formProyecto input[type="number"], #formProyecto input[type="date"], #formProyecto textarea, #formProyecto select');
+    campos.forEach(function(campo) {
+        if (campo.type === 'hidden' || campo.type === 'file') return;
+        valoresOriginales[campo.name] = campo.value;
+    });
+})();
+
+function hayCambios() {
+    const campos = document.querySelectorAll('#formProyecto input[type="text"], #formProyecto input[type="number"], #formProyecto input[type="date"], #formProyecto textarea, #formProyecto select');
+    let cambios = false;
+    campos.forEach(function(campo) {
+        if (campo.type === 'hidden' || campo.type === 'file') return;
+        if (valoresOriginales[campo.name] !== undefined && valoresOriginales[campo.name] !== campo.value) {
+            cambios = true;
+        }
+    });
+    return cambios;
+}
+
+function confirmarSalida() {
+    if (hayCambios()) {
+        if (confirm('⚠️ Hay cambios sin guardar.\n\n¿Estás seguro de que deseas salir? Se perderán los cambios.')) {
+            window.location.href = "{% url 'proyecto_detalle' proyecto.id %}";
+        }
+    } else {
+        window.location.href = "{% url 'proyecto_detalle' proyecto.id %}";
+    }
+}
+
+let formularioEnviado = false;
+document.getElementById('formProyecto').addEventListener('submit', function() {
+    formularioEnviado = true;
+});
+
+window.addEventListener('beforeunload', function(e) {
+    if (formularioEnviado) return;
+    if (hayCambios()) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
 });
 </script>
 {% endblock %}

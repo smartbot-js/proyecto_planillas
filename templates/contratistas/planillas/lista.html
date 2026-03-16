@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Planillas de Contratistas{% endblock %}
 
@@ -298,8 +299,8 @@
                                     {{ planilla.periodo_fin|date:"d/m/Y" }}
                                 </div>
                             </td>
-                            <td class="text-end fw-semibold">C$ {{ planilla.total_cordobas|floatformat:2 }}</td>
-                            <td class="text-end fw-semibold text-success">$ {{ planilla.total_dolares|floatformat:2 }}</td>
+                            <td class="text-end fw-semibold">{{ planilla.total_cordobas|moneda }}</td>
+                            <td class="text-end fw-semibold text-success">{{ planilla.total_dolares|dolares }}</td>
                             <td>
                                 {% if planilla.estado == 'borrador' %}
                                 <span class="badge bg-secondary">

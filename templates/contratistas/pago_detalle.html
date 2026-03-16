@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Detalle del Pago {{ pago.codigo }} - Sistema de Planillas{% endblock %}
 
@@ -600,11 +601,11 @@
                     </div>
                     <div class="info-row">
                         <span class="info-label">Monto (Córdobas):</span>
-                        <span class="info-value large">C$ {{ pago.monto_cordobas|floatformat:2 }}</span>
+                        <span class="info-value large">{{ pago.monto_cordobas|moneda }}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Monto (Dólares):</span>
-                        <span class="info-value">$ {{ pago.monto_dolares|floatformat:2 }}</span>
+                        <span class="info-value">{{ pago.monto_dolares|dolares }}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Tipo de Cambio:</span>
@@ -648,15 +649,15 @@
                     </div>
                     <div class="info-row">
                         <span class="info-label">Valor Contrato:</span>
-                        <span class="info-value">C$ {{ contrato.valor_contrato|floatformat:2 }}</span>
+                        <span class="info-value">{{ contrato.valor_contrato|moneda }}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Total Pagado:</span>
-                        <span class="info-value">C$ {{ contrato.total_pagado|floatformat:2 }}</span>
+                        <span class="info-value">{{ contrato.total_pagado|moneda }}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Pendiente:</span>
-                        <span class="info-value">C$ {{ contrato.total_pendiente|floatformat:2 }}</span>
+                        <span class="info-value">{{ contrato.total_pendiente|moneda }}</span>
                     </div>
                 </div>
             </div>

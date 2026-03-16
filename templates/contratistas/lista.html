@@ -1,5 +1,6 @@
-{% extends 'base/base.html' %}
+﻿{% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Contratistas - Sistema de Planillas{% endblock %}
 
@@ -40,7 +41,6 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     color: var(--gray-900);
     background: var(--gray-50);
     line-height: 1.5;
@@ -885,9 +885,9 @@ body {
             <div class="stat-content">
                 <div class="stat-value">
                     {% if moneda == 'dolares' %}
-                        $ {{ stats.total_pagado_dolares|floatformat:2 }}
+                        {{ stats.total_pagado_dolares|dolares }}
                     {% else %}
-                        C$ {{ stats.total_pagado_cordobas|floatformat:2 }}
+                        {{ stats.total_pagado_cordobas|moneda }}
                     {% endif %}
                 </div>
                 <div class="stat-label">Total Pagado ({{ stats.total_pagos }} pagos)</div>
@@ -901,9 +901,9 @@ body {
             <div class="stat-content">
                 <div class="stat-value">
                     {% if moneda == 'dolares' %}
-                        $ {{ stats.pendiente_dolares|floatformat:2 }}
+                        {{ stats.pendiente_dolares|dolares }}
                     {% else %}
-                        C$ {{ stats.pendiente_cordobas|floatformat:2 }}
+                        {{ stats.pendiente_cordobas|moneda }}
                     {% endif %}
                 </div>
                 <div class="stat-label">Pendiente ({{ stats.porcentaje_avance|floatformat:1 }}% avance)</div>
@@ -1065,16 +1065,16 @@ body {
                         </td>
                         <td class="font-semibold">
                             {% if moneda == 'dolares' %}
-                                $ {{ contratista.valor_contratos_display|floatformat:2 }}
+                                {{ contratista.valor_contratos_display|dolares }}
                             {% else %}
-                                C$ {{ contratista.valor_contratos_display|floatformat:2 }}
+                                {{ contratista.valor_contratos_display|moneda }}
                             {% endif %}
                         </td>
                         <td>
                             {% if moneda == 'dolares' %}
-                                $ {{ contratista.total_pagado_display|floatformat:2 }}
+                                {{ contratista.total_pagado_display|dolares }}
                             {% else %}
-                                C$ {{ contratista.total_pagado_display|floatformat:2 }}
+                                {{ contratista.total_pagado_display|moneda }}
                             {% endif %}
                         </td>
                         <td>
@@ -1082,9 +1082,9 @@ body {
                         </td>
                         <td>
                             {% if moneda == 'dolares' %}
-                                $ {{ contratista.pendiente_display|floatformat:2 }}
+                                {{ contratista.pendiente_display|dolares }}
                             {% else %}
-                                C$ {{ contratista.pendiente_display|floatformat:2 }}
+                                {{ contratista.pendiente_display|moneda }}
                             {% endif %}
                         </td>
                         <td>

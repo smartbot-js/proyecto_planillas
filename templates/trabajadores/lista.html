@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Trabajadores - Sistema de Gestión{% endblock %}
 
@@ -189,7 +190,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        <strong>${{ trabajador.salario_normal|floatformat:2 }}</strong>
+                        <strong>{{ trabajador.salario_normal|moneda }}</strong>
                     </td>
                     <td>
                         {% if trabajador.asegurado %}

@@ -455,7 +455,7 @@ class Planilla(models.Model):
             numero = 1
         
         return f"{prefijo}{numero:04d}"
-    
+
     def calcular_totales(self):
         """Calcula los totales de la planilla sumando todos los detalles"""
         from decimal import Decimal
@@ -681,6 +681,16 @@ class DetallePlanilla(models.Model):
         verbose_name='Salario Días Feriados',
         help_text='Digitado por residente, autorizado por gerente'
     )
+    
+    # === CAMPOS PLANILLA (fórmulas Excel) ===
+    vacaciones = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='Vacaciones')
+    aguinaldo = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='Aguinaldo')
+    antiguedad = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='Antigüedad')
+    salario_prestacionado = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), verbose_name='Salario Prestacionado')
+    horas_feriado = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('0.00'), verbose_name='Horas en Día Feriado')
+    ingreso_dia_feriado = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='Ingreso Día Feriado')
+    otros_ingresos = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='Otros Ingresos')
+    
     # === CAMPOS PARA PLANILLA ADMINISTRATIVA ===
     vacaciones = models.DecimalField(
         max_digits=10,
@@ -826,131 +836,72 @@ class DetallePlanilla(models.Model):
         return f"{self.trabajador.nombre_completo} - {self.planilla.codigo}"
     
     def save(self, *args, **kwargs):
-        # Calcular según tipo de proyecto
-        if self.planilla and self.planilla.proyecto and self.planilla.proyecto.is_administrativo:
-            self.calcular_valores_administrativo()
-        else:
-            self.calcular_valores()
+        self.calcular_valores()
         super().save(*args, **kwargs)
+        
+        if self.planilla_id:
+            self.planilla.calcular_totales()
     
     def calcular_valores(self):
-        """Calcula todos los valores derivados"""
-        # Valor 7mo día = salario_dia_base / 6
-        if self.salario_dia_base > 0:
-            self.valor_septimo_dia = (self.salario_dia_base / Decimal('6')).quantize(Decimal('0.01'))
-        else:
-            self.valor_septimo_dia = Decimal('0.00')
-        
-        # Salario diario con 7mo
-        self.salario_diario_con_septimo = self.salario_dia_base + self.valor_septimo_dia
-        
-        # Valor hora base = salario_dia_base / 12
-        if self.salario_dia_base > 0:
-            self.valor_hora_base = (self.salario_dia_base / Decimal('12')).quantize(Decimal('0.01'))
-        else:
-            self.valor_hora_base = Decimal('0.00')
-        
-        # Salario devengado = dias_laborados × salario_diario_con_septimo
-        self.salario_devengado = (self.salario_diario_con_septimo * Decimal(str(self.dias_laborados))).quantize(Decimal('0.01'))
-        
-        # Salario horas extras = (valor_hora_base × 2) × horas_extras
-        self.salario_horas_extras = ((self.valor_hora_base * Decimal('2')) * self.horas_extras).quantize(Decimal('0.01'))
-        
-        # Salario horas dominicales = (valor_hora_base × 2) × horas_dominicales
-        self.salario_horas_dominicales = ((self.valor_hora_base * Decimal('2')) * self.horas_dominicales).quantize(Decimal('0.01'))
-        
-        # Ingreso total
-        self.ingreso_total = (
-            self.salario_devengado +
-            self.salario_horas_extras +
-            self.salario_horas_dominicales +
-            self.salario_dias_feriados +
-            self.combustible +
-            self.bonos +
-            self.otros_gastos -  
-            self.deducciones     
-        ).quantize(Decimal('0.01'))
-        
-        self.inss_laboral = (self.ingreso_total * Decimal('0.0625')).quantize(Decimal('0.01'))
-        self.inss_patronal = (self.ingreso_total * Decimal('0.19')).quantize(Decimal('0.01'))
-        self.inatec = (self.ingreso_total * Decimal('0.02')).quantize(Decimal('0.01'))
-
-    def calcular_valores_administrativo(self):
         """
-        Calcula valores para planilla administrativa.
-        Fórmulas del Excel Planilla_Quadycons:
-        
-        Día Base           = salario_hora × 8
-        7mo Día            = (Día_Base / 6) × Días_Laborados  
-        Salario Base       = (Días × Día_Base) + 7mo_Día
-        Vacaciones         = (2.5 / 30) × Salario_Base
-        Aguinaldo          = (2.5 / 30) × Salario_Base
-        Antigüedad         = (2.5 / 30) × Salario_Base
-        Prestacionado      = Base + Vacaciones + Aguinaldo + Antigüedad
-        Tarifa Hora Extra  = (Día_Base / 8) × 2
-        Salario HE         = Tarifa_HE × Horas_Extras
-        Ingreso Feriado    = (Días_Feriados × Día_Base) + (Horas_Feriado × Tarifa_HE)
-        Total              = Prestacionado + Salario_HE + Ingreso_Feriado + Bonos + Combustible + Otros - Deducciones
+        Fórmulas del Excel Planilla_Quadycons (iguales para construcción y administrativa):
+        F=Día Base, G=7mo, H=Sal.Base, I=Vac, J=Ag, K=Ant, L=Prestacionado,
+        N=Tarifa HE, O=Sal HE, R=Ingreso Feriado, W=Total
         """
         dias = Decimal(str(self.dias_laborados))
-        
-        # Día Base = salario_hora × 8 (ya viene como salario_dia_base)
-        dia_base = self.salario_dia_base
-        
-        # 7mo Día = (Día_Base / 6) × Días_Laborados
-        if dia_base > 0 and dias > 0:
-            self.valor_septimo_dia = ((dia_base / Decimal('6')) * dias).quantize(Decimal('0.01'))
-        else:
-            self.valor_septimo_dia = Decimal('0.00')
-        
-        # Salario Base = (Días × Día_Base) + 7mo_Día
-        salario_base = (dias * dia_base) + self.valor_septimo_dia
-        self.salario_devengado = salario_base.quantize(Decimal('0.01'))
-        
-        # Salario diario con séptimo (para referencia)
-        self.salario_diario_con_septimo = dia_base + (dia_base / Decimal('6')).quantize(Decimal('0.01'))
-        
-        # Valor hora base
-        if dia_base > 0:
-            self.valor_hora_base = (dia_base / Decimal('8')).quantize(Decimal('0.01'))
-        
-        # Prestaciones = (2.5/30) × Salario Base
-        factor_prestacion = Decimal('2.5') / Decimal('30')
-        self.vacaciones = (factor_prestacion * salario_base).quantize(Decimal('0.01'))
-        self.aguinaldo = (factor_prestacion * salario_base).quantize(Decimal('0.01'))
-        self.antiguedad = (factor_prestacion * salario_base).quantize(Decimal('0.01'))
-        
-        # Salario Prestacionado
-        self.salario_prestacionado = (
-            salario_base + self.vacaciones + self.aguinaldo + self.antiguedad
-        ).quantize(Decimal('0.01'))
-        
-        # Horas Extras: Tarifa HE = (Día_Base / 8) × 2
-        tarifa_he = (dia_base / Decimal('8')) * Decimal('2')
+        db = self.salario_dia_base  # F: Día Base (salario_hora × 8)
+
+        # G: 7mo Día = (día_base / 6) × días_laborados
+        self.valor_septimo_dia = ((db / Decimal('6')) * dias).quantize(Decimal('0.01')) if db > 0 and dias > 0 else Decimal('0.00')
+
+        # H: Salario Base = días × día_base
+        salario_base = (dias * db).quantize(Decimal('0.01'))
+        self.salario_devengado = salario_base
+
+        # Campos de referencia (compatibilidad con templates)
+        self.salario_diario_con_septimo = (db + (db / Decimal('6'))).quantize(Decimal('0.01')) if db > 0 else Decimal('0.00')
+        self.valor_hora_base = (db / Decimal('8')).quantize(Decimal('0.01')) if db > 0 else Decimal('0.00')
+
+        # I, J, K: Prestaciones = (2.5/30) × Salario Base
+        factor = Decimal('2.5') / Decimal('30')
+        self.vacaciones = (factor * salario_base).quantize(Decimal('0.01'))
+        self.aguinaldo = (factor * salario_base).quantize(Decimal('0.01'))
+        self.antiguedad = (factor * salario_base).quantize(Decimal('0.01'))
+
+        # L: Salario Prestacionado = Base + Vac + Ag + Ant
+        self.salario_prestacionado = (salario_base + self.vacaciones + self.aguinaldo + self.antiguedad).quantize(Decimal('0.01'))
+
+        # N: Tarifa HE = (día_base / 8) × 2
+        tarifa_he = (db / Decimal('8')) * Decimal('2') if db > 0 else Decimal('0.00')
+
+        # O: Salario HE = tarifa × horas
         self.salario_horas_extras = (tarifa_he * self.horas_extras).quantize(Decimal('0.01'))
-        
-        # Ingreso Día Feriado = (Días_Feriados × Día_Base) + (Horas_Feriado × Tarifa_HE)
+
+        # Dominicales (se pagan como extras)
+        self.salario_horas_dominicales = (tarifa_he * self.horas_dominicales).quantize(Decimal('0.01'))
+
+        # R: Ingreso Feriado = (días_feriados × día_base) + (horas_feriado × tarifa_he)
         self.ingreso_dia_feriado = (
-            (Decimal(str(self.dias_feriados)) * dia_base) +
-            (self.horas_feriado * tarifa_he)
+            (Decimal(str(self.dias_feriados)) * db) + (self.horas_feriado * tarifa_he)
         ).quantize(Decimal('0.01'))
-        
-        # Ingreso Total
+        self.salario_dias_feriados = self.ingreso_dia_feriado
+
+        # W: Total = Prestacionado + HE + Dominicales + Feriado + Bonos + Combustible + Otros - Deducciones
         self.ingreso_total = (
             self.salario_prestacionado +
             self.salario_horas_extras +
+            self.salario_horas_dominicales +
             self.ingreso_dia_feriado +
             self.bonos +
             self.combustible +
             self.otros_ingresos -
             self.deducciones
         ).quantize(Decimal('0.01'))
-        
-        # INSS y cargas sociales
+
+        # Cargas sociales
         self.inss_laboral = (self.ingreso_total * Decimal('0.0625')).quantize(Decimal('0.01'))
         self.inss_patronal = (self.ingreso_total * Decimal('0.19')).quantize(Decimal('0.01'))
         self.inatec = (self.ingreso_total * Decimal('0.02')).quantize(Decimal('0.01'))
-
     @property
     def ingreso_total_dolares(self):
         """Retorna el ingreso total en dólares"""

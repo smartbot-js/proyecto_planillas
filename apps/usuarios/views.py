@@ -16,7 +16,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-
+from django.db import models
+from django.contrib.auth import update_session_auth_hash
 from .models import Usuario
 from .serializers import (
     UsuarioSerializer,
@@ -28,7 +29,8 @@ from .serializers import (
 )
 
 from apps.admin_panel.models import Rol
-
+from apps.trabajadores.models import Trabajador
+import re
 # ========================================
 # VISTAS API REST (para la app móvil)
 # ========================================
@@ -577,17 +579,140 @@ class PerfilTemplateView(View):
     template_name = 'usuarios/perfil.html'
     
     def get(self, request):
-        context = {
-            'usuario': request.user,
-        }
-        return render(request, self.template_name, context)
+        return render(request, self.template_name, {'usuario': request.user})
     
     def post(self, request):
         user = request.user
-        user.nombre_completo = request.POST.get('nombre_completo', user.nombre_completo)
-        user.email = request.POST.get('email', user.email)
-        user.save()
+        accion = request.POST.get('accion', 'perfil')
         
-        messages.success(request, 'Perfil actualizado exitosamente.')
+        if accion == 'perfil':
+            user.nombre_completo = request.POST.get('nombre_completo', user.nombre_completo)
+            user.email = request.POST.get('email', user.email)
+            user.telefono = request.POST.get('telefono', getattr(user, 'telefono', ''))
+            
+            # Foto de perfil
+            if 'foto' in request.FILES:
+                user.foto = request.FILES['foto']
+            
+            user.save()
+            messages.success(request, '✅ Perfil actualizado exitosamente.')
+        
+        elif accion == 'password':
+            password_actual = request.POST.get('password_actual', '')
+            password_nueva = request.POST.get('password_nueva', '')
+            password_confirmar = request.POST.get('password_confirmar', '')
+            
+            if not user.check_password(password_actual):
+                messages.error(request, '❌ La contraseña actual es incorrecta.')
+            elif len(password_nueva) < 6:
+                messages.error(request, '❌ La nueva contraseña debe tener al menos 6 caracteres.')
+            elif password_nueva != password_confirmar:
+                messages.error(request, '❌ Las contraseñas no coinciden.')
+            else:
+                user.set_password(password_nueva)
+                user.save()
+                update_session_auth_hash(request, user)
+                messages.success(request, '✅ Contraseña cambiada exitosamente.')
+        
         return redirect('perfil')
+
+class RecuperarPasswordView(View):
+    """Recuperar contraseña verificando email + cédula del trabajador asociado"""
+    template_name = 'usuarios/recuperar_password.html'
     
+    def get(self, request):
+        if request.user.is_authenticated:
+            return redirect('dashboard')
+        return render(request, self.template_name, {'paso': 1})
+    
+    def post(self, request):
+        paso = request.POST.get('paso', '1')
+        
+        if paso == '1':
+            email = request.POST.get('email', '').strip()
+            
+            # Verificar que existe el usuario
+            try:
+                usuario = Usuario.objects.get(email=email)
+            except Usuario.DoesNotExist:
+                messages.error(request, '❌ No existe una cuenta con ese correo electrónico.')
+                return render(request, self.template_name, {'paso': 1})
+            
+            # Buscar trabajador asociado con cédula real
+           
+            trabajador = Trabajador.objects.filter(
+                email=email
+            ).exclude(numero_cedula__startswith='USR-').first()
+            
+            if not trabajador:
+                messages.error(request, '❌ No se encontró un trabajador asociado a este correo. Contactá al administrador.')
+                return render(request, self.template_name, {'paso': 1})
+            
+            # Pista de cédula
+            ced = trabajador.numero_cedula
+            cedula_hint = f"***{ced[-4:]}" if len(ced) > 4 else "****"
+            
+            return render(request, self.template_name, {
+                'paso': 2,
+                'email': email,
+                'cedula_hint': cedula_hint,
+            })
+        
+        elif paso == '2':
+            email = request.POST.get('email', '').strip()
+            cedula = request.POST.get('cedula', '').strip()
+            password_nueva = request.POST.get('password_nueva', '')
+            password_confirmar = request.POST.get('password_confirmar', '')
+            
+            # Verificar usuario
+            try:
+                usuario = Usuario.objects.get(email=email)
+            except Usuario.DoesNotExist:
+                messages.error(request, '❌ Error de verificación.')
+                return render(request, self.template_name, {'paso': 1})
+            
+            # Buscar trabajador
+            
+            trabajador = Trabajador.objects.filter(
+                email=email
+            ).exclude(numero_cedula__startswith='USR-').first()
+            
+            if not trabajador:
+                messages.error(request, '❌ Error de verificación.')
+                return render(request, self.template_name, {'paso': 1})
+            
+            # Verificar cédula
+            cedula_limpia = re.sub(r'[^a-zA-Z0-9]', '', cedula).upper()
+            cedula_db = re.sub(r'[^a-zA-Z0-9]', '', trabajador.numero_cedula).upper()
+            
+            if cedula_limpia != cedula_db:
+                messages.error(request, '❌ La cédula no coincide. Intentá de nuevo.')
+                return render(request, self.template_name, {
+                    'paso': 2,
+                    'email': email,
+                    'cedula_hint': f"***{trabajador.numero_cedula[-4:]}",
+                })
+            
+            # Validar contraseña
+            if len(password_nueva) < 6:
+                messages.error(request, '❌ La contraseña debe tener al menos 6 caracteres.')
+                return render(request, self.template_name, {
+                    'paso': 2, 'email': email,
+                    'cedula_hint': f"***{trabajador.numero_cedula[-4:]}",
+                })
+            
+            if password_nueva != password_confirmar:
+                messages.error(request, '❌ Las contraseñas no coinciden.')
+                return render(request, self.template_name, {
+                    'paso': 2, 'email': email,
+                    'cedula_hint': f"***{trabajador.numero_cedula[-4:]}",
+                })
+            
+            # Cambiar contraseña
+            usuario.set_password(password_nueva)
+            usuario.save()
+            
+            messages.success(request, '✅ Contraseña restablecida exitosamente. Ya podés iniciar sesión.')
+            return redirect('login')
+        
+        return render(request, self.template_name, {'paso': 1})

@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Generar Planilla - Sistema de Planillas{% endblock %}
 
@@ -590,6 +591,7 @@
     <input type="hidden" name="proyecto" value="{{ proyecto.id }}">
     <input type="hidden" name="periodo_inicio" value="{{ periodo_inicio|date:'Y-m-d' }}">
     <input type="hidden" name="periodo_fin" value="{{ periodo_fin|date:'Y-m-d' }}">
+    {% if dias_periodo %}<input type="hidden" name="dias_periodo" value="{{ dias_periodo }}">{% endif %}
     
     <!-- Información del período -->
     <div class="info-cards-grid">
@@ -627,11 +629,11 @@
         <div class="summary-totals">
             <div class="summary-total-item">
                 <span class="summary-total-label">Total en Córdobas</span>
-                <span class="summary-total-value">C$ {{ total_general_cordobas|floatformat:2 }}</span>
+                <span class="summary-total-value">{{ total_general_cordobas|moneda }}</span>
             </div>
             <div class="summary-total-item">
                 <span class="summary-total-label">Total en Dólares</span>
-                <span class="summary-total-value">$ {{ total_general_dolares|floatformat:2 }}</span>
+                <span class="summary-total-value">{{ total_general_dolares|dolares }}</span>
             </div>
         </div>
     </div>
@@ -646,45 +648,79 @@
         </div>
         
         <div class="table-wrapper">
-            <table class="preview-table">
-                <thead>
-                    <tr>
-                        <th>Trabajador</th>
-                        <th>Puesto</th>
-                        <th class="text-right">Días</th>
-                        <th class="text-right">H. Extras</th>
-                        <th class="text-right">H. Dominicales</th>
-                        <th class="text-right">Salario Día</th>
-                        <th class="text-right">Total C$</th>
-                        <th class="text-right">Total USD</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for detalle in preview_detalles %}
-                    <tr>
-                        <td>{{ detalle.trabajador.nombre_completo }}</td>
-                        <td>{{ detalle.trabajador.puesto_laboral }}</td>
-                        <td class="text-right">{{ detalle.dias }}</td>
-                        <td class="text-right">{{ detalle.horas_extras|floatformat:1 }}</td>
-                        <td class="text-right">{{ detalle.horas_dominicales|floatformat:1 }}</td>
-                        <td class="text-right">C$ {{ detalle.salario_dia|floatformat:2 }}</td>
-                        <td class="text-right text-success">C$ {{ detalle.ingreso_total|floatformat:2 }}</td>
-                        <td class="text-right text-info">$ {{ detalle.ingreso_total_dolares|floatformat:2 }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="6"><strong>TOTALES:</strong></td>
-                        <td class="text-right text-success">
-                            <strong>C$ {{ total_general_cordobas|floatformat:2 }}</strong>
-                        </td>
-                        <td class="text-right text-info">
-                            <strong>$ {{ total_general_dolares|floatformat:2 }}</strong>
-                        </td>
-                    </tr>
-                </tfoot>
-            </table>
+            <div style="overflow-x: auto;">
+                <table class="preview-table">
+                    <thead>
+                        <tr>
+                            <th>N°</th>
+                            <th>Nombre y Apellido</th>
+                            <th>Cédula</th>
+                            <th>Cargo</th>
+                            <th class="text-right">Días Lab.</th>
+                            <th class="text-right">Día Base</th>
+                            <th class="text-right">7mo Día</th>
+                            <th class="text-right">Sal. Base</th>
+                            <th class="text-right">Vacaciones</th>
+                            <th class="text-right">Aguinaldo</th>
+                            <th class="text-right">Antigüedad</th>
+                            <th class="text-right">Prestacionado</th>
+                            <th class="text-right">H. Extras</th>
+                            <th class="text-right">Tarifa H.E.</th>
+                            <th class="text-right">Sal. H.E.</th>
+                            <th class="text-right">Días Fer.</th>
+                            <th class="text-right">Hrs. Fer.</th>
+                            <th class="text-right">Ingr. Fer.</th>
+                            <th class="text-right">Bono</th>
+                            <th class="text-right">Combustible</th>
+                            <th class="text-right">Otros</th>
+                            <th class="text-right">Deducción</th>
+                            <th class="text-right">Total C$</th>
+                            <th class="text-right">Total U$</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detalle in preview_detalles %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ detalle.trabajador.nombre_completo }}</td>
+                            <td>{{ detalle.trabajador.numero_cedula }}</td>
+                            <td>{{ detalle.trabajador.puesto_laboral }}</td>
+                            <td class="text-right">{{ detalle.dias }}</td>
+                            <td class="text-right">{{ detalle.dia_base|moneda }}</td>
+                            <td class="text-right">{{ detalle.septimo_dia|moneda }}</td>
+                            <td class="text-right">{{ detalle.salario_base|moneda }}</td>
+                            <td class="text-right">{{ detalle.vacaciones|moneda }}</td>
+                            <td class="text-right">{{ detalle.aguinaldo|moneda }}</td>
+                            <td class="text-right">{{ detalle.antiguedad|moneda }}</td>
+                            <td class="text-right">{{ detalle.prestacionado|moneda }}</td>
+                            <td class="text-right">{{ detalle.horas_extras|floatformat:1 }}</td>
+                            <td class="text-right">{{ detalle.tarifa_he|moneda }}</td>
+                            <td class="text-right">{{ detalle.salario_horas_extras|moneda }}</td>
+                            <td class="text-right">{{ detalle.dias_feriados|default:"0" }}</td>
+                            <td class="text-right">{{ detalle.horas_feriado|floatformat:1|default:"0.0" }}</td>
+                            <td class="text-right">C$ {{ detalle.ingreso_feriado|floatformat:2|default:"0.00" }}</td>
+                            <td class="text-right">{{ detalle.bonos|moneda }}</td>
+                            <td class="text-right">C$ 0.00</td>
+                            <td class="text-right">C$ 0.00</td>
+                            <td class="text-right">C$ 0.00</td>
+                            <td class="text-right text-success"><strong>{{ detalle.ingreso_total|moneda }}</strong></td>
+                            <td class="text-right text-info"><strong>{{ detalle.ingreso_total_dolares|dolares }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="22"><strong>TOTALES:</strong></td>
+                            <td class="text-right text-success">
+                                <strong>{{ total_general_cordobas|moneda }}</strong>
+                            </td>
+                            <td class="text-right text-info">
+                                <strong>{{ total_general_dolares|dolares }}</strong>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+                </div>
         </div>
     </div>
     

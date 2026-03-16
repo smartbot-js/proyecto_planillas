@@ -172,6 +172,21 @@ class Usuario(AbstractUser):
         null=True,
         blank=True
     )
+    
+    telefono = models.CharField(
+        _('Teléfono'),
+        max_length=20,
+        blank=True,
+        default=''
+    )
+    
+    foto = models.ImageField(
+        upload_to='usuarios/fotos/',
+        blank=True,
+        null=True,
+        verbose_name=_('Foto de Perfil')
+    )
+
     class Meta:
         verbose_name = _('Usuario')
         verbose_name_plural = _('Usuarios')

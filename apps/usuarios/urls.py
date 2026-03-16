@@ -6,6 +6,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     # API Views
+    RecuperarPasswordView,
     UsuarioViewSet,
     LoginView as LoginAPIView,
     LogoutView as LogoutAPIView,
@@ -17,7 +18,7 @@ from .views import (
     RegistroTemplateView,
     LogoutTemplateView,
     DashboardView,
-    PerfilView as PerfilTemplateView,
+    PerfilTemplateView,
 )
 
 # Router para el ViewSet (API)
@@ -41,6 +42,7 @@ template_urls = [
     path('logout/', LogoutTemplateView.as_view(), name='logout'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path('perfil/', PerfilTemplateView.as_view(), name='perfil'),
+    path('recuperar-password/', RecuperarPasswordView.as_view(), name='recuperar_password'),
 ]
 
 urlpatterns = [

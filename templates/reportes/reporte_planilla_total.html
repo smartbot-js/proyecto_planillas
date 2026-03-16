@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Planilla Total Consolidada - Sistema de Planillas{% endblock %}
 
@@ -230,26 +231,26 @@
                         {% for componente in componentes %}
                         <tr>
                             <td><strong>{{ componente.nombre }}</strong></td>
-                            <td class="text-right">C$ {{ componente.total_cordobas|floatformat:2 }}</td>
-                            <td class="text-right">$ {{ componente.total_dolares|floatformat:2 }}</td>
+                            <td class="text-right">{{ componente.total_cordobas|moneda }}</td>
+                            <td class="text-right">{{ componente.total_dolares|dolares }}</td>
                             {% if comparar == 'si' %}
                             {% if componente.nombre == 'Proyectos de Construcción' %}
                                 <td class="text-right {% if var_proyectos_c > 0 %}variacion-positiva{% elif var_proyectos_c < 0 %}variacion-negativa{% else %}variacion-neutral{% endif %}">
-                                    {% if var_proyectos_c > 0 %}+{% endif %}C$ {{ var_proyectos_c|floatformat:2 }}
+                                    {% if var_proyectos_c > 0 %}+{% endif %}{{ var_proyectos_c|moneda }}
                                 </td>
                                 <td class="text-center {% if porc_var_proyectos > 0 %}variacion-positiva{% elif porc_var_proyectos < 0 %}variacion-negativa{% else %}variacion-neutral{% endif %}">
                                     {% if porc_var_proyectos > 0 %}+{% endif %}{{ porc_var_proyectos|floatformat:1 }}%
                                 </td>
                             {% elif componente.nombre == 'Planilla Administrativa' %}
                                 <td class="text-right {% if var_administrativa_c > 0 %}variacion-positiva{% elif var_administrativa_c < 0 %}variacion-negativa{% else %}variacion-neutral{% endif %}">
-                                    {% if var_administrativa_c > 0 %}+{% endif %}C$ {{ var_administrativa_c|floatformat:2 }}
+                                    {% if var_administrativa_c > 0 %}+{% endif %}{{ var_administrativa_c|moneda }}
                                 </td>
                                 <td class="text-center {% if porc_var_administrativa > 0 %}variacion-positiva{% elif porc_var_administrativa < 0 %}variacion-negativa{% else %}variacion-neutral{% endif %}">
                                     {% if porc_var_administrativa > 0 %}+{% endif %}{{ porc_var_administrativa|floatformat:1 }}%
                                 </td>
                             {% else %}
                                 <td class="text-right {% if var_gastos_c > 0 %}variacion-positiva{% elif var_gastos_c < 0 %}variacion-negativa{% else %}variacion-neutral{% endif %}">
-                                    {% if var_gastos_c > 0 %}+{% endif %}C$ {{ var_gastos_c|floatformat:2 }}
+                                    {% if var_gastos_c > 0 %}+{% endif %}{{ var_gastos_c|moneda }}
                                 </td>
                                 <td class="text-center {% if porc_var_gastos > 0 %}variacion-positiva{% elif porc_var_gastos < 0 %}variacion-negativa{% else %}variacion-neutral{% endif %}">
                                     {% if porc_var_gastos > 0 %}+{% endif %}{{ porc_var_gastos|floatformat:1 }}%
@@ -263,11 +264,11 @@
                     <tfoot>
                         <tr>
                             <td>GRAN TOTAL</td>
-                            <td class="text-right">C$ {{ gran_total_cordobas|floatformat:2 }}</td>
-                            <td class="text-right">$ {{ gran_total_dolares|floatformat:2 }}</td>
+                            <td class="text-right">{{ gran_total_cordobas|moneda }}</td>
+                            <td class="text-right">{{ gran_total_dolares|dolares }}</td>
                             {% if comparar == 'si' %}
                             <td class="text-right {% if var_total_c > 0 %}variacion-positiva{% elif var_total_c < 0 %}variacion-negativa{% else %}variacion-neutral{% endif %}">
-                                {% if var_total_c > 0 %}+{% endif %}C$ {{ var_total_c|floatformat:2 }}
+                                {% if var_total_c > 0 %}+{% endif %}{{ var_total_c|moneda }}
                             </td>
                             <td class="text-center {% if porc_var_total > 0 %}variacion-positiva{% elif porc_var_total < 0 %}variacion-negativa{% else %}variacion-neutral{% endif %}">
                                 {% if porc_var_total > 0 %}+{% endif %}{{ porc_var_total|floatformat:1 }}%
@@ -286,11 +287,11 @@
                     <div class="grand-total-values">
                         <div class="grand-total-item">
                             <div class="grand-total-currency">Córdobas</div>
-                            <div class="grand-total-amount">C$ {{ gran_total_cordobas|floatformat:2 }}</div>
+                            <div class="grand-total-amount">{{ gran_total_cordobas|moneda }}</div>
                         </div>
                         <div class="grand-total-item">
                             <div class="grand-total-currency">Dólares</div>
-                            <div class="grand-total-amount">$ {{ gran_total_dolares|floatformat:2 }}</div>
+                            <div class="grand-total-amount">{{ gran_total_dolares|dolares }}</div>
                         </div>
                     </div>
                 </div>

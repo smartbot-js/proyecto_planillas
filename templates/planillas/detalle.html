@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 {% load planillas_tags %}
 
 {% block title %}Detalle Planilla {{ planilla.codigo }} - Sistema de Planillas{% endblock %}
@@ -599,23 +600,23 @@
     <div class="summary-grid">
         <div class="summary-item">
             <span class="summary-label">Total en Córdobas</span>
-            <span class="summary-value">C$ {{ planilla.total_cordobas|floatformat:2 }}</span>
+            <span class="summary-value">{{ planilla.total_cordobas|moneda }}</span>
         </div>
         <div class="summary-item">
             <span class="summary-label">Total en Dólares</span>
-            <span class="summary-value">$ {{ planilla.total_dolares|floatformat:2 }}</span>
+            <span class="summary-value">{{ planilla.total_dolares|dolares }}</span>
         </div>
         <div class="summary-item">
             <span class="summary-label">INSS Laboral (6.25%)</span>
-            <span class="summary-value">C$ {{ planilla.total_inss_laboral|floatformat:2 }}</span>
+            <span class="summary-value">{{ planilla.total_inss_laboral|moneda }}</span>
         </div>
         <div class="summary-item">
             <span class="summary-label">INSS Patronal (19%)</span>
-            <span class="summary-value">C$ {{ planilla.total_inss_patronal|floatformat:2 }}</span>
+            <span class="summary-value">{{ planilla.total_inss_patronal|moneda }}</span>
         </div>
         <div class="summary-item">
             <span class="summary-label">INATEC (2%)</span>
-            <span class="summary-value">C$ {{ planilla.total_inatec|floatformat:2 }}</span>
+            <span class="summary-value">{{ planilla.total_inatec|moneda }}</span>
         </div>
     </div>
 </div>
@@ -667,18 +668,18 @@
                     <td class="text-right">{{ detalle.dias_laborados }}</td>
                     <td class="text-right">{{ detalle.dias_feriados }}</td>
                     <td class="text-right">{{ detalle.horas_extras|floatformat:1 }}</td>
-                    <td class="text-right">C$ {{ detalle.salario_dia_base|floatformat:2 }}</td>
-                    <td class="text-right">C$ {{ detalle.valor_septimo_dia|floatformat:2 }}</td>
-                    <td class="text-right">C$ {{ detalle.salario_diario_con_septimo|floatformat:2 }}</td>
-                    <td class="text-right">C$ {{ detalle.valor_hora_base|floatformat:2 }}</td>
-                    <td class="text-right">C$ {{ detalle.salario_devengado|floatformat:2 }}</td>
-                    <td class="text-right">C$ {{ detalle.salario_horas_extras|floatformat:2 }}</td>
-                    <td class="text-right">C$ {{ detalle.salario_dias_feriados|floatformat:2 }}</td>
-                    <td class="text-right">C$ {{ detalle.bonos|floatformat:2 }}</td>
-                    <td class="text-right">C$ {{ detalle.combustible|floatformat:2 }}</td>
-                    <td class="text-right">C$ {{ detalle.otros_gastos|floatformat:2 }}</td>
-                    <td class="text-right text-success"><strong>C$ {{ detalle.ingreso_total|floatformat:2 }}</strong></td>
-                    <td class="text-right text-info">$ {{ detalle.ingreso_total_dolares|floatformat:2 }}</td>
+                    <td class="text-right">{{ detalle.salario_dia_base|moneda }}</td>
+                    <td class="text-right">{{ detalle.valor_septimo_dia|moneda }}</td>
+                    <td class="text-right">{{ detalle.salario_diario_con_septimo|moneda }}</td>
+                    <td class="text-right">{{ detalle.valor_hora_base|moneda }}</td>
+                    <td class="text-right">{{ detalle.salario_devengado|moneda }}</td>
+                    <td class="text-right">{{ detalle.salario_horas_extras|moneda }}</td>
+                    <td class="text-right">{{ detalle.salario_dias_feriados|moneda }}</td>
+                    <td class="text-right">{{ detalle.bonos|moneda }}</td>
+                    <td class="text-right">{{ detalle.combustible|moneda }}</td>
+                    <td class="text-right">{{ detalle.otros_gastos|moneda }}</td>
+                    <td class="text-right text-success"><strong>{{ detalle.ingreso_total|moneda }}</strong></td>
+                    <td class="text-right text-info">{{ detalle.ingreso_total_dolares|dolares }}</td>
                     {% if puede_editar %}
                     <td class="text-center">
                         <button 

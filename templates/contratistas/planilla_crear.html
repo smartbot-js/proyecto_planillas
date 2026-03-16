@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Nueva Planilla de Contratistas{% endblock %}
 
@@ -538,7 +539,7 @@
                                     <span class="avaluo-code">{{ avaluo.codigo }}</span>
                                     <span class="avaluo-badge {{ avaluo.estado }}">{{ avaluo.get_estado_display }}</span>
                                 </div>
-                                <span class="avaluo-amount">C$ {{ avaluo.monto_cordobas|floatformat:2 }}</span>
+                                <span class="avaluo-amount">{{ avaluo.monto_cordobas|moneda }}</span>
                             </div>
                             <div class="avaluo-details">
                                 <strong>Contratista:</strong> {{ avaluo.contrato.contratista.nombre_completo }}<br>

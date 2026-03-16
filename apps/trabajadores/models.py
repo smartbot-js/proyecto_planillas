@@ -251,6 +251,14 @@ class Trabajador(models.Model):
         blank=True
     )
     
+    bonos = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(0)],
+        verbose_name='Bonos',
+        help_text='Bono que se incluye automáticamente en cada planilla'
+    )
     # ========================================
     # SEGURIDAD SOCIAL
     # ========================================

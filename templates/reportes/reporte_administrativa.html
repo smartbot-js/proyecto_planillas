@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Planilla Administrativa - Sistema de Planillas{% endblock %}
 
@@ -194,8 +195,8 @@
                 </div>
                 <div class="reporte-item-right">
                     <div class="reporte-total">Total</div>
-                    <div class="reporte-amount">C$ {{ reporte.total_cordobas|floatformat:2 }}</div>
-                    <div class="reporte-amount" style="font-size: 14px; color: #6b7280;">$ {{ reporte.total_dolares|floatformat:2 }}</div>
+                    <div class="reporte-amount">{{ reporte.total_cordobas|moneda }}</div>
+                    <div class="reporte-amount" style="font-size: 14px; color: #6b7280;">{{ reporte.total_dolares|dolares }}</div>
                     <div class="reporte-arrow">
                         <span class="material-symbols-outlined">arrow_forward</span>
                     </div>
@@ -283,16 +284,16 @@
                         <td>{{ persona.nombre }}</td>
                         <td>{{ persona.cargo }}</td>
                         <td>{{ persona.dias }}</td>
-                        <td class="text-right">C$ {{ persona.salario_cordobas|floatformat:2 }}</td>
-                        <td class="text-right">$ {{ persona.salario_dolares|floatformat:2 }}</td>
+                        <td class="text-right">{{ persona.salario_cordobas|moneda }}</td>
+                        <td class="text-right">{{ persona.salario_dolares|dolares }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
                 <tfoot>
                     <tr>
                         <td colspan="3">TOTAL {{ area.nombre|upper }}</td>
-                        <td class="text-right">C$ {{ area.total_cordobas|floatformat:2 }}</td>
-                        <td class="text-right">$ {{ area.total_dolares|floatformat:2 }}</td>
+                        <td class="text-right">{{ area.total_cordobas|moneda }}</td>
+                        <td class="text-right">{{ area.total_dolares|dolares }}</td>
                     </tr>
                 </tfoot>
             </table>
@@ -306,11 +307,11 @@
                 <div class="grand-total-values">
                     <div class="grand-total-item">
                         <div class="grand-total-currency">Córdobas</div>
-                        <div class="grand-total-amount">C$ {{ total_general_cordobas|floatformat:2 }}</div>
+                        <div class="grand-total-amount">{{ total_general_cordobas|moneda }}</div>
                     </div>
                     <div class="grand-total-item">
                         <div class="grand-total-currency">Dólares</div>
-                        <div class="grand-total-amount">$ {{ total_general_dolares|floatformat:2 }}</div>
+                        <div class="grand-total-amount">{{ total_general_dolares|dolares }}</div>
                     </div>
                 </div>
             </div>

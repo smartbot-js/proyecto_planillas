@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}{{ planilla.codigo }} - Detalle de Planilla{% endblock %}
 
@@ -739,12 +740,12 @@ tbody tr:hover {
     <div class="stats-grid">
         <div class="stat-card blue">
             <div class="stat-label">Total Córdobas</div>
-            <div class="stat-value">C$ {{ planilla.total_cordobas|floatformat:2 }}</div>
+            <div class="stat-value">{{ planilla.total_cordobas|moneda }}</div>
         </div>
         
         <div class="stat-card green">
             <div class="stat-label">Total Dólares</div>
-            <div class="stat-value">$ {{ planilla.total_dolares|floatformat:2 }}</div>
+            <div class="stat-value">{{ planilla.total_dolares|dolares }}</div>
         </div>
         
         <div class="stat-card purple">
@@ -882,8 +883,8 @@ tbody tr:hover {
                         <td>{{ detalle.contratista_cedula }}</td>
                         <td>{{ detalle.actividad|truncatewords:10 }}</td>
                         <td>{{ detalle.forma_pago }}</td>
-                        <td>C$ {{ detalle.monto_cordobas|floatformat:2 }}</td>
-                        <td>$ {{ detalle.monto_dolares|floatformat:2 }}</td>
+                        <td>{{ detalle.monto_cordobas|moneda }}</td>
+                        <td>{{ detalle.monto_dolares|dolares }}</td>
                         <td>{{ detalle.banco|default:"-" }}</td>
                         <td>{{ detalle.numero_cuenta|default:"-" }}</td>
                     </tr>
@@ -901,20 +902,20 @@ tbody tr:hover {
         <div style="display: flex; justify-content: space-around; margin-top: 20px; padding: 16px; background: #f9fafb; border-radius: 8px;">
             <div style="text-align: center;">
                 <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">TOTAL TRANSFERENCIA</div>
-                <div style="font-size: 18px; font-weight: 700; color: #059669;">C$ {{ total_transferencia_cordobas|floatformat:2 }}</div>
-                <div style="font-size: 14px; color: #6b7280;">$ {{ total_transferencia_dolares|floatformat:2 }}</div>
+                <div style="font-size: 18px; font-weight: 700; color: #059669;">{{ total_transferencia_cordobas|moneda }}</div>
+                <div style="font-size: 14px; color: #6b7280;">{{ total_transferencia_dolares|dolares }}</div>
             </div>
             
             <div style="text-align: center;">
                 <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">TOTAL EFECTIVO</div>
-                <div style="font-size: 18px; font-weight: 700; color: #0891b2;">C$ {{ total_efectivo_cordobas|floatformat:2 }}</div>
-                <div style="font-size: 14px; color: #6b7280;">$ {{ total_efectivo_dolares|floatformat:2 }}</div>
+                <div style="font-size: 18px; font-weight: 700; color: #0891b2;">{{ total_efectivo_cordobas|moneda }}</div>
+                <div style="font-size: 14px; color: #6b7280;">{{ total_efectivo_dolares|dolares }}</div>
             </div>
             
             <div style="text-align: center;">
                 <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">TOTAL CHEQUE</div>
-                <div style="font-size: 18px; font-weight: 700; color: #7c3aed;">C$ {{ total_cheque_cordobas|floatformat:2 }}</div>
-                <div style="font-size: 14px; color: #6b7280;">$ {{ total_cheque_dolares|floatformat:2 }}</div>
+                <div style="font-size: 18px; font-weight: 700; color: #7c3aed;">{{ total_cheque_cordobas|moneda }}</div>
+                <div style="font-size: 14px; color: #6b7280;">{{ total_cheque_dolares|dolares }}</div>
             </div>
         </div>
     </div>
@@ -1148,7 +1149,7 @@ function confirmarAprobacionGerente() {
                 <p style="margin-bottom: 12px;">Estás a punto de aprobar la planilla:</p>
                 <div style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                     <strong>📋 Planilla:</strong> {{ planilla.codigo }}<br>
-                    <strong>💰 Total:</strong> C$ {{ planilla.total_cordobas|floatformat:2 }}<br>
+                    <strong>💰 Total:</strong> {{ planilla.total_cordobas|moneda }}<br>
                     <strong>📅 Período:</strong> {{ planilla.periodo_inicio|date:"d/m/Y" }} - {{ planilla.periodo_fin|date:"d/m/Y" }}
                 </div>
                 <p style="color: #6b7280; font-size: 14px;">Después de aprobar, la planilla pasará al contador para su revisión.</p>
@@ -1181,7 +1182,7 @@ function confirmarAprobacionContador() {
                 <p style="margin-bottom: 12px;">Estás a punto de aprobar la planilla:</p>
                 <div style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                     <strong>📋 Planilla:</strong> {{ planilla.codigo }}<br>
-                    <strong>💰 Total:</strong> C$ {{ planilla.total_cordobas|floatformat:2 }}<br>
+                    <strong>💰 Total:</strong> {{ planilla.total_cordobas|moneda }}<br>
                     <strong>📅 Período:</strong> {{ planilla.periodo_inicio|date:"d/m/Y" }} - {{ planilla.periodo_fin|date:"d/m/Y" }}
                 </div>
                 <p style="color: #6b7280; font-size: 14px;">Después de aprobar, la planilla estará lista para ser marcada como pagada.</p>
@@ -1214,8 +1215,8 @@ function confirmarPago() {
                 <p style="margin-bottom: 12px;">Estás a punto de marcar como pagada la planilla:</p>
                 <div style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                     <strong>📋 Planilla:</strong> {{ planilla.codigo }}<br>
-                    <strong>💰 Total:</strong> C$ {{ planilla.total_cordobas|floatformat:2 }}<br>
-                    <strong>💵 Total USD:</strong> $ {{ planilla.total_dolares|floatformat:2 }}<br>
+                    <strong>💰 Total:</strong> {{ planilla.total_cordobas|moneda }}<br>
+                    <strong>💵 Total USD:</strong> {{ planilla.total_dolares|dolares }}<br>
                     <strong>👥 Contratistas:</strong> {{ cantidad_contratistas }}
                 </div>
                 <p style="color: #dc2626; font-size: 14px; font-weight: 600;">⚠️ Esta acción actualizará el estado de todos los avalúos incluidos.</p>

@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Gastos Varios y Reembolsos - Sistema de Planillas{% endblock %}
 
@@ -249,11 +250,11 @@
                         <tr>
                             <td><strong>{{ concepto.concepto }}</strong></td>
                             <td class="text-center">{{ concepto.cantidad }}</td>
-                            <td class="text-right">C$ {{ concepto.total_cordobas|floatformat:2 }}</td>
-                            <td class="text-right">$ {{ concepto.total_dolares|floatformat:2 }}</td>
+                            <td class="text-right">{{ concepto.total_cordobas|moneda }}</td>
+                            <td class="text-right">{{ concepto.total_dolares|dolares }}</td>
                             {% if comparar == 'si' %}
                             <td class="text-right {% if concepto.variacion_cordobas > 0 %}variacion-positiva{% elif concepto.variacion_cordobas < 0 %}variacion-negativa{% else %}variacion-neutral{% endif %}">
-                                {% if concepto.variacion_cordobas > 0 %}+{% endif %}C$ {{ concepto.variacion_cordobas|floatformat:2 }}
+                                {% if concepto.variacion_cordobas > 0 %}+{% endif %}{{ concepto.variacion_cordobas|moneda }}
                             </td>
                             <td class="text-center {% if concepto.porcentaje_variacion > 0 %}variacion-positiva{% elif concepto.porcentaje_variacion < 0 %}variacion-negativa{% else %}variacion-neutral{% endif %}">
                                 {% if concepto.porcentaje_variacion > 0 %}+{% endif %}{{ concepto.porcentaje_variacion|floatformat:1 }}%
@@ -267,11 +268,11 @@
                         <tr>
                             <td>TOTAL GENERAL</td>
                             <td class="text-center">{{ conceptos_data|length }}</td>
-                            <td class="text-right">C$ {{ total_general_cordobas|floatformat:2 }}</td>
-                            <td class="text-right">$ {{ total_general_dolares|floatformat:2 }}</td>
+                            <td class="text-right">{{ total_general_cordobas|moneda }}</td>
+                            <td class="text-right">{{ total_general_dolares|dolares }}</td>
                             {% if comparar == 'si' %}
                             <td class="text-right {% if variacion_total_cordobas > 0 %}variacion-positiva{% elif variacion_total_cordobas < 0 %}variacion-negativa{% else %}variacion-neutral{% endif %}">
-                                {% if variacion_total_cordobas > 0 %}+{% endif %}C$ {{ variacion_total_cordobas|floatformat:2 }}
+                                {% if variacion_total_cordobas > 0 %}+{% endif %}{{ variacion_total_cordobas|moneda }}
                             </td>
                             <td class="text-center {% if porcentaje_variacion_total > 0 %}variacion-positiva{% elif porcentaje_variacion_total < 0 %}variacion-negativa{% else %}variacion-neutral{% endif %}">
                                 {% if porcentaje_variacion_total > 0 %}+{% endif %}{{ porcentaje_variacion_total|floatformat:1 }}%
@@ -311,16 +312,16 @@
                             <td>{{ item.fecha|date:"d/m/Y" }}</td>
                             <td>{{ item.concepto }}</td>
                             <td>{{ item.observaciones|default:"—" }}</td>
-                            <td class="text-right">C$ {{ item.monto_cordobas|floatformat:2 }}</td>
-                            <td class="text-right">$ {{ item.monto_dolares|floatformat:2 }}</td>
+                            <td class="text-right">{{ item.monto_cordobas|moneda }}</td>
+                            <td class="text-right">{{ item.monto_dolares|dolares }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                     <tfoot>
                         <tr>
                             <td colspan="4">SUBTOTAL {{ concepto.concepto|upper }}</td>
-                            <td class="text-right">C$ {{ concepto.total_cordobas|floatformat:2 }}</td>
-                            <td class="text-right">$ {{ concepto.total_dolares|floatformat:2 }}</td>
+                            <td class="text-right">{{ concepto.total_cordobas|moneda }}</td>
+                            <td class="text-right">{{ concepto.total_dolares|dolares }}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -334,11 +335,11 @@
                     <div class="grand-total-values">
                         <div class="grand-total-item">
                             <div class="grand-total-currency">Córdobas</div>
-                            <div class="grand-total-amount">C$ {{ total_general_cordobas|floatformat:2 }}</div>
+                            <div class="grand-total-amount">{{ total_general_cordobas|moneda }}</div>
                         </div>
                         <div class="grand-total-item">
                             <div class="grand-total-currency">Dólares</div>
-                            <div class="grand-total-amount">$ {{ total_general_dolares|floatformat:2 }}</div>
+                            <div class="grand-total-amount">{{ total_general_dolares|dolares }}</div>
                         </div>
                     </div>
                 </div>

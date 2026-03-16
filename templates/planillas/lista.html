@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Planillas - Sistema de Planillas{% endblock %}
 
@@ -528,13 +529,13 @@
             <div class="total-item">
                 <span class="total-label">Córdobas</span>
                 <span class="total-value cordobas">
-                    C$ {{ planilla.total_cordobas|floatformat:2 }}
+                    {{ planilla.total_cordobas|moneda }}
                 </span>
             </div>
             <div class="total-item">
                 <span class="total-label">Dólares</span>
                 <span class="total-value dolares">
-                    $ {{ planilla.total_dolares|floatformat:2 }}
+                    {{ planilla.total_dolares|dolares }}
                 </span>
             </div>
         </div>

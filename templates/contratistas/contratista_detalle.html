@@ -1,10 +1,10 @@
-{% extends 'base/base.html' %}
+﻿{% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}{{ contratista.nombre_completo }} - Detalle Contratista{% endblock %}
 
 {% block extra_css %}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
     --primary: #3b82f6;
@@ -34,7 +34,6 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { 
     background: var(--gray-50); 
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     color: var(--gray-900);
     line-height: 1.6;
 }
@@ -1103,15 +1102,15 @@ body {
                     <div class="contrato-stats">
                         <div class="stat-item">
                             <div class="stat-label">Valor Contrato</div>
-                            <div class="stat-value">C$ {{ contrato.valor_contrato|floatformat:2 }}</div>
+                            <div class="stat-value">{{ contrato.valor_contrato|moneda }}</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-label">Total Pagado</div>
-                            <div class="stat-value success">C$ {{ contrato.total_pagado|floatformat:2 }}</div>
+                            <div class="stat-value success">{{ contrato.total_pagado|moneda }}</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-label">Pendiente</div>
-                            <div class="stat-value warning">C$ {{ contrato.total_pendiente|floatformat:2 }}</div>
+                            <div class="stat-value warning">{{ contrato.total_pendiente|moneda }}</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-label">% Avance</div>
@@ -1147,7 +1146,7 @@ body {
                                     <div class="avaluo-header-left">
                                         <span class="avaluo-codigo">{{ avaluo.codigo }}</span>
                                     </div>
-                                    <span class="avaluo-monto">C$ {{ avaluo.monto_cordobas|floatformat:2 }}</span>
+                                    <span class="avaluo-monto">{{ avaluo.monto_cordobas|moneda }}</span>
                                 </div>
                                 <div class="avaluo-details">
                                     <p>
@@ -1219,7 +1218,7 @@ body {
                                 {{ avaluo.contrato.proyecto.nombre }} - {{ avaluo.contrato.codigo }}
                             </p>
                         </div>
-                        <span class="avaluo-monto">C$ {{ avaluo.monto_cordobas|floatformat:2 }}</span>
+                        <span class="avaluo-monto">{{ avaluo.monto_cordobas|moneda }}</span>
                     </div>
                     <div class="avaluo-details">
                         <p>

@@ -1,129 +1,223 @@
+{% extends 'base/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Perfil - Sistema de Planillas</title>
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
-</head>
-<body>
-    <div class="dashboard-container">
-        <!-- Sidebar (igual que dashboard) -->
-        <aside class="sidebar">
-            <div class="logo-sidebar">
-                <img src="{% static 'img/logo_quadycons.png' %}" alt="Quadycons">
-            </div>
+
+{% block title %}Mi Perfil{% endblock %}
+
+{% block extra_css %}
+<style>
+.perfil-container { max-width: 700px; margin: 0 auto; }
+.perfil-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; margin-bottom: 24px; }
+.perfil-card h2 { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
+.perfil-card h2 .material-symbols-outlined { font-size: 24px; color: #3b82f6; }
+.perfil-header { display: flex; align-items: center; gap: 24px; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid #f3f4f6; }
+.perfil-avatar { width: 80px; height: 80px; border-radius: 50%; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; overflow: hidden; flex-shrink: 0; }
+.perfil-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.perfil-user-info h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+.perfil-user-info p { color: #6b7280; font-size: 14px; margin: 4px 0 0 0; }
+.perfil-rol { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: #dbeafe; color: #1e40af; border-radius: 6px; font-size: 12px; font-weight: 600; margin-top: 8px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group.full { grid-column: 1 / -1; }
+.form-group label { font-size: 13px; font-weight: 600; color: #374151; }
+.form-group input, .form-group select { padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; }
+.form-group input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+.form-group input:disabled { background: #f9fafb; color: #6b7280; }
+.form-group small { font-size: 12px; color: #9ca3af; }
+.form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; padding-top: 20px; border-top: 1px solid #f3f4f6; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+.btn-primary { background: #3b82f6; color: white; }
+.btn-primary:hover { background: #2563eb; }
+.btn-secondary { background: white; color: #374151; border: 1px solid #e2e8f0; }
+.btn-secondary:hover { background: #f9fafb; }
+.divider { height: 1px; background: #e5e7eb; margin: 24px 0; }
+.foto-upload { display: flex; align-items: center; gap: 16px; }
+.foto-upload-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: #f3f4f6; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; cursor: pointer; color: #374151; transition: all 0.2s; }
+.foto-upload-btn:hover { background: #e5e7eb; }
+.foto-upload input[type="file"] { display: none; }
+.info-cuenta { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; background: #f9fafb; border-radius: 8px; }
+.info-cuenta-item { display: flex; flex-direction: column; gap: 2px; }
+.info-cuenta-item span:first-child { font-size: 12px; color: #6b7280; font-weight: 500; }
+.info-cuenta-item span:last-child { font-size: 14px; color: #111827; font-weight: 600; }
+@media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } .perfil-header { flex-direction: column; text-align: center; } .info-cuenta { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="perfil-container">
+    
+    <!-- Header -->
+    <div class="perfil-header">
+        <div class="perfil-avatar" id="avatarHeader">
+            {% if usuario.foto %}
+                <img src="{{ usuario.foto.url }}" alt="{{ usuario.nombre_completo }}">
+            {% else %}
+                {{ usuario.nombre_completo|make_list|first }}
+            {% endif %}
+        </div>
+        <div class="perfil-user-info">
+            <h1>{{ usuario.nombre_completo }}</h1>
+            <p>{{ usuario.email }}</p>
+            {% if usuario.rol %}
+            <span class="perfil-rol">
+                <span class="material-symbols-outlined" style="font-size: 14px;">shield_person</span>
+                {{ usuario.rol.nombre }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Datos personales -->
+    <div class="perfil-card">
+        <h2>
+            <span class="material-symbols-outlined">person</span>
+            Datos Personales
+        </h2>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="perfil">
             
-            <nav class="nav-menu">
-                <a href="{% url 'dashboard' %}" class="nav-item">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect x="3" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="14" width="7" height="7"></rect>
-                        <rect x="3" y="14" width="7" height="7"></rect>
-                    </svg>
-                    Dashboard
-                </a>
-                
-                <a href="{% url 'perfil' %}" class="nav-item active">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                    Mi Perfil
-                </a>
-            </nav>
-            
-            <div class="sidebar-footer">
-                <a href="{% url 'logout' %}" class="nav-item">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                        <polyline points="16 17 21 12 16 7"></polyline>
-                        <line x1="21" y1="12" x2="9" y2="12"></line>
-                    </svg>
-                    Cerrar Sesión
-                </a>
-            </div>
-        </aside>
-
-        <!-- Contenido principal -->
-        <main class="main-content">
-            <header class="top-bar">
-                <h1>Mi Perfil</h1>
-            </header>
-
-            <div class="content">
-                {% if messages %}
-                    {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">
-                        {{ message }}
-                    </div>
-                    {% endfor %}
-                {% endif %}
-
-                <div class="profile-container">
-                    <div class="profile-card">
-                        <div class="profile-header">
-                            <div class="profile-avatar">
-                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                </svg>
-                            </div>
-                            <h2>{{ user.nombre_completo }}</h2>
-                            <p class="profile-role">{{ user.get_rol_display }}</p>
-                        </div>
-
-                        <form method="POST" class="profile-form">
-                            {% csrf_token %}
-                            
-                            <div class="form-group">
-                                <label>Nombre completo</label>
-                                <input 
-                                    type="text" 
-                                    name="nombre_completo" 
-                                    value="{{ user.nombre_completo }}"
-                                    required
-                                >
-                            </div>
-
-                            <div class="form-group">
-                                <label>Correo electrónico</label>
-                                <input 
-                                    type="email" 
-                                    name="email" 
-                                    value="{{ user.email }}"
-                                    required
-                                >
-                            </div>
-
-                            <div class="form-group">
-                                <label>Rol</label>
-                                <input 
-                                    type="text" 
-                                    value="{{ user.get_rol_display }}"
-                                    disabled
-                                >
-                            </div>
-
-                            <div class="form-group">
-                                <label>Fecha de registro</label>
-                                <input 
-                                    type="text" 
-                                    value="{{ user.fecha_creacion|date:'d/m/Y' }}"
-                                    disabled
-                                >
-                            </div>
-
-                            <button type="submit" class="btn btn-primary">
-                                Actualizar perfil
-                            </button>
-                        </form>
-                    </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Nombre completo</label>
+                    <input type="text" name="nombre_completo" value="{{ usuario.nombre_completo }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Correo electrónico</label>
+                    <input type="email" name="email" value="{{ usuario.email }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Teléfono</label>
+                    <input type="text" name="telefono" value="{{ usuario.telefono|default:'' }}" placeholder="8888-0000">
+                </div>
+                <div class="form-group">
+                    <label>Rol</label>
+                    <input type="text" value="{{ usuario.rol.nombre|default:'Sin rol' }}" disabled>
+                    <small>Contactá al administrador para cambiar tu rol</small>
                 </div>
             </div>
-        </main>
+            
+            <div class="divider"></div>
+            
+            <div class="form-group">
+                <label>Foto de perfil</label>
+                <div class="foto-upload">
+                    <div class="perfil-avatar" id="avatarMini" style="width: 48px; height: 48px; font-size: 18px;">
+                        {% if usuario.foto %}
+                            <img src="{{ usuario.foto.url }}" alt="">
+                        {% else %}
+                            {{ usuario.nombre_completo|make_list|first }}
+                        {% endif %}
+                    </div>
+                    <label class="foto-upload-btn" id="fotoBtnLabel">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">upload</span>
+                        Cambiar foto
+                        <input type="file" name="foto" accept="image/*" id="inputFoto">
+                    </label>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">save</span>
+                    Guardar Cambios
+                </button>
+            </div>
+        </form>
     </div>
-</body>
-</html>
+
+    <!-- Cambiar contraseña -->
+    <div class="perfil-card">
+        <h2>
+            <span class="material-symbols-outlined">lock</span>
+            Cambiar Contraseña
+        </h2>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="password">
+            
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label>Contraseña actual</label>
+                    <input type="password" name="password_actual" required placeholder="Tu contraseña actual">
+                </div>
+                <div class="form-group">
+                    <label>Nueva contraseña</label>
+                    <input type="password" name="password_nueva" required placeholder="Mínimo 6 caracteres" minlength="6">
+                </div>
+                <div class="form-group">
+                    <label>Confirmar contraseña</label>
+                    <input type="password" name="password_confirmar" required placeholder="Repetí la contraseña">
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">key</span>
+                    Cambiar Contraseña
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Info de cuenta -->
+    <div class="perfil-card">
+        <h2>
+            <span class="material-symbols-outlined">info</span>
+            Información de Cuenta
+        </h2>
+        <div class="info-cuenta">
+            <div class="info-cuenta-item">
+                <span>Estado de cuenta</span>
+                <span>{% if usuario.cuenta_aprobada %}Aprobada{% else %}Pendiente{% endif %}</span>
+            </div>
+            <div class="info-cuenta-item">
+                <span>Miembro desde</span>
+                <span>{{ usuario.fecha_creacion|date:"d/m/Y" }}</span>
+            </div>
+            <div class="info-cuenta-item">
+                <span>Último acceso</span>
+                <span>{{ usuario.last_login|date:"d/m/Y H:i"|default:"Nunca" }}</span>
+            </div>
+            <div class="info-cuenta-item">
+                <span>Cuenta aprobada por</span>
+                <span>{{ usuario.aprobada_por.nombre_completo|default:"—" }}</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('inputFoto').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+        alert('Por favor seleccioná una imagen');
+        e.target.value = '';
+        return;
+    }
+    
+    if (file.size > 2 * 1024 * 1024) {
+        alert('La imagen no debe superar 2MB');
+        e.target.value = '';
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        // Actualizar ambos avatares
+        document.getElementById('avatarHeader').innerHTML = '<img src="' + ev.target.result + '" alt="Preview">';
+        document.getElementById('avatarMini').innerHTML = '<img src="' + ev.target.result + '" alt="Preview">';
+        
+        // Cambiar texto del botón
+        document.getElementById('fotoBtnLabel').innerHTML = 
+            '<span class="material-symbols-outlined" style="font-size: 18px;">check_circle</span> ' + file.name +
+            '<input type="file" name="foto" accept="image/*" id="inputFoto" style="display:none">';
+    };
+    reader.readAsDataURL(file);
+});
+</script>
+{% endblock %}

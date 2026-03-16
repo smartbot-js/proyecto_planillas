@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Planilla {{ planilla.codigo }}{% endblock %}
 
@@ -473,18 +474,18 @@
                         <tr>
                             <td class="text-center"><strong>1</strong></td>
                             <td><strong>SUB-CONTRATISTA</strong></td>
-                            <td class="text-end"><strong>C$ {{ planilla.total_cordobas|floatformat:2 }}</strong></td>
-                            <td class="text-end"><strong>$ {{ planilla.total_dolares|floatformat:2 }}</strong></td>
+                            <td class="text-end"><strong>{{ planilla.total_cordobas|moneda }}</strong></td>
+                            <td class="text-end"><strong>{{ planilla.total_dolares|dolares }}</strong></td>
                         </tr>
                     </tbody>
                     <tfoot>
                         <tr>
                             <td colspan="2"><strong>TOTAL CÓRDOBAS</strong></td>
-                            <td colspan="2" class="text-end"><strong>C$ {{ planilla.total_cordobas|floatformat:2 }}</strong></td>
+                            <td colspan="2" class="text-end"><strong>{{ planilla.total_cordobas|moneda }}</strong></td>
                         </tr>
                         <tr>
                             <td colspan="2"><strong>TOTAL DÓLARES</strong></td>
-                            <td colspan="2" class="text-end"><strong>$ {{ planilla.total_dolares|floatformat:2 }}</strong></td>
+                            <td colspan="2" class="text-end"><strong>{{ planilla.total_dolares|dolares }}</strong></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -524,7 +525,7 @@
                         </div>
                         <div class="col-md-6 text-end">
                             <span class="badge" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-size: 1rem; padding: 0.5rem 1rem;">
-                                Total: C$ {{ contratista_data.total_cordobas|floatformat:2 }} / $ {{ contratista_data.total_dolares|floatformat:2 }}
+                                Total: {{ contratista_data.total_cordobas|moneda }} / {{ contratista_data.total_dolares|dolares }}
                             </span>
                         </div>
                     </div>
@@ -542,7 +543,7 @@
                                 <span class="ms-2">{{ contrato_data.contrato.fecha_inicio|date:"d/m/Y" }} - {{ contrato_data.contrato.fecha_fin|date:"d/m/Y" }}</span>
                             </div>
                             <div class="col-md-4 text-end">
-                                <strong class="text-primary">Subtotal: C$ {{ contrato_data.subtotal_cordobas|floatformat:2 }}</strong>
+                                <strong class="text-primary">Subtotal: {{ contrato_data.subtotal_cordobas|moneda }}</strong>
                             </div>
                         </div>
 
@@ -567,8 +568,8 @@
                                         <td>{{ avaluo.concepto|truncatewords:8 }}</td>
                                         <td>{{ avaluo.fecha_pago|date:"d/m/Y" }}</td>
                                         <td class="text-center"><strong>{{ avaluo.porcentaje_avance }}%</strong></td>
-                                        <td class="text-end">C$ {{ avaluo.monto_cordobas|floatformat:2 }}</td>
-                                        <td class="text-end">$ {{ avaluo.monto_dolares|floatformat:2 }}</td>
+                                        <td class="text-end">{{ avaluo.monto_cordobas|moneda }}</td>
+                                        <td class="text-end">{{ avaluo.monto_dolares|dolares }}</td>
                                         <td>
                                             {% if avaluo.forma_pago == 'transferencia' %}
                                             <span class="forma-pago-badge transferencia">

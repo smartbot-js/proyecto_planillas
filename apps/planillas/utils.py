@@ -137,8 +137,10 @@ def generar_planilla_desde_asistencias(proyecto, periodo_inicio, periodo_fin, us
         # ============================================================
         # Usar el salario más reciente del trabajador en el período
         ultima_asistencia = asistencias_trabajador.order_by('-fecha').first()
-        salario_dia_base = ultima_asistencia.salario_dia if ultima_asistencia and ultima_asistencia.salario_dia else (trabajador.salario_normal or Decimal('350.00'))
         
+        # Día Base = salario_hora × 8 (fórmula del Excel)
+        salario_hora = trabajador.salario_normal or Decimal('0.00')
+        salario_dia_base = (salario_hora * Decimal('8')).quantize(Decimal('0.01'))        
         # ============================================================
         # 8. DETERMINAR ÁREA DEL TRABAJADOR
         # ============================================================
@@ -171,6 +173,7 @@ def generar_planilla_desde_asistencias(proyecto, periodo_inicio, periodo_fin, us
                 horas_dominicales=horas_dominicales,
                 dias_feriados=dias_feriados,
                 salario_dia_base=salario_dia_base,
+                bonos=trabajador.bonos or Decimal('0.00'),
                 # Los demás campos se calculan automáticamente en el método save() del modelo
             )
             detalles_list.append(detalle)
@@ -407,6 +410,7 @@ def generar_planilla_administrativa(proyecto, periodo_inicio, periodo_fin, dias_
                 dias_feriados=dias_feriados_trabajados,
                 horas_feriado=horas_en_feriados,
                 salario_dia_base=dia_base,
+                bonos=trabajador.bonos or Decimal('0.00'),
             )
             detalles_list.append(detalle)
         except Exception as e:

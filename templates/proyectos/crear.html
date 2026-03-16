@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}Crear Proyecto - Sistema de Planillas{% endblock %}
 
@@ -1685,10 +1686,10 @@
                     <div class="sidebar-footer">
                         <p class="footer-note">Al crear el proyecto, podrás asignar trabajadores y comenzar a registrar asistencias.</p>
                         <div class="footer-buttons">
-                            <a href="{% url 'proyectos_lista' %}" class="btn btn-secondary">
+                            <button type="button" class="btn btn-secondary" onclick="confirmarSalida()">
                                 <span class="material-symbols-outlined">close</span>
                                 Cancelar
-                            </a>
+                            </button>
                             <button type="submit" class="btn btn-primary">
                                 <span class="material-symbols-outlined">check</span>
                                 Crear Proyecto
@@ -2586,6 +2587,58 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Sistema de horarios 12h inicializado ✓');
     }
 })();
+
+// ==========================================
+// CONFIRMAR SALIDA SIN GUARDAR
+// ==========================================
+
+function confirmarSalida() {
+    // Verificar si hay campos con datos
+    const campos = document.querySelectorAll('#proyectoForm input[type="text"], #proyectoForm textarea, #proyectoForm select');
+    let tieneDatos = false;
+    
+    campos.forEach(function(campo) {
+        if (campo.type === 'hidden') return;
+        if (campo.tagName === 'SELECT') {
+            // Ignorar selects con valor por defecto (primer option)
+            if (campo.selectedIndex > 0 && campo.name !== 'estado') tieneDatos = true;
+        } else if (campo.value.trim() !== '') {
+            tieneDatos = true;
+        }
+    });
+    
+    if (tieneDatos) {
+        if (confirm('⚠️ Hay datos sin guardar.\n\n¿Estás seguro de que deseas salir? Se perderán los cambios.')) {
+            window.location.href = "{% url 'proyectos_lista' %}";
+        }
+    } else {
+        window.location.href = "{% url 'proyectos_lista' %}";
+    }
+}
+
+// También interceptar navegación con el botón atrás del navegador
+let formularioEnviado = false;
+
+document.getElementById('proyectoForm').addEventListener('submit', function() {
+    formularioEnviado = true;
+});
+
+window.addEventListener('beforeunload', function(e) {
+    if (formularioEnviado) return;
+    
+    const campos = document.querySelectorAll('#proyectoForm input[type="text"], #proyectoForm textarea');
+    let tieneDatos = false;
+    
+    campos.forEach(function(campo) {
+        if (campo.type === 'hidden') return;
+        if (campo.value.trim() !== '') tieneDatos = true;
+    });
+    
+    if (tieneDatos) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
 
 </script>
 {% endblock %}

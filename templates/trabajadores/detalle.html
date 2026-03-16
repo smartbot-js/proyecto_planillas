@@ -1,5 +1,6 @@
-{% extends 'base/base.html' %}
+﻿{% extends 'base/base.html' %}
 {% load static %}
+{% load formato_moneda %}
 
 {% block title %}{{ trabajador.nombre_completo }} - Detalle{% endblock %}
 
@@ -465,8 +466,7 @@ function imprimirQR(qrUrl) {
                     justify-content: center;
                     align-items: center;
                     min-height: 100vh;
-                    font-family: Arial, sans-serif;
-                }
+                    }
                 .qr-print {
                     text-align: center;
                     page-break-after: always;
