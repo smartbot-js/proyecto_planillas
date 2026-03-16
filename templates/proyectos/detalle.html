@@ -409,10 +409,9 @@
 
             <div class="content-card">
                 <div class="card-header">
-                    <h3><span class="material-symbols-outlined">engineering</span> Personal y Equipo</h3>
+                    <h3><span class="material-symbols-outlined">group</span> Trabajadores y Contratistas</h3>
                 </div>
-                <!-- Contadores -->
-                <div class="info-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 16px;">
+                <div class="info-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0;">
                     <div class="info-item">
                         <span class="info-label">Trabajadores Activos</span>
                         <span class="info-value">{{ trabajadores.count|default:0 }}</span>
@@ -422,12 +421,16 @@
                         <span class="info-value">{{ proyecto.contratistas.count|default:0 }}</span>
                     </div>
                 </div>
+            </div>
 
-                <!-- Equipo asignado (Residentes/Gerentes) -->
-                {% with equipo=proyecto.usuarios_asignados.all %}
-                {% if equipo %}
-                <div class="equipo-proyecto">
-                    <span class="info-label">Equipo del Proyecto</span>
+            {% with equipo=proyecto.usuarios_asignados.all %}
+            {% if equipo %}
+            <div class="content-card">
+                <div class="card-header">
+                    <h3><span class="material-symbols-outlined">supervisor_account</span> Equipo de Gestión</h3>
+                </div>
+                <p style="font-size: 13px; color: #6b7280; padding: 0 24px;">Residentes y Gerentes con acceso a este proyecto.</p>
+                <div class="equipo-proyecto" style="border-top: none; padding-top: 8px;">
                     <div class="equipo-lista">
                         {% for asignacion in equipo %}
                         {% if asignacion.activo %}
@@ -445,9 +448,9 @@
                         {% endfor %}
                     </div>
                 </div>
-                {% endif %}
-                {% endwith %}
             </div>
+            {% endif %}
+            {% endwith %}
             
             <div class="content-card">
                 <div class="card-header">
