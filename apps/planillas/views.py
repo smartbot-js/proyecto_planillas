@@ -282,7 +282,7 @@ class PlanillaCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
                         'salario_hora': asistencia.trabajador.salario_normal or Decimal('0.00'),
                     }
                 
-                if asistencia.estado == 'cerrado':
+                if asistencia.estado in ('cerrado', 'validado', 'editado'):
                     trabajadores_dict[trabajador_id]['dias'] += 1
                 
                 trabajadores_dict[trabajador_id]['horas_normales'] += asistencia.horas_normales or Decimal('0.00')
