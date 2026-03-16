@@ -590,27 +590,36 @@ class AsistenciaMarcarEntradaView(LoginRequiredMixin, PermissionRequiredMixin, V
             trabajador = Trabajador.objects.get(id=trabajador_id)
             proyecto = Proyecto.objects.get(id=proyecto_id)
             
-            # Verificar si ya existe asistencia hoy
-            hoy = timezone.now().date()
-            asistencia_existente = Asistencia.objects.filter(
+            # Verificar si tiene alguna asistencia abierta (sin cerrar), sin importar el día
+            asistencia_abierta = Asistencia.objects.filter(
                 trabajador=trabajador,
-                fecha=hoy
+                estado='abierto',
+                eliminado=False
+            ).order_by('-fecha').first()
+            
+            if asistencia_abierta:
+                messages.warning(
+                    request,
+                    f'⚠️ {trabajador.nombre_completo} tiene un turno abierto del '
+                    f'{asistencia_abierta.fecha.strftime("%d/%m/%Y")} que no ha sido cerrado. '
+                    f'Debe cerrar ese turno antes de registrar una nueva entrada.'
+                )
+                return redirect('asistencia_marcar_entrada')
+            
+            # Verificar si ya tiene asistencia cerrada hoy (evitar duplicados del mismo día)
+            hoy = timezone.now().date()
+            asistencia_hoy = Asistencia.objects.filter(
+                trabajador=trabajador,
+                fecha=hoy,
+                eliminado=False
             ).first()
             
-            if asistencia_existente:
-                if asistencia_existente.estado == 'abierto':
-                    messages.warning(
-                        request,
-                        f'⚠️ {trabajador.nombre_completo} ya tiene un turno abierto hoy. '
-                        f'Debe cerrar el turno actual antes de marcar una nueva entrada.'
-                    )
-                    return redirect('asistencia_marcar_entrada')
-                else:
-                    messages.warning(
-                        request,
-                        f'⚠️ {trabajador.nombre_completo} ya tiene un turno cerrado registrado hoy.'
-                    )
-                    return redirect('asistencia_marcar_entrada')
+            if asistencia_hoy:
+                messages.warning(
+                    request,
+                    f'⚠️ {trabajador.nombre_completo} ya tiene una asistencia registrada hoy.'
+                )
+                return redirect('asistencia_marcar_entrada')
             
             # Determinar hora de entrada
             if hora_entrada_str:
@@ -1924,4 +1933,123 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
                 'por_proyecto': {'proyecto_id': 2}
             }
         }, status=400)
-        
+
+class AsistenciaJustificadaView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """
+    Vista para registrar asistencia justificada de un día pasado.
+    Permite ingresar fecha, hora entrada y hora salida.
+    La asistencia se crea directamente en estado 'cerrado'.
+    """
+    permission_modulo = 'asistencias'
+    permission_accion = 'crear'
+    template_name = 'asistencias/registrar_justificada.html'
+
+    def get(self, request):
+        trabajadores = Trabajador.objects.filter(
+            eliminado=False,
+            estado='activo'
+        ).order_by('nombre', 'apellido')
+
+        proyectos = Proyecto.objects.filter(
+            eliminado=False
+        ).order_by('nombre')
+
+        return render(request, self.template_name, {
+            'trabajadores': trabajadores,
+            'proyectos': proyectos,
+        })
+
+    def post(self, request):
+        try:
+            trabajador_id = request.POST.get('trabajador_id')
+            proyecto_id = request.POST.get('proyecto_id')
+            fecha_str = request.POST.get('fecha')
+            hora_entrada_str = request.POST.get('hora_entrada')
+            hora_salida_str = request.POST.get('hora_salida')
+            justificacion = request.POST.get('justificacion', '').strip()
+
+            # Validaciones básicas
+            if not all([trabajador_id, proyecto_id, fecha_str, hora_entrada_str, hora_salida_str]):
+                messages.error(request, '❌ Todos los campos son obligatorios.')
+                return redirect('asistencia_justificada')
+
+            if not justificacion:
+                messages.error(request, '❌ Debe proporcionar una justificación.')
+                return redirect('asistencia_justificada')
+
+            trabajador = Trabajador.objects.get(id=trabajador_id, eliminado=False)
+            
+            # Usar proyecto asignado del trabajador, o el enviado por formulario como fallback
+            if trabajador.proyecto_asignado:
+                proyecto = trabajador.proyecto_asignado
+            elif proyecto_id:
+                proyecto = Proyecto.objects.get(id=proyecto_id, eliminado=False)
+            else:
+                messages.error(request, '❌ El trabajador no tiene proyecto asignado.')
+                return redirect('asistencia_justificada')
+
+            fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+            hora_entrada = datetime.strptime(hora_entrada_str, '%H:%M').time()
+            hora_salida = datetime.strptime(hora_salida_str, '%H:%M').time()
+
+            # No permitir fecha futura
+            hoy = timezone.now().date()
+            if fecha > hoy:
+                messages.error(request, '❌ No se puede registrar asistencia para una fecha futura.')
+                return redirect('asistencia_justificada')
+
+            # Verificar que no exista asistencia ese día
+            asistencia_existente = Asistencia.objects.filter(
+                trabajador=trabajador,
+                fecha=fecha,
+                eliminado=False
+            ).first()
+
+            if asistencia_existente:
+                messages.warning(
+                    request,
+                    f'⚠️ {trabajador.nombre_completo} ya tiene una asistencia registrada el {fecha.strftime("%d/%m/%Y")}.'
+                )
+                return redirect('asistencia_justificada')
+
+            # Validar que hora salida sea después de hora entrada
+            if hora_salida <= hora_entrada:
+                messages.error(request, '❌ La hora de salida debe ser posterior a la hora de entrada.')
+                return redirect('asistencia_justificada')
+
+            # Crear asistencia ya cerrada
+            asistencia = Asistencia.objects.create(
+                trabajador=trabajador,
+                proyecto=proyecto,
+                fecha=fecha,
+                puesto_laboral=trabajador.puesto_laboral,
+                hora_entrada=hora_entrada,
+                hora_salida=hora_salida,
+                salario_dia=trabajador.salario_normal or Decimal('0.00'),
+                tarifa_hora_extra=trabajador.tarifa_hora_extra or Decimal('0.00'),
+                metodo_identificacion='manual',
+                observaciones=f'[JUSTIFICADA] {justificacion}\nRegistrada por: {request.user.nombre_completo}',
+                registrado_por=request.user,
+                estado='cerrado',
+            )
+
+            messages.success(
+                request,
+                f'✅ Asistencia justificada registrada para {trabajador.nombre_completo} '
+                f'el {fecha.strftime("%d/%m/%Y")} ({asistencia.horas_normales}h normales, '
+                f'{asistencia.horas_extras}h extras).'
+            )
+            return redirect('asistencia_detalle', pk=asistencia.id)
+
+        except Trabajador.DoesNotExist:
+            messages.error(request, '❌ Trabajador no encontrado.')
+            return redirect('asistencia_justificada')
+        except Proyecto.DoesNotExist:
+            messages.error(request, '❌ Proyecto no encontrado.')
+            return redirect('asistencia_justificada')
+        except ValueError as e:
+            messages.error(request, f'❌ Formato de fecha u hora inválido: {str(e)}')
+            return redirect('asistencia_justificada')
+        except Exception as e:
+            messages.error(request, f'❌ Error al registrar: {str(e)}')
+            return redirect('asistencia_justificada')

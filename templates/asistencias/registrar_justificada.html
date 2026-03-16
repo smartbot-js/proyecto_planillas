@@ -1,0 +1,570 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load formato_moneda %}
+
+{% block title %}Registrar Asistencia Justificada - Sistema de Gestión{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="{% url 'asistencias_lista' %}" class="back-link">
+            <span class="material-symbols-outlined">arrow_back</span>
+            Volver a Asistencias
+        </a>
+        <h1>
+            <span class="material-symbols-outlined">event_available</span>
+            Registrar Asistencia Justificada
+        </h1>
+        <p class="page-description">Registrar entrada y salida para un día que el trabajador no asistió pero tiene justificación válida</p>
+    </div>
+</div>
+
+<div class="form-layout">
+    <div class="form-main">
+        <div class="content-card">
+            <div class="card-header">
+                <h3>
+                    <span class="material-symbols-outlined">assignment</span>
+                    Datos de Asistencia
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="formJustificada">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="selectTrabajador">Trabajador *</label>
+                        <select name="trabajador_id" class="form-control" required id="selectTrabajador">
+                            <option value="">Seleccione un trabajador...</option>
+                            {% for trabajador in trabajadores %}
+                            <option value="{{ trabajador.id }}" 
+                                    data-cedula="{{ trabajador.numero_cedula }}"
+                                    data-puesto="{{ trabajador.puesto_laboral }}"
+                                    data-nombre="{{ trabajador.nombre_completo }}"
+                                    {% if trabajador.proyecto_asignado %}data-proyecto="{{ trabajador.proyecto_asignado.id }}" data-proyecto-nombre="{{ trabajador.proyecto_asignado.nombre }}"{% endif %}
+                                    {% if trabajador.foto %}data-foto="{{ trabajador.foto.url }}"{% endif %}>
+                                {{ trabajador.nombre_completo }} - CI: {{ trabajador.numero_cedula }}
+                                {% if trabajador.proyecto_asignado %} - {{ trabajador.proyecto_asignado.nombre }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="selectProyecto">Proyecto</label>
+                        <input type="text" class="form-control" id="proyectoDisplay" readonly 
+                               style="background: #f9fafb; cursor: default;" 
+                               placeholder="Seleccione un trabajador primero..." value="">
+                        <input type="hidden" name="proyecto_id" id="selectProyecto" value="">
+                        <small class="form-text">Se asigna automáticamente según el proyecto del trabajador</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fecha">Fecha de la Asistencia *</label>
+                        <input type="date" name="fecha" class="form-control" required id="fecha">
+                        <small class="form-text">Seleccione el día que el trabajador no pudo asistir</small>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="horaEntrada">Hora de Entrada *</label>
+                            <input type="time" name="hora_entrada" class="form-control" required id="horaEntrada">
+                            <small class="form-text">Hora normal de entrada del proyecto</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="horaSalida">Hora de Salida *</label>
+                            <input type="time" name="hora_salida" class="form-control" required id="horaSalida">
+                            <small class="form-text">Hora normal de salida del proyecto</small>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="justificacion">Justificación *</label>
+                        <textarea name="justificacion" id="justificacion" class="form-control" rows="3" 
+                                  placeholder="Ej: Excusa médica presentada, permiso autorizado por gerente, etc." 
+                                  required></textarea>
+                        <small class="form-text">Motivo por el cual se registra esta asistencia de forma retroactiva</small>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <span class="material-symbols-outlined">check</span>
+                            Registrar Asistencia
+                        </button>
+                        <a href="{% url 'asistencias_lista' %}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-sidebar">
+        <!-- Preview del trabajador -->
+        <div class="content-card" id="previewCard" style="display: none;">
+            <div class="card-header">
+                <h3>Vista Previa</h3>
+            </div>
+            <div class="card-body text-center">
+                <div id="previewFoto" class="preview-foto">
+                    <div class="avatar-preview">
+                        <span class="material-symbols-outlined" style="font-size: 48px;">person</span>
+                    </div>
+                </div>
+                <h4 id="previewNombre" style="margin: 16px 0 8px;"></h4>
+                <p id="previewCedula" style="color: #6b7280; margin: 0 0 8px;"></p>
+                <p id="previewPuesto" style="color: #3b82f6; font-weight: 600; margin: 0;"></p>
+            </div>
+        </div>
+
+        <!-- Preview de horas calculadas -->
+        <div class="content-card" id="previewHoras" style="display: none;">
+            <div class="card-header">
+                <h3>
+                    <span class="material-symbols-outlined">schedule</span>
+                    Horas Estimadas
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="stats-mini">
+                    <div class="stat-item">
+                        <span class="stat-label">Entrada</span>
+                        <span class="stat-value" id="previewEntrada">--:--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Salida</span>
+                        <span class="stat-value" id="previewSalida">--:--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total aprox.</span>
+                        <span class="stat-value primary" id="previewTotal">0h</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información -->
+        <div class="content-card">
+            <div class="card-header">
+                <h3>
+                    <span class="material-symbols-outlined">info</span>
+                    Información
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="alert-info">
+                    <span class="material-symbols-outlined">info</span>
+                    <div>
+                        <strong>Asistencia Justificada</strong>
+                        <p>Se registrará la asistencia con entrada y salida completa para el día seleccionado. Las horas se calcularán automáticamente según el horario del proyecto.</p>
+                        <p style="margin-top: 8px;">La asistencia quedará marcada como <strong>[JUSTIFICADA]</strong> en las observaciones.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ================================================================
+   ASISTENCIA JUSTIFICADA - ESTILOS CONSISTENTES CON EL PROYECTO
+   ================================================================ */
+
+.page-header {
+    margin-bottom: 24px;
+}
+
+.page-header h1 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 28px;
+    font-weight: 700;
+    color: #111827;
+    margin: 8px 0;
+}
+
+.page-header h1 .material-symbols-outlined {
+    font-size: 32px;
+    color: #f59e0b;
+}
+
+.page-description {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 14px;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.back-link:hover {
+    color: #2563eb;
+}
+
+/* Layout */
+.form-layout {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 24px;
+}
+
+/* Cards */
+.content-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    margin-bottom: 24px;
+}
+
+.card-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.card-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+}
+
+.card-header h3 .material-symbols-outlined {
+    font-size: 22px;
+    color: #3b82f6;
+}
+
+.card-body {
+    padding: 24px;
+}
+
+/* Formulario */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s;
+    background: white;
+    color: #111827;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+select.form-control {
+    appearance: auto;
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-text {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+/* Botones */
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.btn {
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    font-family: inherit;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+/* Preview */
+.preview-foto {
+    margin-bottom: 16px;
+}
+
+.preview-foto img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #f3f4f6;
+}
+
+.avatar-preview {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    color: #9ca3af;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Stats mini (sidebar) */
+.stats-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.stat-item:last-child {
+    border-bottom: none;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.stat-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.stat-value.primary {
+    color: #3b82f6;
+}
+
+/* Alert info */
+.alert-info {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    background: #dbeafe;
+    border-left: 4px solid #3b82f6;
+    border-radius: 8px;
+}
+
+.alert-info .material-symbols-outlined {
+    color: #3b82f6;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.alert-info strong {
+    display: block;
+    color: #1e40af;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.alert-info p {
+    margin: 0;
+    color: #1e3a8a;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .form-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-header h1 {
+        font-size: 22px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Limitar fecha máxima a hoy
+document.addEventListener('DOMContentLoaded', function() {
+    var fechaInput = document.getElementById('fecha');
+    var today = new Date().toISOString().split('T')[0];
+    fechaInput.setAttribute('max', today);
+});
+
+// Preview del trabajador al seleccionar
+document.getElementById('selectTrabajador').addEventListener('change', function() {
+    var option = this.options[this.selectedIndex];
+    
+    if (this.value) {
+        var foto = option.getAttribute('data-foto');
+        var nombre = option.getAttribute('data-nombre');
+        var cedula = option.getAttribute('data-cedula');
+        var puesto = option.getAttribute('data-puesto');
+        var proyectoId = option.getAttribute('data-proyecto');
+        
+        document.getElementById('previewNombre').textContent = nombre;
+        document.getElementById('previewCedula').textContent = 'CI: ' + cedula;
+        document.getElementById('previewPuesto').textContent = puesto;
+        
+        var previewFoto = document.getElementById('previewFoto');
+        if (foto) {
+            previewFoto.innerHTML = '<img src="' + foto + '" alt="Foto">';
+        } else {
+            var initials = nombre.split(' ').map(function(n) { return n[0]; }).join('').substring(0, 2);
+            previewFoto.innerHTML = '<div class="avatar-preview" style="background:#e5e7eb; color:#6b7280; font-size:32px; font-weight:600;">' + initials + '</div>';
+        }
+        
+        var proyectoNombre = option.getAttribute('data-proyecto-nombre');
+        if (proyectoId) {
+            document.getElementById('selectProyecto').value = proyectoId;
+            document.getElementById('proyectoDisplay').value = proyectoNombre;
+        } else {
+            document.getElementById('selectProyecto').value = '';
+            document.getElementById('proyectoDisplay').value = 'Sin proyecto asignado';
+        }
+        
+        document.getElementById('previewCard').style.display = 'block';
+    } else {
+        document.getElementById('previewCard').style.display = 'none';
+    }
+});
+
+// Preview de horas calculadas en tiempo real
+function calcularPreviewHoras() {
+    var entrada = document.getElementById('horaEntrada').value;
+    var salida = document.getElementById('horaSalida').value;
+    var previewBox = document.getElementById('previewHoras');
+    
+    if (entrada && salida) {
+        var partsE = entrada.split(':');
+        var partsS = salida.split(':');
+        var entradaMin = parseInt(partsE[0]) * 60 + parseInt(partsE[1]);
+        var salidaMin = parseInt(partsS[0]) * 60 + parseInt(partsS[1]);
+        
+        if (salidaMin > entradaMin) {
+            var diff = (salidaMin - entradaMin) / 60;
+            document.getElementById('previewEntrada').textContent = entrada;
+            document.getElementById('previewSalida').textContent = salida;
+            document.getElementById('previewTotal').textContent = diff.toFixed(1) + 'h';
+            previewBox.style.display = 'block';
+        } else {
+            previewBox.style.display = 'none';
+        }
+    } else {
+        previewBox.style.display = 'none';
+    }
+}
+
+document.getElementById('horaEntrada').addEventListener('change', calcularPreviewHoras);
+document.getElementById('horaSalida').addEventListener('change', calcularPreviewHoras);
+
+// Validación del formulario antes de enviar
+document.getElementById('formJustificada').addEventListener('submit', function(e) {
+    var trabajador = document.querySelector('select[name="trabajador_id"]').value;
+    var proyecto = document.querySelector('select[name="proyecto_id"]').value;
+    var fecha = document.getElementById('fecha').value;
+    var entrada = document.getElementById('horaEntrada').value;
+    var salida = document.getElementById('horaSalida').value;
+    var justificacion = document.getElementById('justificacion').value.trim();
+    
+    if (!trabajador || !proyecto || !fecha || !entrada || !salida || !justificacion) {
+        e.preventDefault();
+        alert('Por favor complete todos los campos requeridos');
+        return false;
+    }
+    
+    if (salida <= entrada) {
+        e.preventDefault();
+        alert('La hora de salida debe ser posterior a la hora de entrada');
+        return false;
+    }
+});
+</script>
+{% endblock %}

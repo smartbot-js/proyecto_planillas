@@ -29,7 +29,8 @@ from .views import (
     PlanillaDetalleView,
     PlanillaExportarExcelView,
     PlanillaListView,
-    PlanillaMarcarPagadaView,  
+    PlanillaMarcarPagadaView,
+    PlanillaRechazarView,  
     )
 
 urlpatterns = [
@@ -132,6 +133,9 @@ urlpatterns = [
           PlanillaMarcarPagadaView.as_view(),
           name='planillas_contratistas_marcar_pagada'),
 
+     path('planillas-contratistas/<int:pk>/rechazar/',
+          PlanillaRechazarView.as_view(),
+          name='planilla_contratista_rechazar'),
      # AJAX para obtener contratistas por proyecto
     path('api/contratistas-proyecto/', 
          ObtenerContratistasProyectoView.as_view(), 

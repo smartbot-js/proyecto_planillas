@@ -1609,6 +1609,28 @@ class PlanillaMarcarPagadaView(LoginRequiredMixin, View):
         messages.success(request, f'✅ Planilla {planilla.codigo} marcada como pagada')
         return redirect('planillas_contratistas_detalle', pk=pk)
 
+class PlanillaRechazarView(LoginRequiredMixin, View):
+    """Rechazar planilla de contratistas"""
+    
+    def post(self, request, pk):
+        planilla = get_object_or_404(PlanillaContratista, pk=pk)
+        
+        if planilla.estado not in ['borrador', 'aprobada_gerente']:
+            messages.error(request, '❌ Solo se pueden rechazar planillas en borrador o aprobadas por gerente')
+            return redirect('planillas_contratistas_detalle', pk=pk)
+        
+        motivo = request.POST.get('motivo_rechazo', '').strip()
+        if not motivo:
+            messages.error(request, '❌ Debe proporcionar un motivo de rechazo')
+            return redirect('planillas_contratistas_detalle', pk=pk)
+        
+        planilla.estado = 'anulada'
+        planilla.observaciones = f'[RECHAZADA por {request.user.nombre_completo}] {motivo}'
+        planilla.save()
+        
+        messages.warning(request, f'⚠️ Planilla {planilla.codigo} rechazada')
+        return redirect('planillas_contratistas_detalle', pk=pk)
+        
 class PlanillaExportarExcelView(LoginRequiredMixin, View):
     """Exportar planilla a Excel con formato"""
     

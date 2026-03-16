@@ -1020,12 +1020,12 @@ tbody tr:hover {
                 Rechazar Planilla
             </h3>
         </div>
-        <form method="POST" action="#" id="formRechazar">
+        <form method="POST" action="{% url 'planilla_contratista_rechazar' planilla.pk %}" id="formRechazar">
             {% csrf_token %}
             <div class="modal-body">
                 <div class="form-group">
                     <label>Motivo de Rechazo <span style="color: #ef4444;">*</span></label>
-                    <textarea name="motivo" class="form-textarea" placeholder="Explica el motivo del rechazo..." required></textarea>
+                    <textarea name="motivo_rechazo" class="form-textarea" placeholder="Explica el motivo del rechazo..." required></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -1099,43 +1099,6 @@ const Toast = Swal.mixin({
     }
 });
 
-// ============================================
-// MOSTRAR MENSAJES DE DJANGO
-// ============================================
-
-{% if messages %}
-    {% for message in messages %}
-        {% if message.tags == 'success' %}
-            Toast.fire({
-                icon: 'success',
-                title: '{{ message|escapejs }}',
-                background: '#10b981',
-                color: '#ffffff'
-            });
-        {% elif message.tags == 'error' %}
-            Toast.fire({
-                icon: 'error',
-                title: '{{ message|escapejs }}',
-                background: '#ef4444',
-                color: '#ffffff'
-            });
-        {% elif message.tags == 'warning' %}
-            Toast.fire({
-                icon: 'warning',
-                title: '{{ message|escapejs }}',
-                background: '#f59e0b',
-                color: '#ffffff'
-            });
-        {% elif message.tags == 'info' %}
-            Toast.fire({
-                icon: 'info',
-                title: '{{ message|escapejs }}',
-                background: '#3b82f6',
-                color: '#ffffff'
-            });
-        {% endif %}
-    {% endfor %}
-{% endif %}
 
 // ============================================
 // CONFIRMACIÓN PARA APROBAR GERENTE
@@ -1242,48 +1205,8 @@ function confirmarPago() {
 // ============================================
 
 function confirmarRechazo() {
-    Swal.fire({
-        title: '¿Rechazar Planilla?',
-        html: `
-            <div style="text-align: left; padding: 10px;">
-                <p style="margin-bottom: 12px;">Ingresa el motivo del rechazo:</p>
-                <textarea 
-                    id="motivoRechazo" 
-                    class="swal2-textarea" 
-                    placeholder="Ejemplo: Falta soporte del avalúo AV1225-003..."
-                    style="width: 100%; min-height: 100px; font-size: 14px;"
-                ></textarea>
-            </div>
-        `,
-        icon: 'error',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: '❌ Rechazar',
-        cancelButtonText: 'Cancelar',
-        reverseButtons: true,
-        preConfirm: () => {
-            const motivo = document.getElementById('motivoRechazo').value;
-            if (!motivo) {
-                Swal.showValidationMessage('Debes ingresar un motivo');
-                return false;
-            }
-            return motivo;
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Crear input hidden con el motivo
-            const form = document.getElementById('formRechazar');
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'motivo_rechazo';
-            input.value = result.value;
-            form.appendChild(input);
-            form.submit();
-        }
-    });
+    openModal('modalRechazar');
     return false;
 }
-
 </script>
 {% endblock %}

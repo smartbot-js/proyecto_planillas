@@ -6,6 +6,7 @@ from django.urls import path
 from .views import (
     AsistenciaAgregarNotaView,
     AsistenciaHistorialView,
+    AsistenciaJustificadaView,
     AsistenciaListView,
     AsistenciaDetalleView,
     AsistenciaMarcarEntradaView,
@@ -26,6 +27,7 @@ urlpatterns = [
     
     # Acciones
     path('asistencias/marcar-entrada/', AsistenciaMarcarEntradaView.as_view(), name='asistencia_marcar_entrada'),
+    path('asistencias/justificada/', AsistenciaJustificadaView.as_view(), name='asistencia_justificada'),
     path('asistencias/<int:pk>/cerrar-turno/', AsistenciaCerrarTurnoView.as_view(), name='asistencia_cerrar_turno'),
     path('asistencias/<int:pk>/editar/', AsistenciaEditarView.as_view(), name='asistencia_editar'),
     

@@ -18,6 +18,10 @@
         </div>
         <div class="page-actions">
             {% if user.es_supervisor or user.es_administrador %}
+            <a href="{% url 'asistencia_justificada' %}" class="btn-warning" style="background:#f59e0b; color:white; display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:8px; font-size:14px; font-weight:600; text-decoration:none;">
+                <span class="material-symbols-outlined">event_available</span>
+                Asistencia Justificada
+            </a>
             <a href="{% url 'asistencias_validar_lista' %}" class="btn-success">
                 <span class="material-symbols-outlined">task_alt</span>
                 Validar Pendientes
@@ -264,23 +268,26 @@
 
                         <!-- Estado -->
                         <td>
-                            <span class="badge-status {{ asistencia.estado }}">
-                                {% if asistencia.estado == 'abierto' %}
-                                <span class="material-symbols-outlined">radio_button_unchecked</span>
-                                Abierto
-                                {% elif asistencia.estado == 'cerrado' %}
-                                <span class="material-symbols-outlined">pending</span>
-                                Cerrado
-                                {% elif asistencia.estado == 'validado' %}
+                            {% if asistencia.validado %}
+                            <span class="badge-status validado">
                                 <span class="material-symbols-outlined">check_circle</span>
                                 Validado
-                                {% elif asistencia.estado == 'rechazado' %}
-                                <span class="material-symbols-outlined">cancel</span>
-                                Rechazado
-                                {% else %}
-                                {{ asistencia.get_estado_display }}
-                                {% endif %}
                             </span>
+                            {% elif asistencia.estado == 'abierto' %}
+                            <span class="badge-status abierto">
+                                <span class="material-symbols-outlined">radio_button_unchecked</span>
+                                Abierto
+                            </span>
+                            {% elif asistencia.estado == 'cerrado' %}
+                            <span class="badge-status cerrado">
+                                <span class="material-symbols-outlined">pending</span>
+                                Cerrado
+                            </span>
+                            {% else %}
+                            <span class="badge-status {{ asistencia.estado }}">
+                                {{ asistencia.get_estado_display }}
+                            </span>
+                            {% endif %}
                         </td>
 
                         <!-- Acciones -->
