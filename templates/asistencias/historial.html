@@ -108,20 +108,20 @@
                 <div class="cell-proyecto">{{ asistencia.proyecto.nombre }}</div>
                 <div class="cell-entrada">
                     {% if asistencia.hora_entrada %}
-                    <span class="time-mono">{{ asistencia.hora_entrada|time:"H:i" }}</span>
+                    <span class="time-mono">{{ asistencia.hora_entrada|hora_12h }}</span>
                     {% else %}
                     <span class="time-empty">—</span>
                     {% endif %}
                 </div>
                 <div class="cell-salida">
                     {% if asistencia.hora_salida %}
-                    <span class="time-mono">{{ asistencia.hora_salida|time:"H:i" }}</span>
+                    <span class="time-mono">{{ asistencia.hora_salida|hora_12h }}</span>
                     {% else %}
                     <span class="time-empty">—</span>
                     {% endif %}
                 </div>
-                <div class="cell-horas">{{ asistencia.horas_normales|floatformat:0 }}h</div>
-                <div class="cell-extras">{{ asistencia.horas_extras|floatformat:0 }}h</div>
+                <div class="cell-horas">{{ asistencia.horas_normales|horas_legible }}</div>
+                <div class="cell-extras">{{ asistencia.horas_extras|horas_legible }}</div>
                 <div class="cell-estado">
                     {% if asistencia.validado %}
                     <span class="badge-green-sm">Validado</span>

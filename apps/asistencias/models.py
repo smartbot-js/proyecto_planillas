@@ -1037,15 +1037,21 @@ class Asistencia(models.Model):
                 
                 self.horas_totales = total_horas.quantize(Decimal('0.01'))
                 
+                # Restar descanso (almuerzo) de las horas totales
+                descanso_decimal = Decimal(str(descanso_horas)) if descanso_horas else Decimal('0.00')
+                horas_netas = (self.horas_totales - descanso_decimal).quantize(Decimal('0.01'))
+                if horas_netas < Decimal('0.00'):
+                    horas_netas = Decimal('0.00')
+                
                 # Calcular horas normales y extras basado en jornada del día
                 jornada_decimal = Decimal(str(jornada_normal))
                 
-                if self.horas_totales <= jornada_decimal:
-                    self.horas_normales = self.horas_totales
+                if horas_netas <= jornada_decimal:
+                    self.horas_normales = horas_netas
                     self.horas_extras = Decimal('0.00')
                 else:
                     self.horas_normales = jornada_decimal
-                    self.horas_extras = (self.horas_totales - jornada_decimal).quantize(Decimal('0.01'))
+                    self.horas_extras = (horas_netas - jornada_decimal).quantize(Decimal('0.01'))
             else:
                 # Sin hora de salida, no hay horas calculadas
                 self.horas_totales = Decimal('0.00')

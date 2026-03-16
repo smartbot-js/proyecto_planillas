@@ -244,13 +244,13 @@
 
                         <!-- Entrada -->
                         <td>
-                            <strong class="time-value">{{ asistencia.hora_entrada|time:"H:i" }}</strong>
+                            <strong class="time-value">{{ asistencia.hora_entrada|hora_12h }}</strong>
                         </td>
 
                         <!-- Salida -->
                         <td>
                             {% if asistencia.hora_salida %}
-                            <strong class="time-value">{{ asistencia.hora_salida|time:"H:i" }}</strong>
+                            <strong class="time-value">{{ asistencia.hora_salida|hora_12h }}</strong>
                             {% else %}
                             <span class="time-empty">—</span>
                             {% endif %}
@@ -259,9 +259,9 @@
                         <!-- Horas -->
                         <td>
                             <div class="hours-cell">
-                                <span class="hours-main">{{ asistencia.horas_totales|floatformat:1 }}h</span>
+                                <span class="hours-main">{{ asistencia.horas_totales|horas_legible }}</span>
                                 {% if asistencia.horas_extras > 0 %}
-                                <span class="hours-extra">+{{ asistencia.horas_extras|floatformat:1 }}h extras</span>
+                                <span class="hours-extra">+{{ asistencia.horas_extras|horas_legible }} extras</span>
                                 {% endif %}
                             </div>
                         </td>
