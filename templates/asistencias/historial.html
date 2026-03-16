@@ -123,10 +123,12 @@
                 <div class="cell-horas">{{ asistencia.horas_normales|floatformat:0 }}h</div>
                 <div class="cell-extras">{{ asistencia.horas_extras|floatformat:0 }}h</div>
                 <div class="cell-estado">
-                    {% if asistencia.estado == 'cerrado' %}
+                    {% if asistencia.validado %}
+                    <span class="badge-green-sm">Validado</span>
+                    {% elif asistencia.estado == 'cerrado' %}
                     <span class="badge-green-sm">Presente</span>
                     {% elif asistencia.estado == 'abierto' %}
-                    <span class="badge-red-sm">Ausente</span>
+                    <span class="badge-yellow-sm">En curso</span>
                     {% else %}
                     <span class="badge-yellow-sm">{{ asistencia.get_estado_display }}</span>
                     {% endif %}
