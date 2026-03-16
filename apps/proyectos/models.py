@@ -738,6 +738,9 @@ class Proyecto(models.Model):
         salida = self.hora_salida_esperada.strftime('%H:%M')
         return f"{entrada} - {salida} ({self.horas_jornada}h)"
 
+    @property
+    def trabajadores_activos_count(self):
+        return self.trabajadores.filter(eliminado=False, estado='activo').count()
 
     @property
     def tiene_horario_configurado(self):
