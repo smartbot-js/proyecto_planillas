@@ -22,8 +22,10 @@ class SuperAdminRequiredMixin(UserPassesTestMixin):
                (self.request.user.rol and self.request.user.rol.codigo == 'admin')
     
     def handle_no_permission(self):
-        modulo = self.permission_modulo or 'sistema'
-        accion = self.permission_accion or 'acceder'
+        if not self.request.user.is_authenticated:
+            return redirect('login')
+        modulo = getattr(self, 'permission_modulo', None) or 'sistema'
+        accion = getattr(self, 'permission_accion', None) or 'acceder'
         rol_nombre = self.request.user.rol.nombre if self.request.user.rol else 'Sin rol'
         messages.error(
             self.request,
