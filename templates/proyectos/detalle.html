@@ -459,22 +459,22 @@
                 <div class="financial-grid">
                     <div class="financial-item">
                         <span class="financial-label">Presupuesto Total</span>
-                        <span class="financial-value primary">${{ proyecto.presupuesto_total|floatformat:2|default:"0.00" }}</span>
+                        <span class="financial-value primary">{{ proyecto.presupuesto_total|moneda }}</span>
                     </div>
                     <div class="financial-item">
                         <span class="financial-label">Anticipo</span>
-                        <span class="financial-value">${{ proyecto.anticipo|floatformat:2|default:"0.00" }}</span>
+                        <span class="financial-value">{{ proyecto.anticipo|moneda }}</span>
                     </div>
                     <div class="financial-item">
                         <span class="financial-label">Gasto Mano de Obra</span>
                         <span class="financial-value {% if proyecto.gasto_mano_obra_real > proyecto.presupuesto_mano_obra %}danger{% else %}success{% endif %}">
-                            ${{ proyecto.gasto_mano_obra_real|floatformat:2|default:"0.00" }}
+                            {{ proyecto.gasto_mano_obra_real|moneda }}
                         </span>
                     </div>
                     <div class="financial-item">
                         <span class="financial-label">Gasto Administrativo</span>
                         <span class="financial-value {% if proyecto.gasto_administrativo_real > proyecto.presupuesto_administrativo %}danger{% else %}{% endif %}">
-                            ${{ proyecto.gasto_administrativo_real|floatformat:2|default:"0.00" }}
+                            {{ proyecto.gasto_administrativo_real|moneda }}
                         </span>
                     </div>
                 </div>

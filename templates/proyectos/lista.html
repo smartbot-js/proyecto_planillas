@@ -224,12 +224,12 @@
                 <div class="budget-section">
                     <div class="budget-item">
                         <span class="budget-label">Presupuesto Mano Obra</span>
-                        <span class="budget-value">${{ proyecto.presupuesto_mano_obra|floatformat:0|default:"0" }}</span>
+                        <span class="budget-value">{{ proyecto.presupuesto_mano_obra|moneda }}</span>
                     </div>
                     <div class="budget-item">
                         <span class="budget-label">Gasto Actual</span>
                         <span class="budget-value {% if proyecto.gasto_mano_obra_real > proyecto.presupuesto_mano_obra %}text-danger{% endif %}">
-                            ${{ proyecto.gasto_mano_obra_real|floatformat:0|default:"0" }}
+                            {{ proyecto.gasto_mano_obra_real|moneda }}
                         </span>
                     </div>
                 </div>
