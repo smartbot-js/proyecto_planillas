@@ -1272,7 +1272,7 @@ class PagosPendientesListView(LoginRequiredMixin, ListView):
         
         # Listas para filtros
         context['contratistas'] = Contratista.objects.filter(eliminado=False).order_by('apellido', 'nombre')
-        context['proyectos'] = Proyecto.objects.filter(eliminado=False).order_by('nombre')
+        context['proyectos'] = self.request.user.get_proyectos_permitidos().order_by('nombre')
         context['estados'] = PagoContratista.ESTADO_CHOICES
         
         # Parámetros actuales
@@ -1315,11 +1315,16 @@ class PlanillaListView(LoginRequiredMixin, ListView):
         if fecha_hasta:
             queryset = queryset.filter(periodo_fin__lte=fecha_hasta)
         
+        # Filtrar por proyectos permitidos según rol
+        if not self.request.user.es_administrador():
+            proyectos_permitidos = self.request.user.get_proyectos_permitidos()
+            queryset = queryset.filter(proyecto__in=proyectos_permitidos)
+        
         return queryset
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['proyectos'] = Proyecto.objects.filter(eliminado=False)
+        context['proyectos'] = self.request.user.get_proyectos_permitidos()
         context['estados'] = PlanillaContratista.ESTADO_CHOICES
         
         # Estadísticas

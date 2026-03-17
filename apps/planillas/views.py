@@ -88,14 +88,23 @@ class PlanillaListView(LoginRequiredMixin, ListView):
         if fecha_hasta:
             queryset = queryset.filter(periodo_fin__lte=fecha_hasta)
         
+        # Filtrar por proyectos permitidos según rol
+        if not self.request.user.es_administrador():
+            proyectos_permitidos = self.request.user.get_proyectos_permitidos()
+            queryset = queryset.filter(proyecto__in=proyectos_permitidos)
+        
         return queryset
     
     def get_context_data(self, **kwargs):
         """Agrega datos adicionales al contexto"""
         context = super().get_context_data(**kwargs)
         
-        # Queryset base para estadísticas (sin filtros de usuario)
-        base_queryset = Planilla.objects.filter(eliminado=False)
+        # Queryset base para estadísticas (filtrado por permisos)
+        if self.request.user.es_administrador():
+            base_queryset = Planilla.objects.filter(eliminado=False)
+        else:
+            proyectos_permitidos = self.request.user.get_proyectos_permitidos()
+            base_queryset = Planilla.objects.filter(eliminado=False, proyecto__in=proyectos_permitidos)
         
         # Estadísticas generales
         context['total_planillas'] = base_queryset.count()
@@ -114,8 +123,8 @@ class PlanillaListView(LoginRequiredMixin, ListView):
         context['total_monto_cordobas'] = totales['total_cordobas'] or 0
         context['total_monto_dolares'] = totales['total_dolares'] or 0
         
-        # Listas para filtros
-        context['proyectos'] = Proyecto.objects.filter(eliminado=False).order_by('nombre')
+        # Listas para filtros (según permisos del usuario)
+        context['proyectos'] = self.request.user.get_proyectos_permitidos().order_by('nombre')
         context['estados'] = Planilla.ESTADO_CHOICES
         
         # Valores actuales de filtros

@@ -75,9 +75,10 @@ class AsistenciaValidarListView(LoginRequiredMixin, ListView):
             eliminado=False
         ).select_related('trabajador', 'proyecto', 'registrado_por')
         
-        # Si es supervisor, solo sus proyectos
-        if self.request.user.es_supervisor() and not self.request.user.es_administrador():
-            queryset = queryset.filter(proyecto__supervisor=self.request.user)
+        # Filtrar por proyectos permitidos según rol
+        if not self.request.user.es_administrador():
+            proyectos_permitidos = self.request.user.get_proyectos_permitidos()
+            queryset = queryset.filter(proyecto__in=proyectos_permitidos)
         
         # Filtros desde GET
         proyecto_id = self.request.GET.get('proyecto')
@@ -113,16 +114,8 @@ class AsistenciaValidarListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Proyectos para filtro
-        if self.request.user.es_administrador():
-            proyectos = Proyecto.objects.filter(activo=True, eliminado=False)
-        else:
-            proyectos = Proyecto.objects.filter(
-                supervisor=self.request.user,
-                activo=True,
-                eliminado=False
-            )
-        context['proyectos'] = proyectos
+        # Proyectos para filtro (según permisos del usuario)
+        context['proyectos'] = self.request.user.get_proyectos_permitidos()
         
         # Estadísticas
         queryset_base = self.get_queryset()
@@ -472,8 +465,10 @@ class AsistenciaListView(LoginRequiredMixin, ListView):
             )
         
         # Si es supervisor, solo sus proyectos
-        if self.request.user.es_supervisor() and not self.request.user.es_administrador():
-            queryset = queryset.filter(proyecto__supervisor=self.request.user)
+        # Filtrar por proyectos permitidos según rol del usuario
+        if not self.request.user.es_administrador():
+            proyectos_permitidos = self.request.user.get_proyectos_permitidos()
+            queryset = queryset.filter(proyecto__in=proyectos_permitidos)
         
         return queryset
     
@@ -483,16 +478,8 @@ class AsistenciaListView(LoginRequiredMixin, ListView):
         """
         context = super().get_context_data(**kwargs)
         
-        # Proyectos para filtro
-        if self.request.user.es_administrador():
-            proyectos = Proyecto.objects.filter(activo=True, eliminado=False)
-        else:
-            proyectos = Proyecto.objects.filter(
-                supervisor=self.request.user,
-                activo=True,
-                eliminado=False
-            )
-        context['proyectos'] = proyectos
+        # Proyectos para filtro (según permisos del usuario)
+        context['proyectos'] = self.request.user.get_proyectos_permitidos()
         
         # Obtener asistencias del período filtrado
         asistencias_periodo = self.get_queryset()
