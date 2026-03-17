@@ -663,8 +663,8 @@ class Asistencia(models.Model):
             self.hora_salida = nueva_hora_salida
         
         # Si hay nueva hora de salida, recalcular horas
-        if nueva_hora_salida and self.hora_entrada:
-            self._calcular_horas()
+        # if nueva_hora_salida and self.hora_entrada:
+        #     self._calcular_horas()
         
         # Registrar corrección
         self.fue_corregida = True

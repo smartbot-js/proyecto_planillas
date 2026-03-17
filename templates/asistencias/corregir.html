@@ -56,12 +56,12 @@
                                 Hora de Entrada *
                             </label>
                             <input type="time" 
-                                   name="hora_entrada" 
-                                   class="form-control" 
-                                   value="{{ asistencia.hora_entrada|time:'H:i' }}" 
-                                   required
-                                   id="horaEntrada"
-                                   {% if not puede_editar %}disabled{% endif %}
+                                    name="nueva_hora_entrada" 
+                                    class="form-control" 
+                                    value="{{ asistencia.hora_entrada|time:'H:i' }}" 
+                                    required
+                                    id="horaEntrada"
+                                    {% if not puede_editar %}disabled{% endif %}
                             >
                             <small class="form-help">Formato 24h (ej: 08:30)</small>
                         </div>
@@ -72,11 +72,11 @@
                                 Hora de Salida
                             </label>
                             <input type="time" 
-                                   name="hora_salida" 
-                                   class="form-control" 
-                                   value="{% if asistencia.hora_salida %}{{ asistencia.hora_salida|time:'H:i' }}{% endif %}"
-                                   id="horaSalida"
-                                   {% if not puede_editar %}disabled{% endif %}
+                                    name="nueva_hora_salida" 
+                                    class="form-control" 
+                                    value="{% if asistencia.hora_salida %}{{ asistencia.hora_salida|time:'H:i' }}{% endif %}"
+                                    id="horaSalida"
+                                    {% if not puede_editar %}disabled{% endif %}
                             >
                             <small class="form-help">Dejar vacío si el turno sigue abierto</small>
                         </div>
