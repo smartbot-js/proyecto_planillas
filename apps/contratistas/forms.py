@@ -353,11 +353,6 @@ class AvaluoContratistaForm(forms.ModelForm):
             # Validar tamaño (máximo 10MB)
             if archivo.size > 10 * 1024 * 1024:
                 raise ValidationError('El archivo no puede superar los 10MB.')
-            
-            # Validar extensión
-            ext = archivo.name.split('.')[-1].lower()
-            if ext not in ['pdf', 'jpg', 'jpeg', 'png']:
-                raise ValidationError('Solo se permiten archivos PDF, JPG o PNG.')
         
         return archivo
 
