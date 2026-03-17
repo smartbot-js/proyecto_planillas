@@ -1,6 +1,7 @@
 {% comment %}
-Componente de paginación reutilizable.
-Preserva filtros de búsqueda al cambiar de página.
+Este es el componente de paginación reutilizable.
+Recibe automáticamente el objeto 'page_obj' de las Vistas de Lista (ListView) de Django.
+Usa 'request.GET.urlencode' para preservar los filtros de búsqueda al cambiar de página.
 {% endcomment %}
 
 {% if is_paginated %}
@@ -13,13 +14,13 @@ Preserva filtros de búsqueda al cambiar de página.
     <div class="pagination-clean">
         
         {% if page_obj.has_previous %}
-            <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-btn" title="Primera página">
+            <a href="?page=1{{ request.GET.urlencode|default_if_none:'' }}" class="page-btn" title="Primera página">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="11 17 6 12 11 7"></polyline>
                     <polyline points="18 17 13 12 18 7"></polyline>
                 </svg>
             </a>
-            <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-btn" title="Anterior">
+            <a href="?page={{ page_obj.previous_page_number }}{{ request.GET.urlencode|default_if_none:'' }}" class="page-btn" title="Anterior">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="15 18 9 12 15 6"></polyline>
                 </svg>
@@ -31,12 +32,12 @@ Preserva filtros de búsqueda al cambiar de página.
         </span>
         
         {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-btn" title="Siguiente">
+            <a href="?page={{ page_obj.next_page_number }}{{ request.GET.urlencode|default_if_none:'' }}" class="page-btn" title="Siguiente">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
             </a>
-            <a href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-btn" title="Última página">
+            <a href="?page={{ page_obj.paginator.num_pages }}{{ request.GET.urlencode|default_if_none:'' }}" class="page-btn" title="Última página">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="13 17 18 12 13 7"></polyline>
                     <polyline points="6 17 11 12 6 7"></polyline>
