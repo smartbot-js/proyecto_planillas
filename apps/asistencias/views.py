@@ -85,19 +85,26 @@ class AsistenciaValidarListView(LoginRequiredMixin, ListView):
         if proyecto_id:
             queryset = queryset.filter(proyecto_id=proyecto_id)
         
+        # Filtro por fechas (con validación)
         fecha_inicio = self.request.GET.get('fecha_inicio')
         if fecha_inicio:
             try:
-                queryset = queryset.filter(fecha__gte=fecha_inicio)
-            except:
-                pass
+                fecha_parsed = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+                if fecha_parsed.year > 9999 or fecha_parsed.year < 1900:
+                    raise ValueError('Año fuera de rango')
+                queryset = queryset.filter(fecha__gte=fecha_parsed)
+            except (ValueError, TypeError):
+                messages.warning(self.request, f'⚠️ Fecha inicio inválida: "{fecha_inicio}". Se ignoró este filtro.')
         
         fecha_fin = self.request.GET.get('fecha_fin')
         if fecha_fin:
             try:
-                queryset = queryset.filter(fecha__lte=fecha_fin)
-            except:
-                pass
+                fecha_parsed = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+                if fecha_parsed.year > 9999 or fecha_parsed.year < 1900:
+                    raise ValueError('Año fuera de rango')
+                queryset = queryset.filter(fecha__lte=fecha_parsed)
+            except (ValueError, TypeError):
+                messages.warning(self.request, f'⚠️ Fecha fin inválida: "{fecha_fin}". Se ignoró este filtro.')
         
         # Búsqueda por nombre de trabajador
         busqueda = self.request.GET.get('busqueda')
@@ -441,15 +448,30 @@ class AsistenciaListView(LoginRequiredMixin, ListView):
         if proyecto_id:
             queryset = queryset.filter(proyecto_id=proyecto_id)
         
-        # Filtro por fechas
+        # Filtro por fechas (con validación, mensaje solo una vez)
         fecha_inicio = self.request.GET.get('fecha_inicio')
         if fecha_inicio:
-            queryset = queryset.filter(fecha__gte=fecha_inicio)
+            try:
+                fecha_parsed = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+                if fecha_parsed.year > 9999 or fecha_parsed.year < 1900:
+                    raise ValueError('Año fuera de rango')
+                queryset = queryset.filter(fecha__gte=fecha_parsed)
+            except (ValueError, TypeError):
+                if not getattr(self, '_fecha_inicio_warned', False):
+                    messages.warning(self.request, f'⚠️ Fecha inicio inválida: "{fecha_inicio}". Se ignoró este filtro.')
+                    self._fecha_inicio_warned = True
         
         fecha_fin = self.request.GET.get('fecha_fin')
         if fecha_fin:
-            queryset = queryset.filter(fecha__lte=fecha_fin)
-        
+            try:
+                fecha_parsed = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+                if fecha_parsed.year > 9999 or fecha_parsed.year < 1900:
+                    raise ValueError('Año fuera de rango')
+                queryset = queryset.filter(fecha__lte=fecha_parsed)
+            except (ValueError, TypeError):
+                if not getattr(self, '_fecha_fin_warned', False):
+                    messages.warning(self.request, f'⚠️ Fecha fin inválida: "{fecha_fin}". Se ignoró este filtro.')
+                    self._fecha_fin_warned = True
         # Filtro por estado
         estado = self.request.GET.get('estado')
         if estado:
