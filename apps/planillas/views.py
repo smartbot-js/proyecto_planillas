@@ -80,13 +80,28 @@ class PlanillaListView(LoginRequiredMixin, ListView):
         
         # Filtro por rango de fechas
         fecha_desde = self.request.GET.get('fecha_desde')
-        fecha_hasta = self.request.GET.get('fecha_hasta')
-        
         if fecha_desde:
-            queryset = queryset.filter(periodo_inicio__gte=fecha_desde)
+            try:
+                fecha_parsed = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
+                if fecha_parsed.year > 9999 or fecha_parsed.year < 1900:
+                    raise ValueError('Año fuera de rango')
+                queryset = queryset.filter(periodo_inicio__gte=fecha_parsed)
+            except (ValueError, TypeError):
+                if not getattr(self, '_fecha_desde_warned', False):
+                    messages.warning(self.request, f'⚠️ Fecha desde inválida: "{fecha_desde}". Se ignoró este filtro.')
+                    self._fecha_desde_warned = True
         
+        fecha_hasta = self.request.GET.get('fecha_hasta')
         if fecha_hasta:
-            queryset = queryset.filter(periodo_fin__lte=fecha_hasta)
+            try:
+                fecha_parsed = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
+                if fecha_parsed.year > 9999 or fecha_parsed.year < 1900:
+                    raise ValueError('Año fuera de rango')
+                queryset = queryset.filter(periodo_fin__lte=fecha_parsed)
+            except (ValueError, TypeError):
+                if not getattr(self, '_fecha_hasta_warned', False):
+                    messages.warning(self.request, f'⚠️ Fecha hasta inválida: "{fecha_hasta}". Se ignoró este filtro.')
+                    self._fecha_hasta_warned = True
         
         # Filtrar por proyectos permitidos según rol
         if not self.request.user.es_administrador():
