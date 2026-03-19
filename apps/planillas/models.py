@@ -898,10 +898,10 @@ class DetallePlanilla(models.Model):
             self.deducciones
         ).quantize(Decimal('0.01'))
 
-        # Cargas sociales
-        self.inss_laboral = (self.ingreso_total * Decimal('0.0625')).quantize(Decimal('0.01'))
-        self.inss_patronal = (self.ingreso_total * Decimal('0.19')).quantize(Decimal('0.01'))
-        self.inatec = (self.ingreso_total * Decimal('0.02')).quantize(Decimal('0.01'))
+        # Cargas sociales (deshabilitado - no se usa en este proyecto)
+        self.inss_laboral = Decimal('0.00')
+        self.inss_patronal = Decimal('0.00')
+        self.inatec = Decimal('0.00')
     @property
     def ingreso_total_dolares(self):
         """Retorna el ingreso total en dólares"""
