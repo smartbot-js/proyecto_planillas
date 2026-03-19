@@ -762,23 +762,20 @@ class PlanillaEditarDetalleView(LoginRequiredMixin, PermissionRequiredMixin, Vie
                 return redirect('planilla_detalle', pk=planilla.pk)
             
             # 2. Obtener datos del formulario
-            bonos_str = request.POST.get('bonos', '0')
             combustible_str = request.POST.get('combustible', '0')
             otros_str = request.POST.get('otros_gastos', '0')
-            feriados_str = request.POST.get('salario_dias_feriados', '0')
+            deducciones_str = request.POST.get('deducciones', '0')
             observaciones = request.POST.get('observaciones', '')
 
             # 3. Limpieza de datos (para aceptar '.' o ',')
-            bonos_clean = bonos_str.strip().replace(',', '.') if bonos_str else '0'
             combustible_clean = combustible_str.strip().replace(',', '.') if combustible_str else '0'
             otros_clean = otros_str.strip().replace(',', '.') if otros_str else '0'
-            feriados_clean = feriados_str.strip().replace(',', '.') if feriados_str else '0'
+            deducciones_clean = deducciones_str.strip().replace(',', '.') if deducciones_str else '0'
             
-            # 4. Asignar valores al detalle
-            detalle.bonos = Decimal(bonos_clean)
+            # 4. Asignar valores al detalle (bonos y feriados se calculan automáticamente)
             detalle.combustible = Decimal(combustible_clean)
             detalle.otros_gastos = Decimal(otros_clean)
-            detalle.salario_dias_feriados = Decimal(feriados_clean)
+            detalle.deducciones = Decimal(deducciones_clean)
             detalle.observaciones = observaciones
             
             # 5. Guardar y recalcular

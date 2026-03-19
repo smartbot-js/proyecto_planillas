@@ -651,6 +651,7 @@
                     <th class="text-right">Bono</th>
                     <th class="text-right">Comb.</th>
                     <th class="text-right">Otros</th>
+                    <th class="text-right">Deducc.</th>
                     <th class="text-right">Total C$</th>
                     <th class="text-right">Total USD</th>
                     {% if puede_editar %}
@@ -678,13 +679,14 @@
                     <td class="text-right">{{ detalle.bonos|moneda }}</td>
                     <td class="text-right">{{ detalle.combustible|moneda }}</td>
                     <td class="text-right">{{ detalle.otros_gastos|moneda }}</td>
+                    <td class="text-right" style="color: #ef4444;">{{ detalle.deducciones|moneda }}</td>
                     <td class="text-right text-success"><strong>{{ detalle.ingreso_total|moneda }}</strong></td>
                     <td class="text-right text-info">{{ detalle.ingreso_total_dolares|dolares }}</td>
                     {% if puede_editar %}
                     <td class="text-center">
                         <button 
                             class="btn btn-secondary btn-sm" 
-                            onclick="editarDetalle({{ detalle.id }}, '{{ detalle.trabajador.nombre|escapejs }} {{ detalle.trabajador.apellido|escapejs }}', '{{ detalle.bonos }}', '{{ detalle.combustible }}', '{{ detalle.otros_gastos }}', '{{ detalle.salario_dias_feriados }}', '{{ detalle.observaciones|default:''|escapejs }}')"
+                            onclick="editarDetalle({{ detalle.id }}, '{{ detalle.trabajador.nombre|escapejs }} {{ detalle.trabajador.apellido|escapejs }}', '{{ detalle.combustible }}', '{{ detalle.otros_gastos }}', '{{ detalle.deducciones }}', '{{ detalle.observaciones|default:''|escapejs }}')"
                         >
                             <span class="material-symbols-outlined" style="font-size: 16px;">edit</span>
                         </button>
@@ -714,11 +716,6 @@
             </div>
             
             <div class="form-group">
-                <label>Bonos (C$)</label>
-                <input type="number" name="bonos" id="inputBonos" class="form-input" step="0.01" min="0" value="0.00">
-            </div>
-            
-            <div class="form-group">
                 <label>Combustible (C$)</label>
                 <input type="number" name="combustible" id="inputCombustible" class="form-input" step="0.01" min="0" value="0.00">
             </div>
@@ -729,8 +726,9 @@
             </div>
             
             <div class="form-group">
-                <label>Salario Días Feriados (C$)</label>
-                <input type="number" name="salario_dias_feriados" id="inputFeriados" class="form-input" step="0.01" min="0" value="0.00">
+                <label>Deducciones (C$)</label>
+                <input type="number" name="deducciones" id="inputDeducciones" class="form-input" step="0.01" min="0" value="0.00">
+                <small style="color: #ef4444; font-size: 12px;">Este monto se resta del ingreso total</small>
             </div>
             
             <div class="form-group">
@@ -767,34 +765,115 @@
 {% block extra_js %}
 <script>
 let detalleIdActual = null;
+window._valoresOriginales = {};
 
-function editarDetalle(id, nombre, bonos, combustible, otros, feriados, observaciones) {
+// ============================================
+// FORMATEO DE MONEDA EN TIEMPO REAL
+// ============================================
+function formatearMiles(valor) {
+    // Extraer solo dígitos y punto decimal
+    var limpio = valor.replace(/[^0-9.]/g, '');
+    
+    // Evitar múltiples puntos
+    var partes = limpio.split('.');
+    if (partes.length > 2) {
+        limpio = partes[0] + '.' + partes.slice(1).join('');
+        partes = limpio.split('.');
+    }
+    
+    var entero = partes[0] || '0';
+    var decimal = partes.length > 1 ? partes[1] : '';
+    
+    // Limitar decimales a 2
+    if (decimal.length > 2) {
+        decimal = decimal.substring(0, 2);
+    }
+    
+    // Quitar ceros a la izquierda (excepto si es solo "0")
+    entero = entero.replace(/^0+/, '') || '0';
+    
+    // Formatear con comas de miles
+    entero = entero.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    
+    if (partes.length > 1) {
+        return entero + '.' + decimal;
+    }
+    return entero;
+}
+
+function limpiarFormato(valor) {
+    return valor.replace(/,/g, '');
+}
+
+function aplicarFormatoInput(e) {
+    var input = e.target;
+    var cursorPos = input.selectionStart;
+    var valorAnterior = input.value;
+    
+    input.value = formatearMiles(input.value);
+    
+    // Ajustar cursor por comas agregadas/removidas
+    var diferencia = input.value.length - valorAnterior.length;
+    var nuevaPos = cursorPos + diferencia;
+    if (nuevaPos < 0) nuevaPos = 0;
+    input.setSelectionRange(nuevaPos, nuevaPos);
+}
+
+// ============================================
+// MODAL EDITAR DETALLE
+// ============================================
+function editarDetalle(id, nombre, combustible, otros, deducciones, observaciones) {
     detalleIdActual = id;
     document.getElementById('nombreTrabajador').value = nombre;
     
-    // Limpiar valores (reemplazar coma por punto)
-    const bonos_limpio = String(bonos).replace(',', '.');
-    const combustible_limpio = String(combustible).replace(',', '.');
-    const otros_limpio = String(otros).replace(',', '.');
-    const feriados_limpio = String(feriados).replace(',', '.');
+    var combustible_limpio = String(combustible).replace(',', '.');
+    var otros_limpio = String(otros).replace(',', '.');
+    var deducciones_limpio = String(deducciones).replace(',', '.');
 
-    document.getElementById('inputBonos').value = bonos_limpio;
-    document.getElementById('inputCombustible').value = combustible_limpio;
-    document.getElementById('inputOtros').value = otros_limpio;
-    document.getElementById('inputFeriados').value = feriados_limpio;
+    // Asignar valores formateados
+    document.getElementById('inputCombustible').value = formatearMiles(combustible_limpio);
+    document.getElementById('inputOtros').value = formatearMiles(otros_limpio);
+    document.getElementById('inputDeducciones').value = formatearMiles(deducciones_limpio);
     document.getElementById('inputObservaciones').value = observaciones || '';
+    
+    // Guardar valores originales para detectar cambios
+    window._valoresOriginales = {
+        combustible: document.getElementById('inputCombustible').value,
+        otros: document.getElementById('inputOtros').value,
+        deducciones: document.getElementById('inputDeducciones').value,
+        observaciones: observaciones || ''
+    };
     
     // Actualizar la acción del formulario
     document.getElementById('formEditarDetalle').action = '/planillas/detalle/' + id + '/editar/';
     
     // Mostrar modal
-    document.getElementById('modalEditarDetalle').style.display = 'block';
+    document.getElementById('modalEditarDetalle').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function hayCambiosSinGuardar() {
+    return (
+        document.getElementById('inputCombustible').value !== window._valoresOriginales.combustible ||
+        document.getElementById('inputOtros').value !== window._valoresOriginales.otros ||
+        document.getElementById('inputDeducciones').value !== window._valoresOriginales.deducciones ||
+        document.getElementById('inputObservaciones').value !== window._valoresOriginales.observaciones
+    );
 }
 
 function cerrarModal() {
+    if (hayCambiosSinGuardar()) {
+        if (!confirm('Hay cambios sin guardar. ¿Deseas cerrar sin guardar?')) {
+            return;
+        }
+    }
     document.getElementById('modalEditarDetalle').classList.remove('active');
+    document.body.style.overflow = '';
 }
 
+// ============================================
+// CONFIRMACIONES
+// ============================================
 function confirmarAprobarGerente() {
     if (confirm('¿Estás seguro de que deseas aprobar esta planilla como gerente?\n\nDespués de aprobarla, el contador deberá hacer la aprobación final.')) {
         document.getElementById('formAprobarGerente').submit();
@@ -819,30 +898,58 @@ function confirmarEliminar() {
     }
 }
 
-// Cerrar modal al hacer click fuera
-document.getElementById('modalEditarDetalle').addEventListener('click', function(e) {
-    if (e.target === this) {
-        cerrarModal();
-    }
-});
-
-// Cerrar modal con tecla ESC
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        cerrarModal();
-    }
-});
-
-// Auto-cerrar mensajes
-setTimeout(function() {
-    const messages = document.querySelectorAll('.message');
-    messages.forEach(function(message) {
-        message.style.transition = 'opacity 0.5s';
-        message.style.opacity = '0';
-        setTimeout(function() {
-            message.remove();
-        }, 500);
+// ============================================
+// EVENTOS AL CARGAR
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Aplicar formateo a campos monetarios
+    ['inputCombustible', 'inputOtros', 'inputDeducciones'].forEach(function(id) {
+        var input = document.getElementById(id);
+        if (input) {
+            input.type = 'text';
+            input.inputMode = 'decimal';
+            input.addEventListener('input', aplicarFormatoInput);
+            input.addEventListener('focus', function() {
+                if (this.value === '0' || this.value === '0.00') {
+                    this.select();
+                }
+            });
+        }
     });
-}, 5000);
+    
+    // Limpiar comas antes de enviar
+    document.getElementById('formEditarDetalle').addEventListener('submit', function() {
+        ['inputCombustible', 'inputOtros', 'inputDeducciones'].forEach(function(id) {
+            var input = document.getElementById(id);
+            if (input) {
+                input.value = limpiarFormato(input.value);
+            }
+        });
+    });
+    
+    // Cerrar modal al hacer click fuera
+    document.getElementById('modalEditarDetalle').addEventListener('click', function(e) {
+        if (e.target === this) {
+            cerrarModal();
+        }
+    });
+    
+    // Cerrar modal con tecla ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            cerrarModal();
+        }
+    });
+    
+    // Auto-cerrar mensajes
+    setTimeout(function() {
+        var msgs = document.querySelectorAll('.message');
+        msgs.forEach(function(msg) {
+            msg.style.transition = 'opacity 0.5s';
+            msg.style.opacity = '0';
+            setTimeout(function() { msg.remove(); }, 500);
+        });
+    }, 5000);
+});
 </script>
 {% endblock %}
