@@ -873,6 +873,7 @@ tbody tr:hover {
                         <th>Monto $</th>
                         <th>Banco</th>
                         <th>Cuenta</th>
+                        <th>Soporte</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -887,6 +888,16 @@ tbody tr:hover {
                         <td>{{ detalle.monto_dolares|dolares }}</td>
                         <td>{{ detalle.banco|default:"-" }}</td>
                         <td>{{ detalle.numero_cuenta|default:"-" }}</td>
+                        <td>
+                            {% if detalle.avaluo.archivo_soporte %}
+                            <a href="{{ detalle.avaluo.archivo_soporte.url }}" target="_blank" title="Ver documento" style="display:inline-flex; align-items:center; gap:4px; color:#3b82f6; text-decoration:none; font-size:13px;">
+                                <span class="material-symbols-outlined" style="font-size:18px;">description</span>
+                                Ver
+                            </a>
+                            {% else %}
+                            <span style="color:#9ca3af; font-size:13px;">—</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
