@@ -4,6 +4,7 @@ Gestiona CRUD, importación/exportación CSV, traslados y reportes
 """
 
 from decimal import Decimal
+from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
@@ -644,12 +645,11 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, PermissionRequiredMixin, Vie
             '%m.%d.%Y',      # 01.15.2024
         ]
         
-        from datetime import datetime
-        
         for formato in formatos:
             try:
                 fecha_parseada = datetime.strptime(fecha_str, formato)
-                return fecha_parseada.date()
+                # Retornar como string ISO para que sea serializable en sesión
+                return fecha_parseada.strftime('%Y-%m-%d')
             except ValueError:
                 continue
         
