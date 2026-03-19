@@ -75,6 +75,11 @@ class TrabajadorListView(LoginRequiredMixin, ListView):
         elif asegurado == 'no':
             queryset = queryset.filter(asegurado=False)
         
+        # Filtrar por proyectos permitidos según rol
+        if not self.request.user.es_administrador():
+            proyectos_permitidos = self.request.user.get_proyectos_permitidos()
+            queryset = queryset.filter(proyecto_asignado__in=proyectos_permitidos)
+        
         return queryset.order_by('-creado_en')
     
     def get_context_data(self, **kwargs):
@@ -82,10 +87,7 @@ class TrabajadorListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         
         #Proyectos para el filtro
-        context['proyectos'] = Proyecto.objects.filter(
-            #activo=False,
-            eliminado=False
-        ).order_by('nombre')
+        context['proyectos'] = self.request.user.get_proyectos_permitidos().order_by('nombre')
         
         # context['proyectos'] = Proyecto.objects.filter(
         #     activo=True,
@@ -97,15 +99,15 @@ class TrabajadorListView(LoginRequiredMixin, ListView):
         context['estados'] = Trabajador.Estado.choices
         
         # Estadísticas
-        context['total_trabajadores'] = Trabajador.objects.filter(eliminado=False).count()
-        context['trabajadores_activos'] = Trabajador.objects.filter(
-            eliminado=False,
-            estado=Trabajador.Estado.ACTIVO
-        ).count()
-        context['trabajadores_asegurados'] = Trabajador.objects.filter(
-            eliminado=False,
-            asegurado=True
-        ).count()
+        if self.request.user.es_administrador():
+            base_qs = Trabajador.objects.filter(eliminado=False)
+        else:
+            proyectos_permitidos = self.request.user.get_proyectos_permitidos()
+            base_qs = Trabajador.objects.filter(eliminado=False, proyecto_asignado__in=proyectos_permitidos)
+        
+        context['total_trabajadores'] = base_qs.count()
+        context['trabajadores_activos'] = base_qs.filter(estado=Trabajador.Estado.ACTIVO).count()
+        context['trabajadores_asegurados'] = base_qs.filter(asegurado=True).count()
         
         # Mantener los valores de los filtros
         context['search_query'] = self.request.GET.get('search', '')
