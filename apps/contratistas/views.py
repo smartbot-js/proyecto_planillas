@@ -117,7 +117,7 @@ class ContratistaListView(LoginRequiredMixin, ListView):
         # ==========================================
         # LISTAS PARA FILTROS
         # ==========================================
-        context['proyectos'] = Proyecto.objects.filter(eliminado=False).order_by('nombre')
+        context['proyectos'] = self.request.user.get_proyectos_permitidos()
         context['formas_pago'] = AvaluoContratista.FORMA_PAGO_CHOICES
         
         # ==========================================
@@ -1349,7 +1349,7 @@ class PlanillaCreateView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         
         # Proyectos
-        context['proyectos'] = Proyecto.objects.filter(eliminado=False).order_by('nombre')
+        context['proyectos'] = self.request.user.get_proyectos_permitidos().order_by('nombre')
         
         # Filtros
         proyecto_id = self.request.GET.get('proyecto')
