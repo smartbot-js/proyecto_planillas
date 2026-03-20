@@ -134,10 +134,7 @@ class TrabajadorCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
     
     def get(self, request):
         """Muestra el formulario de creación"""
-        proyectos = Proyecto.objects.filter(
-            # activo=True,
-            eliminado=False
-        ).order_by('nombre')
+        proyectos = request.user.get_proyectos_permitidos().order_by('nombre')
         
         context = {
             'proyectos': proyectos,
@@ -343,10 +340,7 @@ class TrabajadorEditarView(LoginRequiredMixin, PermissionRequiredMixin, View):
             return redirect('trabajadores_lista')
         
         # Obtener proyectos activos
-        proyectos = Proyecto.objects.filter(
-            # activo=True,
-            eliminado=False
-        ).order_by('nombre')
+        proyectos = request.user.get_proyectos_permitidos().order_by('nombre')
         
         context = {
             'trabajador': trabajador,
