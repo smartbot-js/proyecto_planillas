@@ -164,8 +164,8 @@ class PlanillaCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
         """Muestra el formulario de generación"""
         
         # Obtener proyectos activos
-        proyectos = Proyecto.objects.filter(
-            eliminado=False,
+        # Obtener proyectos según permisos del usuario
+        proyectos = request.user.get_proyectos_permitidos().filter(
             estado__in=['planificacion', 'ejecucion']
         ).order_by('nombre')
         
