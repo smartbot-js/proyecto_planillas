@@ -563,9 +563,11 @@ class Asistencia(models.Model):
         if self.eliminado:
             raise ValueError('No se puede validar una asistencia eliminada')
         
-        # Verificar que el usuario es supervisor del proyecto
-        if not usuario.es_administrador() and self.proyecto.supervisor != usuario:
-            raise ValueError('Solo el supervisor del proyecto puede validar esta asistencia')
+        # Verificar permisos del rol
+        if not usuario.tiene_permiso('asistencias', 'validar'):
+            raise ValueError('No tienes permiso para validar asistencias')
+        if not usuario.puede_ver_proyecto(self.proyecto):
+            raise ValueError('No tienes acceso a este proyecto')
         
         # Validar
         self.validado = True
@@ -605,9 +607,11 @@ class Asistencia(models.Model):
         if self.eliminado:
             raise ValueError('No se puede rechazar una asistencia eliminada')
         
-        # Verificar permisos
-        if not usuario.es_administrador() and self.proyecto.supervisor != usuario:
-            raise ValueError('Solo el supervisor del proyecto puede rechazar esta asistencia')
+        # Verificar permisos del rol
+        if not usuario.tiene_permiso('asistencias', 'validar'):
+            raise ValueError('No tienes permiso para rechazar asistencias')
+        if not usuario.puede_ver_proyecto(self.proyecto):
+            raise ValueError('No tienes acceso a este proyecto')
         
         # Rechazar
         self.estado = 'rechazado'
@@ -646,9 +650,11 @@ class Asistencia(models.Model):
         if self.eliminado:
             raise ValueError('No se puede corregir una asistencia eliminada')
         
-        # Verificar permisos
-        if not usuario.es_administrador() and self.proyecto.supervisor != usuario:
-            raise ValueError('Solo el supervisor del proyecto puede corregir esta asistencia')
+        # Verificar permisos del rol
+        if not usuario.tiene_permiso('asistencias', 'corregir'):
+            raise ValueError('No tienes permiso para corregir asistencias')
+        if not usuario.puede_ver_proyecto(self.proyecto):
+            raise ValueError('No tienes acceso a este proyecto')
         
         # Guardar valores originales (solo la primera vez)
         if not self.fue_corregida:

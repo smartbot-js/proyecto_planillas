@@ -435,65 +435,64 @@ class DashboardView(View):
         from apps.contratistas.models import Contratista, ContratoProyecto, DetallePlanillaContratista
         
         # ==========================================
+        # PROYECTOS PERMITIDOS SEGÚN ROL
+        # ==========================================
+        proyectos_permitidos = request.user.get_proyectos_permitidos()
+        es_admin = request.user.es_administrador()
+        
+        # ==========================================
         # ESTADÍSTICAS DE TRABAJADORES
         # ==========================================
-        total_trabajadores = Trabajador.objects.filter(eliminado=False).count()
-        trabajadores_activos = Trabajador.objects.filter(
-            eliminado=False,
-            estado='activo'
-        ).count()
-        trabajadores_asegurados = Trabajador.objects.filter(
-            eliminado=False,
-            asegurado=True
-        ).count()
+        if es_admin:
+            trabajadores_qs = Trabajador.objects.filter(eliminado=False)
+        else:
+            trabajadores_qs = Trabajador.objects.filter(eliminado=False, proyecto_asignado__in=proyectos_permitidos)
+        
+        total_trabajadores = trabajadores_qs.count()
+        trabajadores_activos = trabajadores_qs.filter(estado='activo').count()
+        trabajadores_asegurados = trabajadores_qs.filter(asegurado=True).count()
         
         # ==========================================
         # ESTADÍSTICAS DE PROYECTOS
         # ==========================================
-        total_proyectos = Proyecto.objects.filter(eliminado=False).count()
-        proyectos_activos = Proyecto.objects.filter(
-            eliminado=False,
-            estado='ejecucion'
-        ).count()
-        proyectos_pausados = Proyecto.objects.filter(
-            eliminado=False,
-            estado='pausado'
-        ).count()
-        proyectos_finalizados = Proyecto.objects.filter(
-            eliminado=False,
-            estado='finalizado'
-        ).count()
+        total_proyectos = proyectos_permitidos.count()
+        proyectos_activos = proyectos_permitidos.filter(estado='ejecucion').count()
+        proyectos_pausados = proyectos_permitidos.filter(estado='pausado').count()
+        proyectos_finalizados = proyectos_permitidos.filter(estado='finalizado').count()
         
         # ==========================================
         # ESTADÍSTICAS DE ASISTENCIAS HOY
         # ==========================================
         hoy = date.today()
-        asistencias_hoy = Asistencia.objects.filter(
-            fecha=hoy
-        ).count()
+        if es_admin:
+            asistencias_hoy_qs = Asistencia.objects.filter(fecha=hoy)
+        else:
+            asistencias_hoy_qs = Asistencia.objects.filter(fecha=hoy, proyecto__in=proyectos_permitidos)
         
-        trabajadores_presentes_hoy = Asistencia.objects.filter(
-            fecha=hoy,
+        asistencias_hoy = asistencias_hoy_qs.count()
+        trabajadores_presentes_hoy = asistencias_hoy_qs.filter(
             hora_entrada__isnull=False
         ).values('trabajador').distinct().count()
         
         # ==========================================
         # ESTADÍSTICAS DE PLANILLAS
         # ==========================================
-        planillas_pendientes = Planilla.objects.filter(
-            eliminado=False,
+        if es_admin:
+            planillas_qs = Planilla.objects.filter(eliminado=False)
+        else:
+            planillas_qs = Planilla.objects.filter(eliminado=False, proyecto__in=proyectos_permitidos)
+        
+        planillas_pendientes = planillas_qs.filter(
             estado__in=['borrador', 'aprobada_gerente']
         ).count()
         
-        planillas_pagadas_mes = Planilla.objects.filter(
-            eliminado=False,
+        planillas_pagadas_mes = planillas_qs.filter(
             estado='pagada',
             fecha_generacion__month=hoy.month,
             fecha_generacion__year=hoy.year
         ).count()
         
-        total_pagado_mes = Planilla.objects.filter(
-            eliminado=False,
+        total_pagado_mes = planillas_qs.filter(
             estado='pagada',
             fecha_generacion__month=hoy.month,
             fecha_generacion__year=hoy.year
@@ -504,36 +503,44 @@ class DashboardView(View):
         # ==========================================
         # ESTADÍSTICAS DE CONTRATISTAS
         # ==========================================
-        total_contratistas = Contratista.objects.filter(
-            eliminado=False,
-            activo=True
-        ).count()
-        
-        total_contratos = ContratoProyecto.objects.filter(
-            eliminado=False
-        ).count()
-        
-        # Total pagado a contratistas (desde planillas pagadas)
-        total_pagado_contratistas = DetallePlanillaContratista.objects.filter(
-            planilla__estado='pagada'
-        ).aggregate(
-            total=Sum('monto_cordobas')
-        )['total'] or Decimal('0.00')
+        if es_admin:
+            total_contratistas = Contratista.objects.filter(eliminado=False, activo=True).count()
+            total_contratos = ContratoProyecto.objects.filter(eliminado=False).count()
+            total_pagado_contratistas = DetallePlanillaContratista.objects.filter(
+                planilla__estado='pagada'
+            ).aggregate(total=Sum('monto_cordobas'))['total'] or Decimal('0.00')
+        else:
+            total_contratistas = Contratista.objects.filter(
+                eliminado=False, activo=True,
+                proyectos_asignados__in=proyectos_permitidos
+            ).distinct().count()
+            total_contratos = ContratoProyecto.objects.filter(
+                eliminado=False, proyecto__in=proyectos_permitidos
+            ).count()
+            total_pagado_contratistas = DetallePlanillaContratista.objects.filter(
+                planilla__estado='pagada',
+                planilla__proyecto__in=proyectos_permitidos
+            ).aggregate(total=Sum('monto_cordobas'))['total'] or Decimal('0.00')
         
         # ==========================================
         # PROYECTOS RECIENTES (Últimos 5)
         # ==========================================
-        proyectos_recientes = Proyecto.objects.filter(
-            eliminado=False
-        ).select_related('supervisor').order_by('-fecha_creacion')[:5]
+        proyectos_recientes = proyectos_permitidos.select_related(
+            'supervisor'
+        ).order_by('-fecha_creacion')[:5]
         
         # ==========================================
         # PLANILLAS PENDIENTES (Últimas 5)
         # ==========================================
-        planillas_pendientes_lista = Planilla.objects.filter(
-            eliminado=False,
-            estado__in=['borrador', 'aprobada_gerente']
-        ).select_related('proyecto').order_by('-fecha_generacion')[:5]
+        if es_admin:
+            planillas_pendientes_lista = Planilla.objects.filter(
+                eliminado=False, estado__in=['borrador', 'aprobada_gerente']
+            ).select_related('proyecto').order_by('-fecha_generacion')[:5]
+        else:
+            planillas_pendientes_lista = Planilla.objects.filter(
+                eliminado=False, estado__in=['borrador', 'aprobada_gerente'],
+                proyecto__in=proyectos_permitidos
+            ).select_related('proyecto').order_by('-fecha_generacion')[:5]
         
         # ==========================================
         # CONTEXTO

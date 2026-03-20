@@ -260,10 +260,12 @@ class AsistenciaValidarView(LoginRequiredMixin, PermissionRequiredMixin, View):
         if usuario.es_administrador():
             return True
         
-        if usuario.es_supervisor():
-            return asistencia.proyecto.supervisor == usuario
+        # Verificar que tiene permiso de validar en su rol
+        if not usuario.tiene_permiso('asistencias', 'validar'):
+            return False
         
-        return False
+        # Verificar que tiene acceso al proyecto de la asistencia
+        return usuario.puede_ver_proyecto(asistencia.proyecto)
 
 class AsistenciaValidarTodasView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Validar todas las asistencias pendientes de golpe"""
@@ -278,9 +280,10 @@ class AsistenciaValidarTodasView(LoginRequiredMixin, PermissionRequiredMixin, Vi
             eliminado=False
         )
 
-        # Si es supervisor (no admin), solo sus proyectos
-        if not request.user.es_administrador() and request.user.es_supervisor():
-            queryset = queryset.filter(proyecto__supervisor=request.user)
+        # Filtrar por proyectos permitidos según rol
+        if not request.user.es_administrador():
+            proyectos_permitidos = request.user.get_proyectos_permitidos()
+            queryset = queryset.filter(proyecto__in=proyectos_permitidos)
 
         # Aplicar mismos filtros del GET (si vienen del form)
         proyecto_id = request.POST.get('proyecto')
@@ -422,10 +425,12 @@ class AsistenciaCorregirView(LoginRequiredMixin, PermissionRequiredMixin, View):
         if usuario.es_administrador():
             return True
         
-        if usuario.es_supervisor():
-            return asistencia.proyecto.supervisor == usuario
+        # Verificar que tiene permiso de corregir en su rol
+        if not usuario.tiene_permiso('asistencias', 'corregir'):
+            return False
         
-        return False
+        # Verificar que tiene acceso al proyecto de la asistencia
+        return usuario.puede_ver_proyecto(asistencia.proyecto)
 
 
 class AsistenciaListView(LoginRequiredMixin, ListView):
@@ -568,17 +573,20 @@ class AsistenciaMarcarEntradaView(LoginRequiredMixin, PermissionRequiredMixin, V
     permission_accion = 'crear'
 
     def get(self, request):
-        # Filtrar trabajadores NO eliminados y con estado activo
-        trabajadores = Trabajador.objects.filter(
-            eliminado=False,
-            estado='activo'
-        ).order_by('nombre', 'apellido')
+        if request.user.es_administrador():
+            trabajadores = Trabajador.objects.filter(
+                eliminado=False,
+                estado='activo'
+            ).order_by('nombre', 'apellido')
+        else:
+            proyectos_permitidos = request.user.get_proyectos_permitidos()
+            trabajadores = Trabajador.objects.filter(
+                eliminado=False,
+                estado='activo',
+                proyecto_asignado__in=proyectos_permitidos
+            ).order_by('nombre', 'apellido')
         
-        # Filtrar proyectos activos (asumiendo que tienen campo 'activo')
-        proyectos = Proyecto.objects.filter(
-            # activo=True,
-            eliminado=False
-        ).order_by('nombre')
+        proyectos = request.user.get_proyectos_permitidos().order_by('nombre')
         
         return render(request, 'asistencias/marcar_entrada.html', {
             'trabajadores': trabajadores,
@@ -1954,14 +1962,20 @@ class AsistenciaJustificadaView(LoginRequiredMixin, PermissionRequiredMixin, Vie
     template_name = 'asistencias/registrar_justificada.html'
 
     def get(self, request):
-        trabajadores = Trabajador.objects.filter(
-            eliminado=False,
-            estado='activo'
-        ).order_by('nombre', 'apellido')
+        if request.user.es_administrador():
+            trabajadores = Trabajador.objects.filter(
+                eliminado=False,
+                estado='activo'
+            ).order_by('nombre', 'apellido')
+        else:
+            proyectos_permitidos = request.user.get_proyectos_permitidos()
+            trabajadores = Trabajador.objects.filter(
+                eliminado=False,
+                estado='activo',
+                proyecto_asignado__in=proyectos_permitidos
+            ).order_by('nombre', 'apellido')
 
-        proyectos = Proyecto.objects.filter(
-            eliminado=False
-        ).order_by('nombre')
+        proyectos = request.user.get_proyectos_permitidos().order_by('nombre')
 
         return render(request, self.template_name, {
             'trabajadores': trabajadores,
