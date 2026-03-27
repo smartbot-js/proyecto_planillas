@@ -335,7 +335,7 @@ class PlanillaCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 salario_base = (dias * dia_base).quantize(Decimal('0.01'))
                 factor = Decimal('2.5') / Decimal('30')
                 vac = (factor * salario_base).quantize(Decimal('0.01'))
-                prestacionado = (salario_base + vac + vac + vac).quantize(Decimal('0.01'))
+                prestacionado = (salario_base + vac + vac + vac + septimo).quantize(Decimal('0.01'))
                 
                 tarifa_he = (dia_base / Decimal('8')) * Decimal('2') if dia_base > 0 else Decimal('0.00')
                 sal_he = (tarifa_he * data['horas_extras']).quantize(Decimal('0.01'))
@@ -432,7 +432,7 @@ class PlanillaCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 septimo = ((dia_base / Decimal('6')) * dias).quantize(Decimal('0.01'))
                 factor = Decimal('2.5') / Decimal('30')
                 vac = (factor * salario_base).quantize(Decimal('0.01'))
-                prestacionado = (salario_base + vac + vac + vac).quantize(Decimal('0.01'))
+                prestacionado = (salario_base + vac + vac + vac + septimo).quantize(Decimal('0.01'))
                 bonos_trabajador = t.bonos or Decimal('0.00')
                 ingreso_total = prestacionado + bonos_trabajador
                 total_general_cordobas += ingreso_total

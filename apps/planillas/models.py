@@ -868,9 +868,8 @@ class DetallePlanilla(models.Model):
         self.aguinaldo = (factor * salario_base).quantize(Decimal('0.01'))
         self.antiguedad = (factor * salario_base).quantize(Decimal('0.01'))
 
-        # L: Salario Prestacionado = Base + Vac + Ag + Ant
-        self.salario_prestacionado = (salario_base + self.vacaciones + self.aguinaldo + self.antiguedad).quantize(Decimal('0.01'))
-
+        # L: Salario Prestacionado = Base + Vac + Ag + Ant + 7mo Día
+        self.salario_prestacionado = (salario_base + self.vacaciones + self.aguinaldo + self.antiguedad + self.valor_septimo_dia).quantize(Decimal('0.01'))
         # N: Tarifa HE = (día_base / 8) × 2
         tarifa_he = (db / Decimal('8')) * Decimal('2') if db > 0 else Decimal('0.00')
 
