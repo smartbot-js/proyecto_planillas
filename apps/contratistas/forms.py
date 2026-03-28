@@ -105,14 +105,16 @@ class AvaluoContratistaForm(forms.ModelForm):
                     'class': 'form-control',
                     'type': 'date',
                     'required': True
-                }
+                },
+                format='%Y-%m-%d'
             ),
             'periodo_fin': forms.DateInput(
                 attrs={
                     'class': 'form-control',
                     'type': 'date',
                     'required': True
-                }
+                },
+                format='%Y-%m-%d'
             ),
             'porcentaje_avance': forms.NumberInput(
                 attrs={
@@ -129,7 +131,8 @@ class AvaluoContratistaForm(forms.ModelForm):
                 attrs={
                     'class': 'form-control',
                     'type': 'date'
-                }
+                },
+                format='%Y-%m-%d'
             ),
             'concepto': forms.Textarea(
                 attrs={
@@ -186,6 +189,11 @@ class AvaluoContratistaForm(forms.ModelForm):
         self.contrato = kwargs.pop('contrato', None)
         super().__init__(*args, **kwargs)
         
+        # Asegurar formato de fechas para input type="date"
+        self.fields['periodo_inicio'].input_formats = ['%Y-%m-%d']
+        self.fields['periodo_fin'].input_formats = ['%Y-%m-%d']
+        self.fields['fecha_pago'].input_formats = ['%Y-%m-%d']
+
         # Pre-llenar tipo de cambio
         if not self.instance.pk:
             self.initial['tipo_cambio'] = get_tipo_cambio_actual()
@@ -353,6 +361,13 @@ class AvaluoContratistaForm(forms.ModelForm):
             # Validar tamaño (máximo 10MB)
             if archivo.size > 10 * 1024 * 1024:
                 raise ValidationError('El archivo no puede superar los 10MB.')
+            
+            # Validar largo del nombre (máximo 80 caracteres)
+            if len(archivo.name) > 80:
+                raise ValidationError(
+                    f'El nombre del archivo es demasiado largo ({len(archivo.name)} caracteres). '
+                    f'Por favor renombrá el archivo a máximo 80 caracteres antes de subirlo.'
+                )
         
         return archivo
 

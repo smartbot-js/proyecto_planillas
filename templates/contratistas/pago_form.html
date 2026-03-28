@@ -587,7 +587,17 @@
                 <p style="margin: 0; font-size: 0.75rem; color: #9ca3af;">
                     Cualquier tipo de archivo (máximo 10MB)
                 </p>
-                {{ form.archivo_soporte }}
+                {% if form.instance.pk and form.instance.archivo_soporte %}
+                    <div style="margin-bottom: 10px; padding: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined" style="color: #16a34a; font-size: 20px;">attach_file</span>
+                        <a href="{{ form.instance.archivo_soporte.url }}" target="_blank" style="color: #16a34a; font-weight: 500; text-decoration: none;">
+                            {{ form.instance.archivo_soporte.name|cut:"contratistas/avaluos/" }}
+                        </a>
+                        <span style="color: #6b7280; font-size: 12px; margin-left: auto;">Archivo actual</span>
+                    </div>
+                    <small style="color: #6b7280; font-size: 12px;">Selecciona un nuevo archivo solo si deseas reemplazar el actual</small>
+                    {% endif %}
+                    {{ form.archivo_soporte }}
                 {{ form.archivo_soporte.errors }}
             </div>
         </div>

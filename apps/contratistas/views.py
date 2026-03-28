@@ -923,7 +923,7 @@ class PagoContratistaUpdateView(LoginRequiredMixin, PermissionRequiredMixin, Upd
             'total_pagado': self.contrato.total_pagado,
             'pendiente': self.contrato.total_pendiente,
             'porcentaje_avance': self.contrato.porcentaje_avance,
-            'cantidad_pagos': self.contrato.cantidad_pagos,
+            'cantidad_pagos': self.contrato.cantidad_avaluos,
         }
         
         return context
