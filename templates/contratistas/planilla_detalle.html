@@ -170,6 +170,11 @@
     border: 2px solid #34d399;
 }
 
+.badge-red {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #991b1b;
+    border: 2px solid #f87171;
+}
 /* Info Cards */
 .info-grid {
     display: grid;
@@ -695,6 +700,11 @@ tbody tr:hover {
         <span class="status-badge badge-green">
             <span class="material-symbols-outlined">paid</span>
             Pagada
+        </span>
+        {% elif planilla.estado == 'anulada' %}
+        <span class="status-badge badge-red">
+            <span class="material-symbols-outlined">cancel</span>
+            Anulada
         </span>
         {% endif %}
     </div>

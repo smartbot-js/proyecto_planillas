@@ -575,6 +575,11 @@ tbody tr:hover {
                             <span class="material-symbols-outlined">paid</span>
                             Pagada
                         </span>
+                        {% elif planilla.estado == 'anulada' %}
+                        <span class="badge badge-red">
+                            <span class="material-symbols-outlined">cancel</span>
+                            Anulada
+                        </span>
                         {% endif %}
                     </td>
                     <td>{{ planilla.generada_por.get_full_name|default:planilla.generada_por.username }}</td>
