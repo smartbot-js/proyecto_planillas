@@ -693,7 +693,7 @@
                         </td>
                         <td><span class="badge badge-secondary">{{ trabajador.numero_cedula }}</span></td>
                         <td>{{ trabajador.puesto_laboral }}</td>
-                        <td><strong>${{ trabajador.salario_normal|floatformat:2 }}</strong></td>
+                        <td><strong>{{ trabajador.salario_normal|moneda }}</strong></td>
                         <td>
                             {% if trabajador.estado == 'activo' %}
                             <span class="badge badge-success">Activo</span>
