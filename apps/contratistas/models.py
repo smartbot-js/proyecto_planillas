@@ -293,6 +293,10 @@ class ContratoProyecto(models.Model):
         """Retorna la cantidad de avalúos del contrato"""
         return self.avaluos.filter(eliminado=False).count()
 
+    @property
+    def avaluos_activos(self):
+        """Retorna los avalúos no eliminados del contrato"""
+        return self.avaluos.filter(eliminado=False).order_by('-fecha_pago')
 
 class AvaluoContratista(models.Model):
     """

@@ -1128,7 +1128,7 @@ body {
                         </div>
                     </div>
 
-                    {% with avaluos=contrato.avaluos.all %}
+                    {% with avaluos=contrato.avaluos_activos %}
                     {% if avaluos %}
                     <div class="avaluos-section">
                         <div class="avaluos-toggle" onclick="toggleAvaluos({{ contrato.id }})">
