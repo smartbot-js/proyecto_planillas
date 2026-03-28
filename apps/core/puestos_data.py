@@ -22,6 +22,7 @@ PUESTOS_DATA = {
     'Ayudante': [
         'Ayudante',
         'Portero',
+        'Media Cuchara'
     ],
     'Contratista': [
         'Contratista',

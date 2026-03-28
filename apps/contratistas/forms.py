@@ -193,6 +193,10 @@ class AvaluoContratistaForm(forms.ModelForm):
         self.fields['periodo_inicio'].input_formats = ['%Y-%m-%d']
         self.fields['periodo_fin'].input_formats = ['%Y-%m-%d']
         self.fields['fecha_pago'].input_formats = ['%Y-%m-%d']
+        
+        # Archivo soporte obligatorio solo al crear (no al editar)
+        if not self.instance.pk:
+            self.fields['archivo_soporte'].required = True
 
         # Pre-llenar tipo de cambio
         if not self.instance.pk:
