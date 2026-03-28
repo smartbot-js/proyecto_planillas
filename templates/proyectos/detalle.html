@@ -848,7 +848,7 @@
                             </div>
                         </div>
                         
-                        {% with avaluos=contrato.avaluos.all %}
+                        {% with avaluos=contrato.avaluos_activos %}
                         {% if avaluos %}
                         <div class="avaluos-section-detalle">
                             <button class="avaluos-toggle-btn" onclick="toggleAvaluos({{ contrato.id }})">
