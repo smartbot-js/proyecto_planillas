@@ -578,7 +578,7 @@
         
         <!-- Sección 4: Archivo Soporte -->
         <div class="form-section">
-            <h2 class="section-title">📎 Archivo Soporte</h2>
+            <h2 class="section-title">📎 Archivo Soporte {% if not form.instance.pk %}<span class="required">*</span>{% endif %}</h2>
             <div class="file-upload-area">
                 <div class="file-upload-icon">📄</div>
                 <p style="margin: 0 0 0.5rem 0; color: #6b7280;">
