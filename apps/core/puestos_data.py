@@ -6,7 +6,7 @@ apps/core/puestos_data.py
 # Diccionario con áreas de trabajo y sus puestos laborales
 PUESTOS_DATA = {
     'Administración': [
-        'Seguridad',
+        'Guarda de Seguridad',
         'Bodega',
         'Maestro de Obra',
         'Ingeniero Residente',

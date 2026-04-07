@@ -300,18 +300,18 @@ class PlanillaCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
                     trabajadores_dict[trabajador_id] = {
                         'trabajador': asistencia.trabajador,
                         'dias': 0,
+                        'turnos': 0,
                         'horas_normales': Decimal('0.00'),
                         'horas_extras': Decimal('0.00'),
                         'horas_dominicales': Decimal('0.00'),
                         'salario_hora': asistencia.trabajador.salario_normal or Decimal('0.00'),
                     }
-                
                 if asistencia.estado in ('cerrado', 'validado', 'editado'):
                     trabajadores_dict[trabajador_id]['dias'] += 1
-                
+                    # Para guardas, sumar turnos
+                    trabajadores_dict[trabajador_id]['turnos'] += getattr(asistencia, 'turnos', 0) or 0
                 trabajadores_dict[trabajador_id]['horas_normales'] += asistencia.horas_normales or Decimal('0.00')
                 trabajadores_dict[trabajador_id]['horas_extras'] += asistencia.horas_extras or Decimal('0.00')
-                
                 # Si es domingo, sumar a horas dominicales
                 if asistencia.fecha.weekday() == 6:
                     trabajadores_dict[trabajador_id]['horas_dominicales'] += asistencia.horas_normales or Decimal('0.00')
@@ -325,10 +325,17 @@ class PlanillaCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
             
             for data in trabajadores_dict.values():
                 trabajador = data['trabajador']
-                # Día Base = salario_hora × 8 (fórmula Excel)
                 salario_hora = trabajador.salario_normal or Decimal('0.00')
-                dia_base = (salario_hora * Decimal('8')).quantize(Decimal('0.01'))
-                dias = Decimal(str(data['dias']))
+                es_por_turno = hasattr(trabajador, 'tipo_pago') and trabajador.tipo_pago == 'por_turno'
+                
+                # Día Base o Valor Turno
+                if es_por_turno:
+                    dia_base = salario_hora  # Ya es el valor por turno
+                    # Para guardas, contar turnos en vez de días
+                    dias = Decimal(str(data.get('turnos', data['dias'])))
+                else:
+                    dia_base = (salario_hora * Decimal('8')).quantize(Decimal('0.01'))
+                    dias = Decimal(str(data['dias']))
                 
                 # Fórmulas del Excel
                 septimo = ((dia_base / Decimal('6')) * dias).quantize(Decimal('0.01')) if dia_base > 0 else Decimal('0.00')
@@ -337,9 +344,15 @@ class PlanillaCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 vac = (factor * salario_base).quantize(Decimal('0.01'))
                 prestacionado = (salario_base + vac + vac + vac + septimo).quantize(Decimal('0.01'))
                 
-                tarifa_he = (dia_base / Decimal('8')) * Decimal('2') if dia_base > 0 else Decimal('0.00')
-                sal_he = (tarifa_he * data['horas_extras']).quantize(Decimal('0.01'))
-                sal_dom = (tarifa_he * data['horas_dominicales']).quantize(Decimal('0.01'))
+                if es_por_turno:
+                    # Guardas: sin HE ni dominicales
+                    tarifa_he = Decimal('0.00')
+                    sal_he = Decimal('0.00')
+                    sal_dom = Decimal('0.00')
+                else:
+                    tarifa_he = (dia_base / Decimal('8')) * Decimal('2') if dia_base > 0 else Decimal('0.00')
+                    sal_he = (tarifa_he * data['horas_extras']).quantize(Decimal('0.01'))
+                    sal_dom = (tarifa_he * data['horas_dominicales']).quantize(Decimal('0.01'))
                 
                 bonos_trabajador = trabajador.bonos or Decimal('0.00')
                 ingreso_total = prestacionado + sal_he + sal_dom + bonos_trabajador

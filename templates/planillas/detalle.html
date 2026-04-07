@@ -626,6 +626,22 @@
                     <th>Trabajador</th>
                     <th>Cédula</th>
                     <th>Cargo</th>
+                    {% if area == "Guardas de Seguridad" %}
+                    <th class="text-right">Turnos</th>
+                    <th class="text-right">Val. Turno</th>
+                    <th class="text-right">7mo</th>
+                    <th class="text-right">Sal. Base</th>
+                    <th class="text-right">Vac.</th>
+                    <th class="text-right">Ag.</th>
+                    <th class="text-right">Ant.</th>
+                    <th class="text-right">Prestac.</th>
+                    <th class="text-right">Bono</th>
+                    <th class="text-right">Comb.</th>
+                    <th class="text-right">Otros</th>
+                    <th class="text-right">Deducc.</th>
+                    <th class="text-right">Total C$</th>
+                    <th class="text-right">Total USD</th>
+                    {% else %}
                     <th class="text-right">Días Lab.</th>
                     <th class="text-right">Días Fer.</th>
                     <th class="text-right">H.E.</th>
@@ -642,6 +658,7 @@
                     <th class="text-right">Deducc.</th>
                     <th class="text-right">Total C$</th>
                     <th class="text-right">Total USD</th>
+                    {% endif %}
                     {% if puede_editar %}
                     <th class="text-center">Acciones</th>
                     {% endif %}
@@ -654,6 +671,22 @@
                     <td>{{ detalle.trabajador.nombre }} {{ detalle.trabajador.apellido }}</td>
                     <td>{{ detalle.trabajador.numero_cedula }}</td>
                     <td>{{ detalle.cargo }}</td>
+                    {% if area == "Guardas de Seguridad" %}
+                    <td class="text-right">{{ detalle.dias_laborados }}</td>
+                    <td class="text-right">{{ detalle.salario_dia_base|moneda }}</td>
+                    <td class="text-right">{{ detalle.valor_septimo_dia|moneda }}</td>
+                    <td class="text-right">{{ detalle.salario_devengado|moneda }}</td>
+                    <td class="text-right">{{ detalle.vacaciones|moneda }}</td>
+                    <td class="text-right">{{ detalle.aguinaldo|moneda }}</td>
+                    <td class="text-right">{{ detalle.antiguedad|moneda }}</td>
+                    <td class="text-right">{{ detalle.salario_prestacionado|moneda }}</td>
+                    <td class="text-right">{{ detalle.bonos|moneda }}</td>
+                    <td class="text-right">{{ detalle.combustible|moneda }}</td>
+                    <td class="text-right">{{ detalle.otros_gastos|moneda }}</td>
+                    <td class="text-right" style="color: #ef4444;">{{ detalle.deducciones|moneda }}</td>
+                    <td class="text-right text-success"><strong>{{ detalle.ingreso_total|moneda }}</strong></td>
+                    <td class="text-right text-info">{{ detalle.ingreso_total_dolares|dolares }}</td>
+                    {% else %}
                     <td class="text-right">{{ detalle.dias_laborados }}</td>
                     <td class="text-right">{{ detalle.dias_feriados }}</td>
                     <td class="text-right">{{ detalle.horas_extras|floatformat:1 }}</td>
@@ -670,6 +703,7 @@
                     <td class="text-right" style="color: #ef4444;">{{ detalle.deducciones|moneda }}</td>
                     <td class="text-right text-success"><strong>{{ detalle.ingreso_total|moneda }}</strong></td>
                     <td class="text-right text-info">{{ detalle.ingreso_total_dolares|dolares }}</td>
+                    {% endif %}
                     {% if puede_editar %}
                     <td class="text-center">
                         <button 

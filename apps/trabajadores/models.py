@@ -215,13 +215,26 @@ class Trabajador(models.Model):
     # SALARIOS Y PAGOS
     # ========================================
     
+    TIPO_PAGO_CHOICES = [
+        ('por_hora', 'Por Hora'),
+        ('por_turno', 'Por Turno'),
+    ]
+    
+    tipo_pago = models.CharField(
+        max_length=20,
+        choices=TIPO_PAGO_CHOICES,
+        default='por_hora',
+        verbose_name='Tipo de Pago',
+        help_text='Por hora para trabajadores normales, Por turno para guardas'
+    )
+    
     salario_normal = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         default=0,
         validators=[MinValueValidator(0)],
-        verbose_name='Salario Normal (por hora)',
-        help_text='Tarifa por hora normal'
+        verbose_name='Salario Normal',
+        help_text='Tarifa por hora o valor por turno según tipo de pago'
     )
     
     tarifa_hora_extra = models.DecimalField(
@@ -480,7 +493,17 @@ class Trabajador(models.Model):
         """Asigna el trabajador a un proyecto"""
         self.proyecto_asignado = proyecto
         self.save()
-    
+
+    def save(self, *args, **kwargs):
+        # Auto-detectar tipo de pago según puesto laboral
+        if self.puesto_laboral and 'guarda' in self.puesto_laboral.lower():
+            self.tipo_pago = 'por_turno'
+        else:
+            # Solo cambiar a por_hora si no fue establecido manualmente
+            if not self.pk:
+                self.tipo_pago = 'por_hora'
+        super().save(*args, **kwargs)
+
     def cambiar_estado(self, nuevo_estado):
         """Cambia el estado del trabajador"""
         if nuevo_estado in dict(self.Estado.choices):
@@ -492,7 +515,9 @@ class Trabajador(models.Model):
         return False
     
     def get_salario_diario(self):
-        """Calcula el salario diario estimado (8 horas)"""
+        """Calcula el salario diario estimado (8 horas) o valor por turno"""
+        if self.tipo_pago == 'por_turno':
+            return self.salario_normal  # Ya es el valor por turno
         return self.salario_normal * 8
     
     def get_salario_mensual_estimado(self):

@@ -442,6 +442,33 @@ class Proyecto(models.Model):
         except:
             return 1.0  # Default 1 hora si hay error
 
+    def obtener_horario_guarda(self, fecha):
+        """
+        Obtiene el horario del guarda según el día de la semana.
+        Retorna: (hora_inicio, hora_fin, turnos_del_dia)
+        """
+        if not self.tiene_guardas:
+            return (None, None, 0)
+        
+        dia_semana = fecha.weekday()
+        
+        horarios = {
+            0: (self.guarda_hora_inicio_lunes, self.guarda_hora_fin_lunes, self.guarda_turnos_lunes),
+            1: (self.guarda_hora_inicio_martes, self.guarda_hora_fin_martes, self.guarda_turnos_martes),
+            2: (self.guarda_hora_inicio_miercoles, self.guarda_hora_fin_miercoles, self.guarda_turnos_miercoles),
+            3: (self.guarda_hora_inicio_jueves, self.guarda_hora_fin_jueves, self.guarda_turnos_jueves),
+            4: (self.guarda_hora_inicio_viernes, self.guarda_hora_fin_viernes, self.guarda_turnos_viernes),
+            5: (self.guarda_hora_inicio_sabado, self.guarda_hora_fin_sabado, self.guarda_turnos_sabado),
+            6: (self.guarda_hora_inicio_domingo, self.guarda_hora_fin_domingo, self.guarda_turnos_domingo),
+        }
+        
+        hora_inicio, hora_fin, turnos = horarios.get(dia_semana, ('', '', 0))
+        
+        if not hora_inicio or not hora_fin:
+            return (None, None, 0)
+        
+        return (hora_inicio, hora_fin, turnos)
+
     def obtener_horario_dia(self, fecha):
         """
         Obtiene el horario laboral según el día de la semana
@@ -475,22 +502,6 @@ class Proyecto(models.Model):
         jornada_neta = max(0, jornada_bruta - descanso_horas)
         
         return (hora_inicio, hora_fin, jornada_neta, descanso_horas)
-
-    def _parsear_descanso(self, descanso_str):
-        """
-        Convierte string de descanso (H:MM) a decimal de horas
-        Ej: '1:00' -> 1.0, '1:30' -> 1.5, '0:45' -> 0.75
-        """
-        if not descanso_str:
-            return 0
-        
-        try:
-            partes = descanso_str.strip().split(':')
-            horas = int(partes[0])
-            minutos = int(partes[1]) if len(partes) > 1 else 0
-            return horas + (minutos / 60)
-        except:
-            return 0
 
     def _calcular_horas_jornada(self, hora_inicio_str, hora_fin_str):
         """Calcula las horas de jornada entre dos horarios en formato 12h"""
@@ -553,6 +564,209 @@ class Proyecto(models.Model):
         verbose_name='Días Laborales',
         help_text='Días de la semana que se trabaja en este proyecto (1=Lun, 2=Mar, ..., 7=Dom)'
     )
+
+    # ============================================================
+    # HORARIOS DE GUARDAS DE SEGURIDAD
+    # ============================================================
+    
+    tiene_guardas = models.BooleanField(
+        default=False,
+        verbose_name='Tiene Guardas de Seguridad',
+        help_text='Activar para configurar horario de guardas'
+    )
+    
+    # LUNES (entrada PM → salida AM día siguiente)
+    guarda_hora_inicio_lunes = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora entrada guarda Lunes (ej: 04:30 PM)'
+    )
+    guarda_hora_fin_lunes = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora salida guarda Martes AM (ej: 07:00 AM)'
+    )
+    guarda_turnos_lunes = models.IntegerField(
+        default=1, help_text='Cantidad de turnos que cuenta este día'
+    )
+    
+    # MARTES
+    guarda_hora_inicio_martes = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora entrada guarda Martes'
+    )
+    guarda_hora_fin_martes = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora salida guarda Miércoles AM'
+    )
+    guarda_turnos_martes = models.IntegerField(
+        default=1, help_text='Cantidad de turnos que cuenta este día'
+    )
+    
+    # MIÉRCOLES
+    guarda_hora_inicio_miercoles = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora entrada guarda Miércoles'
+    )
+    guarda_hora_fin_miercoles = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora salida guarda Jueves AM'
+    )
+    guarda_turnos_miercoles = models.IntegerField(
+        default=1, help_text='Cantidad de turnos que cuenta este día'
+    )
+    
+    # JUEVES
+    guarda_hora_inicio_jueves = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora entrada guarda Jueves'
+    )
+    guarda_hora_fin_jueves = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora salida guarda Viernes AM'
+    )
+    guarda_turnos_jueves = models.IntegerField(
+        default=1, help_text='Cantidad de turnos que cuenta este día'
+    )
+    
+    # VIERNES
+    guarda_hora_inicio_viernes = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora entrada guarda Viernes'
+    )
+    guarda_hora_fin_viernes = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora salida guarda Sábado AM'
+    )
+    guarda_turnos_viernes = models.IntegerField(
+        default=1, help_text='Cantidad de turnos que cuenta este día'
+    )
+    
+    # SÁBADO (puede contar como 2 turnos)
+    guarda_hora_inicio_sabado = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora entrada guarda Sábado'
+    )
+    guarda_hora_fin_sabado = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora salida guarda Lunes AM'
+    )
+    guarda_turnos_sabado = models.IntegerField(
+        default=2, help_text='Cantidad de turnos que cuenta (sábado = 2)'
+    )
+    
+    # DOMINGO (normalmente no aplica, el sábado ya cubre hasta lunes)
+    guarda_hora_inicio_domingo = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora entrada guarda Domingo (opcional)'
+    )
+    guarda_hora_fin_domingo = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora salida guarda Lunes AM (opcional)'
+    )
+    guarda_turnos_domingo = models.IntegerField(
+        default=0, help_text='Cantidad de turnos Domingo'
+    )
+
+    # ============================================================
+    # HORARIOS DE GUARDAS DE SEGURIDAD
+    # ============================================================
+    
+    tiene_guardas = models.BooleanField(
+        default=False,
+        verbose_name='Tiene Guardas de Seguridad',
+        help_text='Activar para configurar horario de guardas'
+    )
+    
+    # LUNES (entrada PM → salida AM día siguiente)
+    guarda_hora_inicio_lunes = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora entrada guarda Lunes (ej: 04:30 PM)'
+    )
+    guarda_hora_fin_lunes = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora salida guarda Martes AM (ej: 07:00 AM)'
+    )
+    guarda_turnos_lunes = models.IntegerField(
+        default=1, help_text='Cantidad de turnos que cuenta este día'
+    )
+    
+    # MARTES
+    guarda_hora_inicio_martes = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora entrada guarda Martes'
+    )
+    guarda_hora_fin_martes = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora salida guarda Miércoles AM'
+    )
+    guarda_turnos_martes = models.IntegerField(
+        default=1, help_text='Cantidad de turnos que cuenta este día'
+    )
+    
+    # MIÉRCOLES
+    guarda_hora_inicio_miercoles = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora entrada guarda Miércoles'
+    )
+    guarda_hora_fin_miercoles = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora salida guarda Jueves AM'
+    )
+    guarda_turnos_miercoles = models.IntegerField(
+        default=1, help_text='Cantidad de turnos que cuenta este día'
+    )
+    
+    # JUEVES
+    guarda_hora_inicio_jueves = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora entrada guarda Jueves'
+    )
+    guarda_hora_fin_jueves = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora salida guarda Viernes AM'
+    )
+    guarda_turnos_jueves = models.IntegerField(
+        default=1, help_text='Cantidad de turnos que cuenta este día'
+    )
+    
+    # VIERNES
+    guarda_hora_inicio_viernes = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora entrada guarda Viernes'
+    )
+    guarda_hora_fin_viernes = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora salida guarda Sábado AM'
+    )
+    guarda_turnos_viernes = models.IntegerField(
+        default=1, help_text='Cantidad de turnos que cuenta este día'
+    )
+    
+    # SÁBADO (puede contar como 2 turnos)
+    guarda_hora_inicio_sabado = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora entrada guarda Sábado'
+    )
+    guarda_hora_fin_sabado = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora salida guarda Lunes AM'
+    )
+    guarda_turnos_sabado = models.IntegerField(
+        default=2, help_text='Cantidad de turnos que cuenta (sábado = 2)'
+    )
+    
+    # DOMINGO (normalmente no aplica, el sábado ya cubre hasta lunes)
+    guarda_hora_inicio_domingo = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora entrada guarda Domingo (opcional)'
+    )
+    guarda_hora_fin_domingo = models.CharField(
+        max_length=10, default='', blank=True,
+        help_text='Hora salida guarda Lunes AM (opcional)'
+    )
+    guarda_turnos_domingo = models.IntegerField(
+        default=0, help_text='Cantidad de turnos Domingo'
+    )
+
     class Meta:
         verbose_name = 'Proyecto'
         verbose_name_plural = 'Proyectos'

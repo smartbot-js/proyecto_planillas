@@ -234,7 +234,7 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="salario_display">Salario por hora (C$) <span class="required">*</span></label>
+                            <label for="salario_display" id="label_salario">{% if trabajador.tipo_pago == 'por_turno' %}Valor por turno (C$){% else %}Salario por hora (C$){% endif %} <span class="required">*</span></label>
                             <div class="input-group">
                                 <span class="input-prefix">C$</span>
                                 <input type="text" id="salario_display" class="form-control" required autocomplete="off">
@@ -562,6 +562,16 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
     // Inicializar el sistema de puestos (mismo JS que crear)
     inicializarPuestosLaborales('id_area_cargo', 'id_puesto_laboral');
+    
+    // Cambiar label de salario según puesto seleccionado
+    document.getElementById('id_puesto_laboral').addEventListener('change', function() {
+        var label = document.getElementById('label_salario');
+        if (this.value.toLowerCase().includes('guarda')) {
+            label.innerHTML = 'Valor por turno (C$) <span class="required">*</span>';
+        } else {
+            label.innerHTML = 'Salario por hora (C$) <span class="required">*</span>';
+        }
+    });
     
     // Pre-seleccionar el puesto actual del trabajador
     const puestoActual = '{{ trabajador.puesto_laboral|escapejs }}';

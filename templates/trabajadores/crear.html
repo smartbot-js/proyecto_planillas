@@ -874,7 +874,7 @@ textarea.form-control {
                     
                     <div class="form-grid cols-2">
                         <div class="form-group">
-                            <label for="salario_display">Salario (por hora) <span class="required">*</span></label>
+                            <label for="salario_display" id="label_salario">Salario (por hora) <span class="required">*</span></label>
                             <div class="input-with-icon">
                                 <span class="icon">C$</span>
                                 <input type="text" id="salario_display" class="form-control" placeholder="0.00" required autocomplete="off">
@@ -1073,6 +1073,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Puestos laborales
     inicializarPuestosLaborales('id_area_cargo', 'id_puesto_laboral');
     
+    // Cambiar label de salario según puesto seleccionado
+    document.getElementById('id_puesto_laboral').addEventListener('change', function() {
+        var label = document.getElementById('label_salario');
+        if (this.value.toLowerCase().includes('guarda')) {
+            label.innerHTML = 'Valor por turno (C$) <span class="required">*</span>';
+        } else {
+            label.innerHTML = 'Salario (por hora) <span class="required">*</span>';
+        }
+    });
 // =============================================
     // FORMATO DE MONEDA C$ CON MILES
     // =============================================

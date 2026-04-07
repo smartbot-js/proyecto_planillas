@@ -782,6 +782,163 @@
                 </div>
             </div>
         </div>
+
+        <!-- ============================================ -->
+        <!-- HORARIO DE GUARDAS DE SEGURIDAD              -->
+        <!-- ============================================ -->
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 2px solid #e5e7eb;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <input type="checkbox" name="tiene_guardas" id="tiene_guardas" value="1" {% if proyecto.tiene_guardas %}checked{% endif %} onchange="toggleSeccionGuardas()">
+                <label for="tiene_guardas" style="font-size: 16px; font-weight: 700; color: #111827; margin: 0; cursor: pointer;">
+                    <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 20px;">shield_person</span>
+                    Este proyecto tiene Guardas de Seguridad
+                </label>
+            </div>
+            
+            <div id="seccion_guardas" style="display: {% if proyecto.tiene_guardas %}block{% else %}none{% endif %};">
+                <p style="color: #6b7280; font-size: 13px; margin-bottom: 16px;">
+                    Configura el horario de los guardas. Los turnos nocturnos cruzan medianoche (entrada PM → salida AM del día siguiente).
+                </p>
+                
+                <!-- Lunes -->
+                <div class="horario-dia-individual">
+                    <div class="dia-checkbox-header">
+                        <input type="checkbox" id="guarda_dia_lunes" {% if proyecto.guarda_hora_inicio_lunes %}checked{% endif %} onchange="toggleHorarioGuarda('lunes')">
+                        <label for="guarda_dia_lunes"><strong>Lunes</strong></label>
+                    </div>
+                    <div class="horario-inputs" id="guarda_horario_lunes" {% if not proyecto.guarda_hora_inicio_lunes %}style="display:none;"{% endif %}>
+                        <div class="form-group">
+                            <label>Entrada</label>
+                            <input type="text" name="guarda_hora_inicio_lunes" class="form-control hora-input-12h" value="{{ proyecto.guarda_hora_inicio_lunes|default:'04:30 PM' }}" placeholder="04:30 PM">
+                        </div>
+                        <div class="form-group">
+                            <label>Salida</label>
+                            <input type="text" name="guarda_hora_fin_lunes" class="form-control hora-input-12h" value="{{ proyecto.guarda_hora_fin_lunes|default:'07:00 AM' }}" placeholder="07:00 AM">
+                        </div>
+                        <div class="form-group">
+                            <label>Turnos</label>
+                            <input type="number" name="guarda_turnos_lunes" class="form-control" value="{{ proyecto.guarda_turnos_lunes|default:1 }}" min="0" max="3" style="width: 70px;">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Martes -->
+                <div class="horario-dia-individual">
+                    <div class="dia-checkbox-header">
+                        <input type="checkbox" id="guarda_dia_martes" {% if proyecto.guarda_hora_inicio_martes %}checked{% endif %} onchange="toggleHorarioGuarda('martes')">
+                        <label for="guarda_dia_martes"><strong>Martes</strong></label>
+                    </div>
+                    <div class="horario-inputs" id="guarda_horario_martes" {% if not proyecto.guarda_hora_inicio_martes %}style="display:none;"{% endif %}>
+                        <div class="form-group">
+                            <label>Entrada</label>
+                            <input type="text" name="guarda_hora_inicio_martes" class="form-control hora-input-12h" value="{{ proyecto.guarda_hora_inicio_martes|default:'04:30 PM' }}" placeholder="04:30 PM">
+                        </div>
+                        <div class="form-group">
+                            <label>Salida</label>
+                            <input type="text" name="guarda_hora_fin_martes" class="form-control hora-input-12h" value="{{ proyecto.guarda_hora_fin_martes|default:'07:00 AM' }}" placeholder="07:00 AM">
+                        </div>
+                        <div class="form-group">
+                            <label>Turnos</label>
+                            <input type="number" name="guarda_turnos_martes" class="form-control" value="{{ proyecto.guarda_turnos_martes|default:1 }}" min="0" max="3" style="width: 70px;">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Miércoles -->
+                <div class="horario-dia-individual">
+                    <div class="dia-checkbox-header">
+                        <input type="checkbox" id="guarda_dia_miercoles" {% if proyecto.guarda_hora_inicio_miercoles %}checked{% endif %} onchange="toggleHorarioGuarda('miercoles')">
+                        <label for="guarda_dia_miercoles"><strong>Miércoles</strong></label>
+                    </div>
+                    <div class="horario-inputs" id="guarda_horario_miercoles" {% if not proyecto.guarda_hora_inicio_miercoles %}style="display:none;"{% endif %}>
+                        <div class="form-group">
+                            <label>Entrada</label>
+                            <input type="text" name="guarda_hora_inicio_miercoles" class="form-control hora-input-12h" value="{{ proyecto.guarda_hora_inicio_miercoles|default:'04:30 PM' }}" placeholder="04:30 PM">
+                        </div>
+                        <div class="form-group">
+                            <label>Salida</label>
+                            <input type="text" name="guarda_hora_fin_miercoles" class="form-control hora-input-12h" value="{{ proyecto.guarda_hora_fin_miercoles|default:'07:00 AM' }}" placeholder="07:00 AM">
+                        </div>
+                        <div class="form-group">
+                            <label>Turnos</label>
+                            <input type="number" name="guarda_turnos_miercoles" class="form-control" value="{{ proyecto.guarda_turnos_miercoles|default:1 }}" min="0" max="3" style="width: 70px;">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Jueves -->
+                <div class="horario-dia-individual">
+                    <div class="dia-checkbox-header">
+                        <input type="checkbox" id="guarda_dia_jueves" {% if proyecto.guarda_hora_inicio_jueves %}checked{% endif %} onchange="toggleHorarioGuarda('jueves')">
+                        <label for="guarda_dia_jueves"><strong>Jueves</strong></label>
+                    </div>
+                    <div class="horario-inputs" id="guarda_horario_jueves" {% if not proyecto.guarda_hora_inicio_jueves %}style="display:none;"{% endif %}>
+                        <div class="form-group">
+                            <label>Entrada</label>
+                            <input type="text" name="guarda_hora_inicio_jueves" class="form-control hora-input-12h" value="{{ proyecto.guarda_hora_inicio_jueves|default:'04:30 PM' }}" placeholder="04:30 PM">
+                        </div>
+                        <div class="form-group">
+                            <label>Salida</label>
+                            <input type="text" name="guarda_hora_fin_jueves" class="form-control hora-input-12h" value="{{ proyecto.guarda_hora_fin_jueves|default:'07:00 AM' }}" placeholder="07:00 AM">
+                        </div>
+                        <div class="form-group">
+                            <label>Turnos</label>
+                            <input type="number" name="guarda_turnos_jueves" class="form-control" value="{{ proyecto.guarda_turnos_jueves|default:1 }}" min="0" max="3" style="width: 70px;">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Viernes -->
+                <div class="horario-dia-individual">
+                    <div class="dia-checkbox-header">
+                        <input type="checkbox" id="guarda_dia_viernes" {% if proyecto.guarda_hora_inicio_viernes %}checked{% endif %} onchange="toggleHorarioGuarda('viernes')">
+                        <label for="guarda_dia_viernes"><strong>Viernes</strong></label>
+                    </div>
+                    <div class="horario-inputs" id="guarda_horario_viernes" {% if not proyecto.guarda_hora_inicio_viernes %}style="display:none;"{% endif %}>
+                        <div class="form-group">
+                            <label>Entrada</label>
+                            <input type="text" name="guarda_hora_inicio_viernes" class="form-control hora-input-12h" value="{{ proyecto.guarda_hora_inicio_viernes|default:'05:00 PM' }}" placeholder="05:00 PM">
+                        </div>
+                        <div class="form-group">
+                            <label>Salida</label>
+                            <input type="text" name="guarda_hora_fin_viernes" class="form-control hora-input-12h" value="{{ proyecto.guarda_hora_fin_viernes|default:'07:00 AM' }}" placeholder="07:00 AM">
+                        </div>
+                        <div class="form-group">
+                            <label>Turnos</label>
+                            <input type="number" name="guarda_turnos_viernes" class="form-control" value="{{ proyecto.guarda_turnos_viernes|default:1 }}" min="0" max="3" style="width: 70px;">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sábado -->
+                <div class="horario-dia-individual">
+                    <div class="dia-checkbox-header">
+                        <input type="checkbox" id="guarda_dia_sabado" {% if proyecto.guarda_hora_inicio_sabado %}checked{% endif %} onchange="toggleHorarioGuarda('sabado')">
+                        <label for="guarda_dia_sabado"><strong>Sábado</strong> <span style="color: #f59e0b; font-size: 12px;">(Sáb 12PM → Lun 7AM = 2 turnos)</span></label>
+                    </div>
+                    <div class="horario-inputs" id="guarda_horario_sabado" {% if not proyecto.guarda_hora_inicio_sabado %}style="display:none;"{% endif %}>
+                        <div class="form-group">
+                            <label>Entrada</label>
+                            <input type="text" name="guarda_hora_inicio_sabado" class="form-control hora-input-12h" value="{{ proyecto.guarda_hora_inicio_sabado|default:'12:00 PM' }}" placeholder="12:00 PM">
+                        </div>
+                        <div class="form-group">
+                            <label>Salida</label>
+                            <input type="text" name="guarda_hora_fin_sabado" class="form-control hora-input-12h" value="{{ proyecto.guarda_hora_fin_sabado|default:'07:00 AM' }}" placeholder="07:00 AM">
+                        </div>
+                        <div class="form-group">
+                            <label>Turnos</label>
+                            <input type="number" name="guarda_turnos_sabado" class="form-control" value="{{ proyecto.guarda_turnos_sabado|default:2 }}" min="0" max="3" style="width: 70px;">
+                        </div>
+                    </div>
+                </div>
+                                
+                <!-- Resumen turnos -->
+                <div style="margin-top: 16px; padding: 12px; background: #f0fdf4; border-radius: 8px; border: 1px solid #bbf7d0;">
+                    <strong style="color: #16a34a;">Total turnos por semana: <span id="total_turnos_semana">7</span></strong>
+                </div>
+            </div>
+        </div>
+
     </div>
     <!-- FIN SECCIÓN HORARIOS -->
 
@@ -1965,5 +2122,44 @@ window.addEventListener('beforeunload', function(e) {
         e.returnValue = '';
     }
 });
+// ============================================
+// HORARIO DE GUARDAS DE SEGURIDAD
+// ============================================
+function toggleSeccionGuardas() {
+    var checkbox = document.getElementById('tiene_guardas');
+    var seccion = document.getElementById('seccion_guardas');
+    seccion.style.display = checkbox.checked ? 'block' : 'none';
+}
+
+function toggleHorarioGuarda(dia) {
+    var checkbox = document.getElementById('guarda_dia_' + dia);
+    var inputs = document.getElementById('guarda_horario_' + dia);
+    inputs.style.display = checkbox.checked ? 'flex' : 'none';
+    calcularTotalTurnos();
+}
+
+function calcularTotalTurnos() {
+    var dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+    var total = 0;
+    dias.forEach(function(dia) {
+        var checkbox = document.getElementById('guarda_dia_' + dia);
+        if (checkbox && checkbox.checked) {
+            var turnosInput = document.querySelector('input[name="guarda_turnos_' + dia + '"]');
+            if (turnosInput) {
+                total += parseInt(turnosInput.value) || 0;
+            }
+        }
+    });
+    var span = document.getElementById('total_turnos_semana');
+    if (span) span.textContent = total;
+}
+
+// Escuchar cambios en los inputs de turnos y calcular al cargar
+var turnosInputs = document.querySelectorAll('input[name^="guarda_turnos_"]');
+turnosInputs.forEach(function(input) {
+    input.addEventListener('change', calcularTotalTurnos);
+    input.addEventListener('input', calcularTotalTurnos);
+});
+calcularTotalTurnos();
 </script>
 {% endblock %}

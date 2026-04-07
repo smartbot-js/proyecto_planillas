@@ -405,8 +405,97 @@
                     
                     {% endwith %}
                 </div>
+                
+                {% if proyecto.tiene_guardas %}
+                <!-- Horario de Guardas de Seguridad -->
+                <div style="margin-top: 24px; padding-top: 20px; border-top: 2px solid #e5e7eb;">
+                    <h4 style="display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; color: #111827; margin-bottom: 16px;">
+                        <span class="material-symbols-outlined" style="color: #f59e0b;">shield_person</span>
+                        Horario Guardas de Seguridad
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;">
+                        {% if proyecto.guarda_hora_inicio_lunes %}
+                        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px; text-align: center;">
+                            <div style="font-weight: 700; font-size: 14px; color: #111827;">Lunes</div>
+                            <div style="background: #f59e0b; color: white; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 600; display: inline-block; margin: 4px 0;">{{ proyecto.guarda_turnos_lunes }} turno</div>
+                            <div style="font-size: 12px; color: #6b7280; margin-top: 6px;">
+                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">login</span> {{ proyecto.guarda_hora_inicio_lunes }}
+                            </div>
+                            <div style="font-size: 12px; color: #6b7280;">
+                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">logout</span> {{ proyecto.guarda_hora_fin_lunes }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if proyecto.guarda_hora_inicio_martes %}
+                        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px; text-align: center;">
+                            <div style="font-weight: 700; font-size: 14px; color: #111827;">Martes</div>
+                            <div style="background: #f59e0b; color: white; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 600; display: inline-block; margin: 4px 0;">{{ proyecto.guarda_turnos_martes }} turno</div>
+                            <div style="font-size: 12px; color: #6b7280; margin-top: 6px;">
+                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">login</span> {{ proyecto.guarda_hora_inicio_martes }}
+                            </div>
+                            <div style="font-size: 12px; color: #6b7280;">
+                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">logout</span> {{ proyecto.guarda_hora_fin_martes }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if proyecto.guarda_hora_inicio_miercoles %}
+                        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px; text-align: center;">
+                            <div style="font-weight: 700; font-size: 14px; color: #111827;">Miércoles</div>
+                            <div style="background: #f59e0b; color: white; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 600; display: inline-block; margin: 4px 0;">{{ proyecto.guarda_turnos_miercoles }} turno</div>
+                            <div style="font-size: 12px; color: #6b7280; margin-top: 6px;">
+                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">login</span> {{ proyecto.guarda_hora_inicio_miercoles }}
+                            </div>
+                            <div style="font-size: 12px; color: #6b7280;">
+                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">logout</span> {{ proyecto.guarda_hora_fin_miercoles }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if proyecto.guarda_hora_inicio_jueves %}
+                        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px; text-align: center;">
+                            <div style="font-weight: 700; font-size: 14px; color: #111827;">Jueves</div>
+                            <div style="background: #f59e0b; color: white; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 600; display: inline-block; margin: 4px 0;">{{ proyecto.guarda_turnos_jueves }} turno</div>
+                            <div style="font-size: 12px; color: #6b7280; margin-top: 6px;">
+                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">login</span> {{ proyecto.guarda_hora_inicio_jueves }}
+                            </div>
+                            <div style="font-size: 12px; color: #6b7280;">
+                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">logout</span> {{ proyecto.guarda_hora_fin_jueves }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if proyecto.guarda_hora_inicio_viernes %}
+                        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px; text-align: center;">
+                            <div style="font-weight: 700; font-size: 14px; color: #111827;">Viernes</div>
+                            <div style="background: #f59e0b; color: white; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 600; display: inline-block; margin: 4px 0;">{{ proyecto.guarda_turnos_viernes }} turno</div>
+                            <div style="font-size: 12px; color: #6b7280; margin-top: 6px;">
+                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">login</span> {{ proyecto.guarda_hora_inicio_viernes }}
+                            </div>
+                            <div style="font-size: 12px; color: #6b7280;">
+                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">logout</span> {{ proyecto.guarda_hora_fin_viernes }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if proyecto.guarda_hora_inicio_sabado %}
+                        <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 10px; padding: 12px; text-align: center;">
+                            <div style="font-weight: 700; font-size: 14px; color: #111827;">Sáb → Lun</div>
+                            <div style="background: #dc2626; color: white; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 600; display: inline-block; margin: 4px 0;">{{ proyecto.guarda_turnos_sabado }} turnos</div>
+                            <div style="font-size: 12px; color: #6b7280; margin-top: 6px;">
+                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">login</span> {{ proyecto.guarda_hora_inicio_sabado }}
+                            </div>
+                            <div style="font-size: 12px; color: #6b7280;">
+                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">logout</span> {{ proyecto.guarda_hora_fin_sabado }}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
             </div>
-
             <div class="content-card">
                 <div class="card-header">
                     <h3><span class="material-symbols-outlined">group</span> Trabajadores y Contratistas</h3>

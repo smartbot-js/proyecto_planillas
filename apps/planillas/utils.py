@@ -106,7 +106,14 @@ def generar_planilla_desde_asistencias(proyecto, periodo_inicio, periodo_fin, us
         #     estado='cerrado'  # Solo turnos cerrados
         # ).count()
         # Contar TODAS las asistencias validadas (abiertas o cerradas)
-        dias_laborados = asistencias_trabajador.count()
+        # Para guardas, contar turnos; para normales, contar días
+        if hasattr(trabajador, 'tipo_pago') and trabajador.tipo_pago == 'por_turno':
+            from django.db.models import Sum
+            dias_laborados = asistencias_trabajador.aggregate(
+                total=Sum('turnos')
+            )['total'] or 0
+        else:
+            dias_laborados = asistencias_trabajador.count()
         # ============================================================
         # 6. CALCULAR HORAS
         # ============================================================
@@ -138,16 +145,22 @@ def generar_planilla_desde_asistencias(proyecto, periodo_inicio, periodo_fin, us
         # Usar el salario más reciente del trabajador en el período
         ultima_asistencia = asistencias_trabajador.order_by('-fecha').first()
         
-        # Día Base = salario_hora × 8 (fórmula del Excel)
+        # Día Base o Valor Turno según tipo de pago
         salario_hora = trabajador.salario_normal or Decimal('0.00')
-        salario_dia_base = (salario_hora * Decimal('8')).quantize(Decimal('0.01'))        
+        if hasattr(trabajador, 'tipo_pago') and trabajador.tipo_pago == 'por_turno':
+            salario_dia_base = salario_hora  # Ya es el valor por turno
+        else:
+            salario_dia_base = (salario_hora * Decimal('8')).quantize(Decimal('0.01'))
+        
         # ============================================================
         # 8. DETERMINAR ÁREA DEL TRABAJADOR
         # ============================================================
         # Clasificar según el puesto laboral
         puesto = trabajador.puesto_laboral.lower()
         
-        if any(word in puesto for word in ['secretaria', 'contador', 'gerente', 'administrador', 'analista']):
+        if 'guarda' in puesto or 'celador' in puesto or 'vigilante' in puesto:
+            area = 'guardas'
+        elif any(word in puesto for word in ['secretaria', 'contador', 'gerente', 'administrador', 'analista']):
             area = 'administrativo'
         elif any(word in puesto for word in ['albañil', 'maestro', 'fontanero', 'electricista', 'soldador', 'oficial']):
             area = 'oficiales'

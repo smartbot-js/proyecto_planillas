@@ -317,6 +317,16 @@ class ProyectoCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 proyecto.dias_laborales = '1,2,3,4,5,6'  # Lunes a Sábado por defecto
             # ============================================================
             # ============================================================
+            # ============================================================
+            # HORARIO DE GUARDAS DE SEGURIDAD
+            # ============================================================
+            proyecto.tiene_guardas = request.POST.get('tiene_guardas') == '1'
+            if proyecto.tiene_guardas:
+                dias_guarda = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']
+                for dia in dias_guarda:
+                    setattr(proyecto, f'guarda_hora_inicio_{dia}', request.POST.get(f'guarda_hora_inicio_{dia}', ''))
+                    setattr(proyecto, f'guarda_hora_fin_{dia}', request.POST.get(f'guarda_hora_fin_{dia}', ''))
+                    setattr(proyecto, f'guarda_turnos_{dia}', int(request.POST.get(f'guarda_turnos_{dia}', 0)))
             
             # Archivos (EXISTENTE - NO CAMBIAR)
             if 'archivo_contrato' in request.FILES:
@@ -698,9 +708,19 @@ class ProyectoEditarView(LoginRequiredMixin, PermissionRequiredMixin, View):
             dias_laborales = request.POST.getlist('dias_laborales')
             if dias_laborales:
                 proyecto.dias_laborales = ','.join(dias_laborales)
-            # ============================================================
-            # ============================================================
             
+            # ============================================================
+            # HORARIO DE GUARDAS DE SEGURIDAD
+            # ============================================================
+            proyecto.tiene_guardas = request.POST.get('tiene_guardas') == '1'
+            if proyecto.tiene_guardas:
+                dias_guarda = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']
+                for dia in dias_guarda:
+                    setattr(proyecto, f'guarda_hora_inicio_{dia}', request.POST.get(f'guarda_hora_inicio_{dia}', ''))
+                    setattr(proyecto, f'guarda_hora_fin_{dia}', request.POST.get(f'guarda_hora_fin_{dia}', ''))
+                    setattr(proyecto, f'guarda_turnos_{dia}', int(request.POST.get(f'guarda_turnos_{dia}', 0)))
+            
+            # ============================================================
             # Archivos (EXISTENTE - NO CAMBIAR)
             if 'archivo_contrato' in request.FILES:
                 proyecto.archivo_contrato = request.FILES['archivo_contrato']

@@ -562,6 +562,7 @@ class DetallePlanilla(models.Model):
         ('administrativo', 'Administrativo de Proyecto'),
         ('oficiales', 'Oficiales'),
         ('ayudantes', 'Ayudantes'),
+        ('guardas', 'Guardas de Seguridad'),
         ('subcontratista', 'Sub-Contratista'),
     ]
     
@@ -844,12 +845,19 @@ class DetallePlanilla(models.Model):
     
     def calcular_valores(self):
         """
-        Fórmulas del Excel Planilla_Quadycons (iguales para construcción y administrativa):
-        F=Día Base, G=7mo, H=Sal.Base, I=Vac, J=Ag, K=Ant, L=Prestacionado,
-        N=Tarifa HE, O=Sal HE, R=Ingreso Feriado, W=Total
+        Fórmulas del Excel Planilla_Quadycons:
+        - Trabajadores normales (por_hora): F=Día Base (hora×8), fórmula completa
+        - Guardas (por_turno): F=Valor Turno (directo), sin HE ni feriados
         """
         dias = Decimal(str(self.dias_laborados))
-        db = self.salario_dia_base  # F: Día Base (salario_hora × 8)
+        db = self.salario_dia_base  # F: Día Base o Valor Turno
+        
+        # Detectar si es trabajador por turno (guarda)
+        es_por_turno = hasattr(self.trabajador, 'tipo_pago') and self.trabajador.tipo_pago == 'por_turno'
+        
+        if es_por_turno:
+            self._calcular_valores_turno(dias, db)
+            return
 
         # G: 7mo Día = (día_base / 6) × días_laborados
         self.valor_septimo_dia = ((db / Decimal('6')) * dias).quantize(Decimal('0.01')) if db > 0 and dias > 0 else Decimal('0.00')
@@ -901,6 +909,56 @@ class DetallePlanilla(models.Model):
         self.inss_laboral = Decimal('0.00')
         self.inss_patronal = Decimal('0.00')
         self.inatec = Decimal('0.00')
+
+    def _calcular_valores_turno(self, turnos, valor_turno):
+        """
+        Fórmulas para guardas (por turno):
+        - Sal. Base = turnos × valor_turno
+        - 7mo = (valor_turno / 6) × turnos
+        - Prestaciones sobre Sal. Base
+        - No hay horas extras, feriados, dominicales
+        """
+        # G: 7mo Día
+        self.valor_septimo_dia = ((valor_turno / Decimal('6')) * turnos).quantize(Decimal('0.01')) if valor_turno > 0 and turnos > 0 else Decimal('0.00')
+        
+        # H: Salario Base = turnos × valor_turno
+        salario_base = (turnos * valor_turno).quantize(Decimal('0.01'))
+        self.salario_devengado = salario_base
+        
+        # Campos de referencia
+        self.salario_diario_con_septimo = (valor_turno + (valor_turno / Decimal('6'))).quantize(Decimal('0.01')) if valor_turno > 0 else Decimal('0.00')
+        self.valor_hora_base = Decimal('0.00')
+        
+        # Prestaciones = (2.5/30) × Salario Base
+        factor = Decimal('2.5') / Decimal('30')
+        self.vacaciones = (factor * salario_base).quantize(Decimal('0.01'))
+        self.aguinaldo = (factor * salario_base).quantize(Decimal('0.01'))
+        self.antiguedad = (factor * salario_base).quantize(Decimal('0.01'))
+        
+        # L: Prestacionado = Base + Vac + Ag + Ant + 7mo
+        self.salario_prestacionado = (salario_base + self.vacaciones + self.aguinaldo + self.antiguedad + self.valor_septimo_dia).quantize(Decimal('0.01'))
+        
+        # No hay HE, dominicales, ni feriados para guardas
+        self.salario_horas_extras = Decimal('0.00')
+        self.salario_horas_dominicales = Decimal('0.00')
+        self.ingreso_dia_feriado = Decimal('0.00')
+        self.salario_dias_feriados = Decimal('0.00')
+        self.horas_feriado = Decimal('0.00')
+        
+        # W: Total = Prestacionado + Bonos + Combustible + Otros - Deducciones
+        self.ingreso_total = (
+            self.salario_prestacionado +
+            self.bonos +
+            self.combustible +
+            self.otros_ingresos -
+            self.deducciones
+        ).quantize(Decimal('0.01'))
+        
+        # Cargas sociales (deshabilitado)
+        self.inss_laboral = Decimal('0.00')
+        self.inss_patronal = Decimal('0.00')
+        self.inatec = Decimal('0.00')
+
     @property
     def ingreso_total_dolares(self):
         """Retorna el ingreso total en dólares"""

@@ -85,7 +85,11 @@ class Asistencia(models.Model):
         validators=[MinValueValidator(Decimal('0.00'))],
         verbose_name='Horas Totales'
     )
-
+    turnos = models.IntegerField(
+        default=0,
+        verbose_name='Turnos',
+        help_text='Cantidad de turnos para trabajadores por turno (guardas). 0 para trabajadores normales.'
+    )
     # Horas especiales
     horas_festivas = models.DecimalField(
         max_digits=5,
@@ -528,6 +532,87 @@ class Asistencia(models.Model):
         
         self.salio_temprano = salida < fin_con_tolerancia
 
+    def _save_turno(self, *args, **kwargs):
+        """
+        Lógica de save() para trabajadores por turno (guardas).
+        No calcula horas normales/extras, solo registra el turno.
+        La validación de llegada tarde es solo informativa.
+        """
+        from datetime import datetime, timedelta
+        from decimal import Decimal
+        
+        # Obtener horario de guarda del proyecto
+        horario_guarda = self.proyecto.obtener_horario_guarda(self.fecha)
+        hora_inicio_esperada, hora_fin_esperada, turnos_dia = horario_guarda
+        
+        # Verificar llegada tarde (solo etiqueta, no afecta planilla)
+        if self.hora_entrada and hora_inicio_esperada:
+            try:
+                from apps.proyectos.models import Proyecto
+                # Parsear hora esperada del guarda
+                hora_str = hora_inicio_esperada.strip().upper()
+                try:
+                    hora_esperada_dt = datetime.strptime(hora_str, '%I:%M %p')
+                except:
+                    hora_esperada_dt = datetime.strptime(hora_str, '%H:%M')
+                
+                hora_esperada_time = hora_esperada_dt.time()
+                tolerancia = self.proyecto.minutos_tolerancia_entrada or 0
+                
+                entrada = datetime.combine(self.fecha, self.hora_entrada)
+                inicio_esperado = datetime.combine(self.fecha, hora_esperada_time)
+                inicio_con_tolerancia = inicio_esperado + timedelta(minutes=tolerancia)
+                
+                if entrada > inicio_con_tolerancia:
+                    self.llego_tarde = True
+                    self.minutos_tarde = int((entrada - inicio_esperado).total_seconds() / 60)
+                else:
+                    self.llego_tarde = False
+                    self.minutos_tarde = 0
+            except:
+                self.llego_tarde = False
+                self.minutos_tarde = 0
+        else:
+            self.llego_tarde = False
+            self.minutos_tarde = 0
+        
+        # Calcular horas totales (informativo, no afecta planilla)
+        if self.hora_salida and self.hora_entrada:
+            entrada_dt = datetime.combine(self.fecha, self.hora_entrada)
+            salida_dt = datetime.combine(self.fecha, self.hora_salida)
+            
+            # Cruce de medianoche (entrada PM, salida AM)
+            if salida_dt < entrada_dt:
+                salida_dt += timedelta(days=1)
+            
+            diferencia = salida_dt - entrada_dt
+            total_horas = Decimal(str(diferencia.total_seconds() / 3600))
+            
+            if total_horas < 0 or total_horas > 48:
+                total_horas = Decimal('0.00')
+            
+            self.horas_totales = total_horas.quantize(Decimal('0.01'))
+        else:
+            self.horas_totales = Decimal('0.00')
+        
+        # Para guardas: no hay horas normales ni extras
+        self.horas_normales = Decimal('0.00')
+        self.horas_extras = Decimal('0.00')
+        self.salio_temprano = False
+        
+        # Contar turnos (solo si el turno está cerrado)
+        if self.hora_salida:
+            self.turnos = turnos_dia if turnos_dia > 0 else 1
+        else:
+            self.turnos = 0
+            
+        # Cerrar automáticamente si hay salida
+        if self.hora_salida and self.estado == 'abierto':
+            self.estado = 'cerrado'
+        
+        # Guardar sin pasar por la lógica normal
+        super(Asistencia, self).save(*args, **kwargs)
+
     def cerrar_turno(self, hora_salida=None):
         """Cierra el turno y calcula las horas trabajadas"""
         if not hora_salida:
@@ -946,6 +1031,11 @@ class Asistencia(models.Model):
         from datetime import datetime, timedelta
         
         if self.hora_entrada and self.proyecto and self.fecha:
+            # ===== 0. LÓGICA ESPECIAL PARA GUARDAS (POR TURNO) =====
+            if hasattr(self.trabajador, 'tipo_pago') and self.trabajador.tipo_pago == 'por_turno':
+                self._save_turno(*args, **kwargs)
+                return
+
             # ===== 1. OBTENER HORARIO DEL DÍA ESPECÍFICO =====
             resultado_horario = self.proyecto.obtener_horario_dia(self.fecha)
             if len(resultado_horario) == 4:
