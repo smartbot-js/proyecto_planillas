@@ -1,0 +1,627 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load formato_moneda %}
+
+{% block title %}Reporte {{ reporte.codigo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Header */
+.page-header { margin-bottom: 24px; }
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 14px;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+.back-link:hover { color: #2563eb; }
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+.header-info h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.header-info h1 .material-symbols-outlined { font-size: 32px; color: #3b82f6; }
+.header-subtitle { font-size: 14px; color: #6b7280; }
+.header-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+/* Badges */
+.status-badge {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.badge-gray { background: #f3f4f6; color: #6b7280; }
+.badge-yellow { background: #fef3c7; color: #92400e; }
+.badge-blue { background: #dbeafe; color: #1d4ed8; }
+.badge-purple { background: #ede9fe; color: #6d28d9; }
+.badge-green { background: #d1fae5; color: #065f46; }
+.badge-red { background: #fee2e2; color: #991b1b; }
+
+/* Info Grid */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.info-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+}
+.info-card-label {
+    font-size: 12px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.info-card-value { font-size: 18px; font-weight: 600; color: #111827; }
+.info-card-value.success { color: #059669; }
+.info-card-value.info { color: #2563eb; }
+
+/* Content Cards */
+.content-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+.section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.section-title .material-symbols-outlined { font-size: 22px; color: #3b82f6; }
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+.info-row:last-child { border-bottom: none; }
+.info-label { color: #6b7280; font-size: 14px; }
+.info-value { color: #111827; font-weight: 600; font-size: 14px; }
+
+/* Timeline */
+.timeline { position: relative; padding-left: 32px; }
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 12px; top: 8px; bottom: 8px;
+    width: 2px;
+    background: #e5e7eb;
+}
+.timeline-item { position: relative; padding-bottom: 20px; }
+.timeline-item:last-child { padding-bottom: 0; }
+.timeline-dot {
+    position: absolute;
+    left: -26px; top: 4px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid #d1d5db;
+    background: white;
+}
+.timeline-dot.active { border-color: #10b981; background: #10b981; }
+.timeline-dot.pending { border-color: #d1d5db; background: white; }
+.timeline-label { font-size: 14px; font-weight: 600; color: #111827; }
+.timeline-detail { font-size: 13px; color: #6b7280; margin-top: 2px; }
+
+/* Table */
+.table-container {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+.table-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+}
+.table-header h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.table-header h2 .material-symbols-outlined { color: #3b82f6; }
+.detalle-table { width: 100%; border-collapse: collapse; }
+.detalle-table thead th {
+    background: #f9fafb;
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: left;
+    border-bottom: 2px solid #e5e7eb;
+}
+.detalle-table tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 14px;
+    color: #374151;
+    vertical-align: middle;
+}
+.detalle-table tbody tr:hover { background: #f9fafb; }
+.detalle-table tfoot td {
+    padding: 16px;
+    font-weight: 700;
+    font-size: 15px;
+    background: #f9fafb;
+    border-top: 2px solid #e5e7eb;
+}
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.text-success { color: #059669; }
+.text-info { color: #2563eb; }
+
+/* Buttons */
+.btn {
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+}
+.btn .material-symbols-outlined { font-size: 18px; }
+.btn-primary { background: #3b82f6; color: white; }
+.btn-primary:hover { background: #2563eb; }
+.btn-success { background: #10b981; color: white; }
+.btn-success:hover { background: #059669; }
+.btn-warning { background: #f59e0b; color: #000; }
+.btn-warning:hover { background: #d97706; }
+.btn-danger { background: #ef4444; color: white; }
+.btn-danger:hover { background: #dc2626; }
+.btn-secondary { background: #f3f4f6; color: #374151; }
+.btn-secondary:hover { background: #e5e7eb; }
+.btn-icon-danger {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fee2e2;
+    color: #991b1b;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-icon-danger:hover { background: #fecaca; }
+
+/* Add Form */
+.add-form-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+.add-form-header {
+    padding: 16px 24px;
+    background: #f0fdf4;
+    border-bottom: 1px solid #bbf7d0;
+}
+.add-form-header h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #065f46;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.add-form-header h3 .material-symbols-outlined { font-size: 20px; }
+.add-form-body { padding: 24px; }
+.add-form-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 16px;
+    align-items: end;
+}
+.add-form-grid .form-group { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.add-form-grid label { font-size: 13px; font-weight: 600; color: #374151; }
+.required { color: #ef4444; }
+.add-form-actions {
+    padding: 16px 24px;
+    background: #f9fafb;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Soporte & Porcentaje */
+.soporte-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.soporte-link:hover { text-decoration: underline; }
+.porcentaje-bar {
+    width: 60px; height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+.porcentaje-fill { height: 100%; background: #3b82f6; border-radius: 3px; }
+
+/* Empty */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #9ca3af;
+}
+.empty-state .material-symbols-outlined { font-size: 48px; display: block; margin-bottom: 8px; color: #d1d5db; }
+
+@media (max-width: 768px) {
+    .header-content { flex-direction: column; }
+    .header-actions { width: 100%; }
+    .header-actions .btn { flex: 1; justify-content: center; }
+    .info-grid { grid-template-columns: 1fr; }
+    .add-form-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="page-header">
+    <a href="{% url 'gastos_reembolsos_lista' %}" class="back-link">
+        <span class="material-symbols-outlined" style="font-size: 18px;">arrow_back</span>
+        Volver a Gastos y Reembolsos
+    </a>
+    <div class="header-content">
+        <div class="header-info">
+            <h1>
+                <span class="material-symbols-outlined">receipt_long</span>
+                {{ reporte.codigo }}
+            </h1>
+            <p class="header-subtitle">Reporte de Gastos — {{ reporte.periodo_inicio|date:"d/m/Y" }} al {{ reporte.periodo_fin|date:"d/m/Y" }}</p>
+        </div>
+        <div class="header-actions">
+            {% if reporte.estado == 'borrador' %}
+            <form method="post" action="{% url 'gastos_reembolsos_aprobar_gerente' reporte.pk %}" onsubmit="return confirm('¿Aprobar como GERENTE?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success">
+                    <span class="material-symbols-outlined">check_circle</span> Aprobar (Gerente)
+                </button>
+            </form>
+            {% endif %}
+
+            {% if reporte.estado == 'borrador' or reporte.estado == 'aprobada_gerente' %}
+            <form method="post" action="{% url 'gastos_reembolsos_aprobar_contador' reporte.pk %}" onsubmit="return confirm('¿Aprobar como CONTADOR?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success">
+                    <span class="material-symbols-outlined">verified</span> Aprobar (Contador)
+                </button>
+            </form>
+            {% endif %}
+
+            {% if reporte.estado == 'aprobada_contador' %}
+            <form method="post" action="{% url 'gastos_reembolsos_marcar_pagada' reporte.pk %}" onsubmit="return confirm('¿Marcar como PAGADA?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">
+                    <span class="material-symbols-outlined">paid</span> Marcar Pagada
+                </button>
+            </form>
+            {% endif %}
+
+            <a href="{% url 'gastos_reembolsos_exportar_excel' reporte.pk %}" class="btn btn-secondary">
+                <span class="material-symbols-outlined">download</span> Exportar Excel
+            </a>
+            <a href="{% url 'gastos_reembolsos_exportar_pdf' reporte.pk %}" class="btn btn-secondary">
+                <span class="material-symbols-outlined">picture_as_pdf</span> PDF
+            </a>
+            {% if reporte.estado != 'pagada' and reporte.estado != 'anulada' %}
+            <form method="post" action="{% url 'gastos_reembolsos_anular' reporte.pk %}" onsubmit="return confirm('¿Anular este reporte?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">
+                    <span class="material-symbols-outlined">cancel</span> Anular
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Estado Badge -->
+<div style="margin-bottom: 24px;">
+    {% if reporte.estado == 'borrador' %}
+    <span class="status-badge badge-gray"><span class="material-symbols-outlined" style="font-size: 16px;">draft</span> Borrador</span>
+    {% elif reporte.estado == 'aprobada_gerente' %}
+    <span class="status-badge badge-blue"><span class="material-symbols-outlined" style="font-size: 16px;">check_circle</span> Aprobada por Gerente</span>
+    {% elif reporte.estado == 'aprobada_contador' %}
+    <span class="status-badge badge-purple"><span class="material-symbols-outlined" style="font-size: 16px;">verified</span> Aprobada por Contador</span>
+    {% elif reporte.estado == 'pagada' %}
+    <span class="status-badge badge-green"><span class="material-symbols-outlined" style="font-size: 16px;">paid</span> Pagada</span>
+    {% elif reporte.estado == 'anulada' %}
+    <span class="status-badge badge-red"><span class="material-symbols-outlined" style="font-size: 16px;">cancel</span> Anulada</span>
+    {% endif %}
+</div>
+
+<!-- Info Cards -->
+<div class="info-grid">
+    <div class="info-card">
+        <div class="info-card-label">
+            <span class="material-symbols-outlined" style="font-size: 16px;">payments</span>
+            Total Córdobas
+        </div>
+        <div class="info-card-value success">{{ reporte.total_cordobas|moneda }}</div>
+    </div>
+    <div class="info-card">
+        <div class="info-card-label">
+            <span class="material-symbols-outlined" style="font-size: 16px;">currency_exchange</span>
+            Total Dólares
+        </div>
+        <div class="info-card-value info">{{ reporte.total_dolares|dolares }}</div>
+    </div>
+    <div class="info-card">
+        <div class="info-card-label">
+            <span class="material-symbols-outlined" style="font-size: 16px;">list</span>
+            Cantidad Gastos
+        </div>
+        <div class="info-card-value">{{ reporte.cantidad_detalles }}</div>
+    </div>
+    <div class="info-card">
+        <div class="info-card-label">
+            <span class="material-symbols-outlined" style="font-size: 16px;">sync_alt</span>
+            Tipo de Cambio
+        </div>
+        <div class="info-card-value">C$ {{ reporte.tipo_cambio }}</div>
+    </div>
+</div>
+
+<!-- Info Detallada + Timeline -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+    <div class="content-card">
+        <h3 class="section-title">
+            <span class="material-symbols-outlined">info</span>
+            Información General
+        </h3>
+        <div class="info-row">
+            <span class="info-label">Período</span>
+            <span class="info-value">{{ reporte.periodo_inicio|date:"d/m/Y" }} - {{ reporte.periodo_fin|date:"d/m/Y" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Generado por</span>
+            <span class="info-value">{{ reporte.generado_por.nombre_completo|default:"—" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Fecha creación</span>
+            <span class="info-value">{{ reporte.creado_en|date:"d/m/Y H:i" }}</span>
+        </div>
+    </div>
+    <div class="content-card">
+        <h3 class="section-title">
+            <span class="material-symbols-outlined">workflow</span>
+            Flujo de Aprobación
+        </h3>
+        <div class="timeline">
+            <div class="timeline-item">
+                <div class="timeline-dot active"></div>
+                <div class="timeline-label">Reporte Generado</div>
+                <div class="timeline-detail">Por: {{ reporte.generado_por.nombre_completo|default:"—" }} — {{ reporte.creado_en|date:"d/m/Y H:i" }}</div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot {% if reporte.fecha_aprobacion_gerente %}active{% else %}pending{% endif %}"></div>
+                <div class="timeline-label">Aprobación Gerente</div>
+                <div class="timeline-detail">
+                    {% if reporte.fecha_aprobacion_gerente %}
+                        Por: {{ reporte.aprobada_gerente_por.nombre_completo }} — {{ reporte.fecha_aprobacion_gerente|date:"d/m/Y H:i" }}
+                    {% else %}Pendiente{% endif %}
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot {% if reporte.fecha_aprobacion_contador %}active{% else %}pending{% endif %}"></div>
+                <div class="timeline-label">Aprobación Contador</div>
+                <div class="timeline-detail">
+                    {% if reporte.fecha_aprobacion_contador %}
+                        Por: {{ reporte.aprobada_contador_por.nombre_completo }} — {{ reporte.fecha_aprobacion_contador|date:"d/m/Y H:i" }}
+                    {% else %}Pendiente{% endif %}
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot {% if reporte.fecha_pago %}active{% else %}pending{% endif %}"></div>
+                <div class="timeline-label">Pago Realizado</div>
+                <div class="timeline-detail">
+                    {% if reporte.fecha_pago %}
+                        Por: {{ reporte.pagada_por.nombre_completo }} — {{ reporte.fecha_pago|date:"d/m/Y H:i" }}
+                    {% else %}Pendiente{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de Detalles -->
+<div class="table-container">
+    <div class="table-header">
+        <h2>
+            <span class="material-symbols-outlined">list</span>
+            Detalle de Gastos ({{ reporte.cantidad_detalles }})
+        </h2>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="detalle-table">
+            <thead>
+                <tr>
+                    <th style="width: 50px;">N°</th>
+                    <th>Concepto</th>
+                    <th class="text-right">Monto C$</th>
+                    <th class="text-right">Monto USD</th>
+                    <th class="text-center" style="width: 130px;">%</th>
+                    <th class="text-center">Soporte</th>
+                    <th>Observaciones</th>
+                    {% if puede_editar %}
+                    <th class="text-center" style="width: 80px;">Acciones</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in detalles %}
+                <tr>
+                    <td class="text-center"><strong>{{ item.detalle.numero_item }}</strong></td>
+                    <td>{{ item.detalle.concepto }}</td>
+                    <td class="text-right text-success"><strong>{{ item.detalle.monto_cordobas|moneda }}</strong></td>
+                    <td class="text-right text-info">{{ item.detalle.monto_dolares|dolares }}</td>
+                    <td class="text-center">
+                        <div class="porcentaje-bar"><div class="porcentaje-fill" style="width: {{ item.porcentaje }}%;"></div></div>
+                        {{ item.porcentaje }}%
+                    </td>
+                    <td class="text-center">
+                        {% if item.detalle.archivo_soporte %}
+                        <a href="{{ item.detalle.archivo_soporte.url }}" target="_blank" class="soporte-link">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">attach_file</span> Ver
+                        </a>
+                        {% else %}
+                        <span style="color: #9ca3af; font-size: 13px;">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size: 13px; color: #6b7280;">{{ item.detalle.observaciones|default:"—" }}</td>
+                    {% if puede_editar %}
+                    <td class="text-center">
+                        <form method="post" action="{% url 'gastos_reembolsos_eliminar_linea' reporte.pk item.detalle.pk %}" style="display: inline;" onsubmit="return confirm('¿Eliminar este gasto?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-icon-danger" title="Eliminar">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+                            </button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{% if puede_editar %}8{% else %}7{% endif %}">
+                        <div class="empty-state">
+                            <span class="material-symbols-outlined">receipt</span>
+                            <p>No hay gastos registrados. Agregue el primer gasto abajo.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if detalles %}
+            <tfoot>
+                <tr>
+                    <td colspan="2"><strong>TOTAL</strong></td>
+                    <td class="text-right text-success"><strong>{{ reporte.total_cordobas|moneda }}</strong></td>
+                    <td class="text-right text-info"><strong>{{ reporte.total_dolares|dolares }}</strong></td>
+                    <td class="text-center"><strong>100%</strong></td>
+                    <td colspan="{% if puede_editar %}3{% else %}2{% endif %}"></td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+
+<!-- Formulario agregar gasto -->
+{% if puede_editar %}
+<div class="add-form-card">
+    <div class="add-form-header">
+        <h3>
+            <span class="material-symbols-outlined">add_circle</span>
+            Agregar Gasto
+        </h3>
+    </div>
+    <form method="post" action="{% url 'gastos_reembolsos_agregar_linea' reporte.pk %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="add-form-body">
+            <div class="add-form-grid">
+                <div class="form-group">
+                    <label>Concepto <span class="required">*</span></label>
+                    <input type="text" name="concepto" class="form-control" placeholder="Ej: INSS, Combustible, Transporte..." required>
+                </div>
+                <div class="form-group">
+                    <label>Monto C$ <span class="required">*</span></label>
+                    <input type="text" id="monto_display" class="form-control" placeholder="0.00" required autocomplete="off">
+                    <input type="hidden" name="monto_cordobas" id="monto_hidden" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Soporte (factura)</label>
+                    <input type="file" name="archivo_soporte" class="form-control" style="font-size: 13px;">
+                </div>
+            </div>
+            <div style="margin-top: 16px;">
+                <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 13px; font-weight: 600; color: #374151;">Observaciones</label>
+                    <input type="text" name="observaciones" class="form-control" placeholder="Observaciones opcionales...">
+                </div>
+            </div>
+        </div>
+        <div class="add-form-actions">
+            <button type="submit" class="btn btn-primary">
+                <span class="material-symbols-outlined">add</span> Agregar Gasto
+            </button>
+        </div>
+    </form>
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var display = document.getElementById('monto_display');
+    var hidden = document.getElementById('monto_hidden');
+    
+    if (display) {
+        display.addEventListener('input', function() {
+            var valor = this.value.replace(/[^0-9.]/g, '');
+            var partes = valor.split('.');
+            if (partes.length > 2) {
+                valor = partes[0] + '.' + partes.slice(1).join('');
+            }
+            hidden.value = valor;
+            var entero = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            this.value = partes.length > 1 ? entero + '.' + partes[1] : entero;
+        });
+    }
+});
+</script>
+{% endblock %}

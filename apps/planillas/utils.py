@@ -78,7 +78,18 @@ def generar_planilla_desde_asistencias(proyecto, periodo_inicio, periodo_fin, us
         return None, [], errores
     
     # ============================================================
-    # 4. AGRUPAR ASISTENCIAS POR TRABAJADOR
+    # 4. OBTENER FERIADOS DEL PERÍODO
+    # ============================================================
+    feriados_periodo = set(DiaFeriado.objects.filter(
+        fecha__gte=periodo_inicio,
+        fecha__lte=periodo_fin,
+        activo=True
+    ).filter(
+        Q(tipo='nacional') | Q(proyecto=proyecto)
+    ).values_list('fecha', flat=True))
+    
+    # ============================================================
+    # 5. AGRUPAR ASISTENCIAS POR TRABAJADOR
     # ============================================================
     trabajadores_ids = asistencias.values_list('trabajador_id', flat=True).distinct()
     detalles_list = []
@@ -133,11 +144,18 @@ def generar_planilla_desde_asistencias(proyecto, periodo_inicio, periodo_fin, us
             if asistencia.fecha.weekday() == 6:  # 6 = Domingo
                 horas_dominicales += asistencia.horas_normales or Decimal('0.00')
         
-        # Días feriados trabajados
+        # Días feriados trabajados (con asistencia registrada = pago doble)
         dias_feriados = 0
-        for asistencia in asistencias_trabajador:
-            if DiaFeriado.es_feriado(asistencia.fecha, proyecto):
+        fechas_con_asistencia = set(asistencias_trabajador.values_list('fecha', flat=True))
+        for fecha_asistencia in fechas_con_asistencia:
+            if fecha_asistencia in feriados_periodo:
                 dias_feriados += 1
+        
+        # Feriados NO trabajados: se suman a días laborados (derecho al feriado pagado)
+        # Solo para trabajadores por hora, no guardas
+        if not (hasattr(trabajador, 'tipo_pago') and trabajador.tipo_pago == 'por_turno'):
+            feriados_no_trabajados = feriados_periodo - fechas_con_asistencia
+            dias_laborados += len(feriados_no_trabajados)
         
         # ============================================================
         # 7. OBTENER SALARIO BASE DEL TRABAJADOR

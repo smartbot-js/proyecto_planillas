@@ -16,6 +16,20 @@ from .views import (
     ExportarGastosVariosExcelView,
     ExportarPlanillaTotalExcelView,
 )
+from .views_gastos import (
+    ReporteGastosExportarExcelView,
+    ReporteGastosExportarPDFView,
+    ReporteGastosListView,
+    ReporteGastosCreateView,
+    ReporteGastosDetalleView,
+    ReporteGastosAgregarLineaView,
+    ReporteGastosEditarLineaView,
+    ReporteGastosEliminarLineaView,
+    ReporteGastosAprobarGerenteView,
+    ReporteGastosAprobarContadorView,
+    ReporteGastosMarcarPagadaView,
+    ReporteGastosAnularView,
+)
 
 urlpatterns = [
     # Índice principal de reportes
@@ -44,4 +58,21 @@ urlpatterns = [
     path('reportes/administrativa/exportar-excel/', ExportarAdministrativaExcelView.as_view(), name='exportar_administrativa_excel'),
     path('reportes/gastos-varios/exportar-excel/', ExportarGastosVariosExcelView.as_view(), name='exportar_gastos_excel'),
     path('reportes/planilla-total/exportar-excel/', ExportarPlanillaTotalExcelView.as_view(), name='exportar_planilla_total_excel'),
+
+    # ============================================================
+    # GASTOS Y REEMBOLSOS (CRUD)
+    # ============================================================
+    path('reportes/gastos-reembolsos/', ReporteGastosListView.as_view(), name='gastos_reembolsos_lista'),
+    path('reportes/gastos-reembolsos/crear/', ReporteGastosCreateView.as_view(), name='gastos_reembolsos_crear'),
+    path('reportes/gastos-reembolsos/<int:pk>/', ReporteGastosDetalleView.as_view(), name='gastos_reembolsos_detalle'),
+    path('reportes/gastos-reembolsos/<int:pk>/agregar-linea/', ReporteGastosAgregarLineaView.as_view(), name='gastos_reembolsos_agregar_linea'),
+    path('reportes/gastos-reembolsos/<int:pk>/editar-linea/<int:linea_pk>/', ReporteGastosEditarLineaView.as_view(), name='gastos_reembolsos_editar_linea'),
+    path('reportes/gastos-reembolsos/<int:pk>/eliminar-linea/<int:linea_pk>/', ReporteGastosEliminarLineaView.as_view(), name='gastos_reembolsos_eliminar_linea'),
+    path('reportes/gastos-reembolsos/<int:pk>/aprobar-gerente/', ReporteGastosAprobarGerenteView.as_view(), name='gastos_reembolsos_aprobar_gerente'),
+    path('reportes/gastos-reembolsos/<int:pk>/aprobar-contador/', ReporteGastosAprobarContadorView.as_view(), name='gastos_reembolsos_aprobar_contador'),
+    path('reportes/gastos-reembolsos/<int:pk>/marcar-pagada/', ReporteGastosMarcarPagadaView.as_view(), name='gastos_reembolsos_marcar_pagada'),
+    path('reportes/gastos-reembolsos/<int:pk>/anular/', ReporteGastosAnularView.as_view(), name='gastos_reembolsos_anular'),
+    path('reportes/gastos-reembolsos/<int:pk>/exportar-excel/', ReporteGastosExportarExcelView.as_view(), name='gastos_reembolsos_exportar_excel'),
+    path('reportes/gastos-reembolsos/<int:pk>/exportar-pdf/', ReporteGastosExportarPDFView.as_view(), name='gastos_reembolsos_exportar_pdf'),
+
 ]

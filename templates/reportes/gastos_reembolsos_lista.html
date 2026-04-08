@@ -1,0 +1,366 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load formato_moneda %}
+
+{% block title %}Gastos y Reembolsos{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header {
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.page-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.page-header h1 .material-symbols-outlined { font-size: 32px; color: #3b82f6; }
+.page-header p { color: #6b7280; font-size: 14px; margin-top: 4px; }
+.page-actions { display: flex; gap: 12px; }
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.stat-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.2s;
+}
+.stat-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+}
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+.stat-icon.blue { background: #dbeafe; color: #3b82f6; }
+.stat-icon.green { background: #d1fae5; color: #10b981; }
+.stat-icon.purple { background: #e0e7ff; color: #6366f1; }
+.stat-content h3 { font-size: 24px; font-weight: 700; color: #111827; margin: 0 0 4px 0; }
+.stat-content p { font-size: 13px; color: #6b7280; margin: 0; }
+
+.filters-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+.filter-group { display: flex; flex-direction: column; gap: 8px; }
+.filter-group label { font-size: 13px; font-weight: 500; color: #374151; }
+.filter-input, .filter-select {
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+.filter-input:focus, .filter-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+
+.btn {
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+}
+.btn-primary { background: #3b82f6; color: white; }
+.btn-primary:hover { background: #2563eb; }
+.btn-secondary { background: #f3f4f6; color: #374151; }
+.btn-secondary:hover { background: #e5e7eb; }
+
+.reportes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    margin-bottom: 24px;
+}
+.reporte-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.reporte-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+    border-color: #3b82f6;
+}
+.reporte-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+.reporte-codigo {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+}
+.badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+.badge-borrador { background: #f3f4f6; color: #6b7280; }
+.badge-aprobada_gerente { background: #fef3c7; color: #92400e; }
+.badge-aprobada_contador { background: #d1fae5; color: #065f46; }
+.badge-pagada { background: #dbeafe; color: #1e40af; }
+.badge-anulada { background: #fee2e2; color: #991b1b; }
+
+.reporte-periodo {
+    font-size: 13px;
+    color: #374151;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.reporte-info {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.reporte-totales {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid #f3f4f6;
+}
+.total-item { display: flex; flex-direction: column; gap: 4px; }
+.total-label { font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
+.total-value { font-size: 16px; font-weight: 700; }
+.total-value.cordobas { color: #059669; }
+.total-value.dolares { color: #2563eb; }
+
+.reporte-footer {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.reporte-fecha { font-size: 12px; color: #9ca3af; }
+.btn-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #3b82f6;
+    color: white;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+.btn-icon:hover { background: #2563eb; }
+
+.empty-state {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 60px 20px;
+    text-align: center;
+}
+.empty-state .material-symbols-outlined { font-size: 64px; color: #d1d5db; margin-bottom: 16px; }
+.empty-state h3 { font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 8px; }
+.empty-state p { color: #6b7280; margin-bottom: 20px; }
+
+@media (max-width: 768px) {
+    .stats-grid { grid-template-columns: 1fr; }
+    .filters-grid { grid-template-columns: 1fr; }
+    .reportes-grid { grid-template-columns: 1fr; }
+    .page-header { flex-direction: column; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>
+            <span class="material-symbols-outlined">receipt_long</span>
+            Gastos y Reembolsos
+        </h1>
+        <p>Registro de gastos varios, reembolsos y facturas de la empresa</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'gastos_reembolsos_crear' %}" class="btn btn-primary">
+            <span class="material-symbols-outlined">add</span>
+            Nuevo Reporte
+        </a>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <span class="material-symbols-outlined">receipt_long</span>
+        </div>
+        <div class="stat-content">
+            <h3>{{ total_reportes }}</h3>
+            <p>Total Reportes</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green">
+            <span class="material-symbols-outlined">payments</span>
+        </div>
+        <div class="stat-content">
+            <h3>{{ total_cordobas|moneda }}</h3>
+            <p>Total Córdobas</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple">
+            <span class="material-symbols-outlined">currency_exchange</span>
+        </div>
+        <div class="stat-content">
+            <h3>{{ total_dolares|dolares }}</h3>
+            <p>Total Dólares</p>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="filters-card">
+    <form method="get">
+        <div class="filters-grid">
+            <div class="filter-group">
+                <label>Estado</label>
+                <select name="estado" class="filter-select">
+                    <option value="todos">Todos los estados</option>
+                    <option value="borrador" {% if filtros.estado == 'borrador' %}selected{% endif %}>Borrador</option>
+                    <option value="aprobada_gerente" {% if filtros.estado == 'aprobada_gerente' %}selected{% endif %}>Aprobada Gerente</option>
+                    <option value="aprobada_contador" {% if filtros.estado == 'aprobada_contador' %}selected{% endif %}>Aprobada Contador</option>
+                    <option value="pagada" {% if filtros.estado == 'pagada' %}selected{% endif %}>Pagada</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Desde</label>
+                <input type="date" name="fecha_desde" class="filter-input" value="{{ filtros.fecha_desde }}">
+            </div>
+            <div class="filter-group">
+                <label>Hasta</label>
+                <input type="date" name="fecha_hasta" class="filter-input" value="{{ filtros.fecha_hasta }}">
+            </div>
+            <div class="filter-group" style="display: flex; align-items: flex-end; gap: 8px;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">Filtrar</button>
+                <a href="{% url 'gastos_reembolsos_lista' %}" class="btn btn-secondary">Limpiar</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Lista -->
+{% if reportes %}
+<div class="reportes-grid">
+    {% for reporte in reportes %}
+    <div class="reporte-card" onclick="window.location.href='{% url 'gastos_reembolsos_detalle' reporte.pk %}'">
+        <div class="reporte-header">
+            <h3 class="reporte-codigo">{{ reporte.codigo }}</h3>
+            <span class="badge badge-{{ reporte.estado }}">
+                {% if reporte.estado == 'borrador' %}Borrador
+                {% elif reporte.estado == 'aprobada_gerente' %}Aprob. Gerente
+                {% elif reporte.estado == 'aprobada_contador' %}Aprob. Contador
+                {% elif reporte.estado == 'pagada' %}Pagada
+                {% elif reporte.estado == 'anulada' %}Anulada
+                {% endif %}
+            </span>
+        </div>
+        
+        <div class="reporte-periodo">
+            <span class="material-symbols-outlined" style="font-size: 16px;">calendar_today</span>
+            {{ reporte.periodo_inicio|date:"d/m/Y" }} - {{ reporte.periodo_fin|date:"d/m/Y" }}
+        </div>
+        
+        <div class="reporte-info">
+            <span class="material-symbols-outlined" style="font-size: 16px;">person</span>
+            {{ reporte.generado_por.nombre_completo|default:"—" }}
+        </div>
+        
+        <div class="reporte-info">
+            <span class="material-symbols-outlined" style="font-size: 16px;">list</span>
+            {{ reporte.cantidad_detalles }} concepto{{ reporte.cantidad_detalles|pluralize:"s" }}
+        </div>
+        
+        <div class="reporte-totales">
+            <div class="total-item">
+                <span class="total-label">Córdobas</span>
+                <span class="total-value cordobas">{{ reporte.total_cordobas|moneda }}</span>
+            </div>
+            <div class="total-item">
+                <span class="total-label">Dólares</span>
+                <span class="total-value dolares">{{ reporte.total_dolares|dolares }}</span>
+            </div>
+        </div>
+        
+        <div class="reporte-footer">
+            <span class="reporte-fecha">{{ reporte.creado_en|date:"d/m/Y H:i" }}</span>
+            <a href="{% url 'gastos_reembolsos_detalle' reporte.pk %}" class="btn-icon" onclick="event.stopPropagation();">
+                <span class="material-symbols-outlined" style="font-size: 18px;">visibility</span>
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <span class="material-symbols-outlined">receipt_long</span>
+    <h3>No hay reportes de gastos</h3>
+    <p>Crea el primer reporte para registrar gastos y reembolsos</p>
+    <a href="{% url 'gastos_reembolsos_crear' %}" class="btn btn-primary">
+        <span class="material-symbols-outlined">add</span> Crear primer reporte
+    </a>
+</div>
+{% endif %}
+{% endblock %}
