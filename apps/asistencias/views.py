@@ -1872,6 +1872,111 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
     #
     # ⚠️ IMPORTANTE: ELIMINAR DESPUÉS DE LAS PRUEBAS
     # ============================================
+    @action(detail=False, methods=['get'], url_path='resumen-hoy')
+    def resumen_hoy(self, request):
+        """
+        Resumen de asistencias del día actual por proyecto asignado del usuario.
+        
+        GET /api/asistencias/resumen-hoy/
+        GET /api/asistencias/resumen-hoy/?proyecto_id=5
+        
+        Response:
+        {
+            "fecha": "2026-04-08",
+            "proyectos": [
+                {
+                    "proyecto_id": 5,
+                    "proyecto_nombre": "Remodelación Casa Monserrat",
+                    "total_trabajadores": 10,
+                    "entradas": 7,
+                    "salidas": 5,
+                    "pendientes": 2,
+                    "ausentes": 3
+                }
+            ],
+            "totales": {
+                "total_trabajadores": 10,
+                "entradas": 7,
+                "salidas": 5,
+                "pendientes": 2,
+                "ausentes": 3
+            }
+        }
+        """
+        from apps.proyectos.models import Proyecto
+        from apps.trabajadores.models import Trabajador
+        
+        hoy = timezone.now().date()
+        user = request.user
+        
+        # Obtener proyectos del usuario
+        proyecto_id = request.query_params.get('proyecto_id')
+        if proyecto_id:
+            proyectos = Proyecto.objects.filter(pk=proyecto_id, eliminado=False)
+        else:
+            proyectos = user.get_proyectos_permitidos()
+        
+        resultado_proyectos = []
+        totales = {
+            'total_trabajadores': 0,
+            'entradas': 0,
+            'salidas': 0,
+            'pendientes': 0,
+            'ausentes': 0,
+        }
+        
+        for proyecto in proyectos:
+            # Total de trabajadores activos asignados al proyecto
+            total_trabajadores = Trabajador.objects.filter(
+                proyecto_asignado=proyecto,
+                eliminado=False,
+                estado='activo'
+            ).count()
+            
+            # Asistencias de hoy en este proyecto
+            asistencias_hoy = Asistencia.objects.filter(
+                proyecto=proyecto,
+                fecha=hoy,
+                eliminado=False
+            )
+            
+            # Entradas = todos los que marcaron entrada hoy
+            entradas = asistencias_hoy.count()
+            
+            # Salidas = los que ya cerraron turno (tienen hora_salida)
+            salidas = asistencias_hoy.filter(estado='cerrado').count()
+            
+            # Pendientes = marcaron entrada pero no salida
+            pendientes = asistencias_hoy.filter(estado='abierto').count()
+            
+            # Ausentes = trabajadores asignados que no marcaron entrada
+            ausentes = total_trabajadores - entradas
+            if ausentes < 0:
+                ausentes = 0
+            
+            proyecto_data = {
+                'proyecto_id': proyecto.id,
+                'proyecto_nombre': proyecto.nombre,
+                'total_trabajadores': total_trabajadores,
+                'entradas': entradas,
+                'salidas': salidas,
+                'pendientes': pendientes,
+                'ausentes': ausentes,
+            }
+            resultado_proyectos.append(proyecto_data)
+            
+            # Acumular totales
+            totales['total_trabajadores'] += total_trabajadores
+            totales['entradas'] += entradas
+            totales['salidas'] += salidas
+            totales['pendientes'] += pendientes
+            totales['ausentes'] += ausentes
+        
+        return Response({
+            'fecha': hoy.strftime('%Y-%m-%d'),
+            'proyectos': resultado_proyectos,
+            'totales': totales,
+        }, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['delete', 'post'], url_path='limpiar-pruebas')
     def limpiar_pruebas(self, request):
