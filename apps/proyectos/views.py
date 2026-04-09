@@ -1098,14 +1098,8 @@ class ProyectoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        """Filtrar proyectos según el usuario"""
-        user = self.request.user
-        if user.es_administrador():
-            return Proyecto.objects.filter(eliminado=False)
-        return Proyecto.objects.filter(
-            supervisor=user,
-            eliminado=False
-        )
+        """Filtrar proyectos según el usuario y su rol"""
+        return self.request.user.get_proyectos_permitidos()
     
     def perform_create(self, serializer):
         """Registrar auditoría al crear"""

@@ -292,6 +292,16 @@ class PlanillaCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 messages.error(request, 'No hay asistencias validadas en el período')
                 return redirect('planilla_crear')
             
+            # Obtener feriados del período
+            from django.db.models import Q as QFilter
+            feriados_periodo = set(DiaFeriado.objects.filter(
+                fecha__gte=periodo_inicio,
+                fecha__lte=periodo_fin,
+                activo=True
+            ).filter(
+                QFilter(tipo='nacional') | QFilter(proyecto=proyecto)
+            ).values_list('fecha', flat=True))
+            
             # Agrupar por trabajador
             trabajadores_dict = {}
             for asistencia in asistencias:
@@ -305,11 +315,17 @@ class PlanillaCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
                         'horas_extras': Decimal('0.00'),
                         'horas_dominicales': Decimal('0.00'),
                         'salario_hora': asistencia.trabajador.salario_normal or Decimal('0.00'),
+                        'fechas_trabajadas': set(),
+                        'dias_feriados_trabajados': 0,
                     }
                 if asistencia.estado in ('cerrado', 'validado', 'editado'):
                     trabajadores_dict[trabajador_id]['dias'] += 1
+                    trabajadores_dict[trabajador_id]['fechas_trabajadas'].add(asistencia.fecha)
                     # Para guardas, sumar turnos
                     trabajadores_dict[trabajador_id]['turnos'] += getattr(asistencia, 'turnos', 0) or 0
+                    # Contar feriados trabajados
+                    if asistencia.fecha in feriados_periodo:
+                        trabajadores_dict[trabajador_id]['dias_feriados_trabajados'] += 1
                 trabajadores_dict[trabajador_id]['horas_normales'] += asistencia.horas_normales or Decimal('0.00')
                 trabajadores_dict[trabajador_id]['horas_extras'] += asistencia.horas_extras or Decimal('0.00')
                 # Si es domingo, sumar a horas dominicales
@@ -335,7 +351,9 @@ class PlanillaCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
                     dias = Decimal(str(data.get('turnos', data['dias'])))
                 else:
                     dia_base = (salario_hora * Decimal('8')).quantize(Decimal('0.01'))
-                    dias = Decimal(str(data['dias']))
+                    # Sumar feriados no trabajados (derecho al feriado pagado)
+                    feriados_no_trabajados = len(feriados_periodo - data['fechas_trabajadas'])
+                    dias = Decimal(str(data['dias'] + feriados_no_trabajados))
                 
                 # Fórmulas del Excel
                 septimo = ((dia_base / Decimal('6')) * dias).quantize(Decimal('0.01')) if dia_base > 0 else Decimal('0.00')
