@@ -18,9 +18,10 @@ from PIL import Image, ImageDraw, ImageFont
 # ============================================
 
 def normalizar_cedula(cedula):
-    """Quita guiones y espacios para comparación"""
-    return cedula.replace('-', '').replace(' ', '').strip().upper()
-
+    """Quita guiones, espacios y caracteres especiales para comparación"""
+    if not cedula:
+        return ''
+    return re.sub(r'[^a-zA-Z0-9]', '', cedula).upper()
 
 def buscar_trabajador_por_cedula(cedula):
     """

@@ -1,4 +1,5 @@
 import os
+import re        
 from django.db import models
 from django.core.validators import MinValueValidator
 from django.utils import timezone
@@ -495,11 +496,21 @@ class Trabajador(models.Model):
         self.save()
 
     def save(self, *args, **kwargs):
+
+        # Normalizar cédula: sin guiones, sin espacios, mayúsculas
+        if self.numero_cedula:
+            self.numero_cedula = re.sub(r'[^a-zA-Z0-9]', '', self.numero_cedula).upper()
+        
+        # Normalizar nombres: mayúsculas, sin espacios dobles
+        if self.nombre:
+            self.nombre = ' '.join(self.nombre.upper().split())
+        if self.apellido:
+            self.apellido = ' '.join(self.apellido.upper().split())
+        
         # Auto-detectar tipo de pago según puesto laboral
         if self.puesto_laboral and 'guarda' in self.puesto_laboral.lower():
             self.tipo_pago = 'por_turno'
         else:
-            # Solo cambiar a por_hora si no fue establecido manualmente
             if not self.pk:
                 self.tipo_pago = 'por_hora'
         super().save(*args, **kwargs)

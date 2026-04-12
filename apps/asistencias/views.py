@@ -42,7 +42,7 @@ from apps.proyectos.models import Proyecto
 from apps.admin_panel.permissions import PermissionRequiredMixin
 
 import csv
-
+import re
 
 # ============================================
 # VISTAS WEB
@@ -1149,7 +1149,9 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
             # Buscar trabajador
             # Buscar trabajador (acepta cédula con/sin guiones)
             from apps.trabajadores.utils import buscar_trabajador_por_cedula
-            
+            # Normalizar cédula entrante
+
+            data['trabajador_cedula'] = re.sub(r'[^a-zA-Z0-9]', '', data['trabajador_cedula']).upper()
             trabajador = buscar_trabajador_por_cedula(data['trabajador_cedula'])
             
             if not trabajador:
