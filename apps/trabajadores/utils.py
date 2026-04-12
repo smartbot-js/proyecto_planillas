@@ -52,8 +52,8 @@ def buscar_trabajador_por_cedula(cedula):
                 Replace('numero_cedula', Value('-'), Value('')),
                 Value(' '), Value('')
             )
-        ).get(cedula_limpia=cedula_limpia, eliminado=False)
-    except Trabajador.DoesNotExist:
+        ).filter(cedula_limpia=cedula_limpia, eliminado=False).first()
+    except:
         return None
 
 # ============================================

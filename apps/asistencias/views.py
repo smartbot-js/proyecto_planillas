@@ -131,13 +131,13 @@ class AsistenciaValidarListView(LoginRequiredMixin, ListView):
             'total_pendientes': queryset_base.count(),
             'validadas_hoy': Asistencia.objects.filter(
                 validado=True,
-                validado_fecha__date=timezone.now().date()
+                validado_fecha__date=timezone.localdate()
             ).count(),
             'pendientes_hoy': queryset_base.filter(
-                fecha=timezone.now().date()
+                fecha=timezone.localdate()
             ).count(),
             'pendientes_ayer': queryset_base.filter(
-                fecha=timezone.now().date() - timedelta(days=1)
+                fecha=timezone.localdate() - timedelta(days=1)
             ).count(),
         }
         
@@ -624,7 +624,7 @@ class AsistenciaMarcarEntradaView(LoginRequiredMixin, PermissionRequiredMixin, V
                 return redirect('asistencia_marcar_entrada')
             
             # Verificar si ya tiene asistencia cerrada hoy (evitar duplicados del mismo día)
-            hoy = timezone.now().date()
+            hoy = timezone.localdate()
             asistencia_hoy = Asistencia.objects.filter(
                 trabajador=trabajador,
                 fecha=hoy,
@@ -754,7 +754,7 @@ class AsistenciaEditarView(LoginRequiredMixin, PermissionRequiredMixin, View):
             else:
                 # Si no existe, usamos la lógica de días
                 # (Asumiendo 2 días según tu modelo, si no, cambia el número)
-                dias = (timezone.now().date() - asistencia.fecha).days
+                dias = (timezone.localdate() - asistencia.fecha).days
                 if dias > 2: 
                      motivo_no_editable = f"Han pasado {dias} días. Solo se pueden editar asistencias de los últimos 2 días."
                 elif hasattr(asistencia, 'eliminado') and asistencia.eliminado:
@@ -822,7 +822,7 @@ class AsistenciaReportesView(LoginRequiredMixin, TemplateView):
         
         # Valores por defecto: mes actual
         if not fecha_inicio_str or not fecha_fin_str:
-            hoy = timezone.now().date()
+            hoy = timezone.localdate()
             fecha_inicio = hoy.replace(day=1)
             fecha_fin = hoy
         else:
@@ -830,7 +830,7 @@ class AsistenciaReportesView(LoginRequiredMixin, TemplateView):
                 fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
                 fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
             except ValueError:
-                hoy = timezone.now().date()
+                hoy = timezone.localdate()
                 fecha_inicio = hoy.replace(day=1)
                 fecha_fin = hoy
 
@@ -1017,7 +1017,7 @@ class AsistenciaHistorialView(LoginRequiredMixin, ListView):
         
         # Rango de fechas por defecto: último mes
         if not fecha_inicio and not fecha_fin:
-            hoy = timezone.now().date()
+            hoy = timezone.localdate()
             fecha_inicio = hoy - timedelta(days=30)
             fecha_fin = hoy
         
@@ -1046,7 +1046,7 @@ class AsistenciaHistorialView(LoginRequiredMixin, ListView):
         
         # Valores por defecto
         if not fecha_inicio and not fecha_fin:
-            hoy = timezone.now().date()
+            hoy = timezone.localdate()
             fecha_inicio = (hoy - timedelta(days=30)).strftime('%Y-%m-%d')
             fecha_fin = hoy.strftime('%Y-%m-%d')
         
@@ -1165,7 +1165,7 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
             proyecto = Proyecto.objects.get(id=data['proyecto_id'], eliminado=False)
             
             # Parsear fecha del dispositivo para verificación
-            hoy = timezone.now().date()
+            hoy = timezone.localdate()
             fecha_registro = hoy
             
             fecha_app_str = data.get('fecha_app')
@@ -1782,7 +1782,7 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
         total_pendientes = queryset.count()
         validadas_hoy = self.get_queryset().filter(
             validado=True,
-            validado_fecha__date=timezone.now().date()
+            validado_fecha__date=timezone.localdate()
         ).count()
         
         return Response({
@@ -1906,7 +1906,7 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
         from apps.proyectos.models import Proyecto
         from apps.trabajadores.models import Trabajador
         
-        hoy = timezone.now().date()
+        hoy = timezone.localdate()
         user = request.user
         
         # Obtener proyectos del usuario
@@ -2002,7 +2002,7 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
         """
         from django.utils import timezone
         
-        hoy = timezone.now().date()
+        hoy = timezone.localdate()
         
         # Opción 1: Por ID específico
         asistencia_id = request.data.get('asistencia_id')
@@ -2121,7 +2121,7 @@ class AsistenciaJustificadaView(LoginRequiredMixin, PermissionRequiredMixin, Vie
             hora_salida = datetime.strptime(hora_salida_str, '%H:%M').time()
 
             # No permitir fecha futura
-            hoy = timezone.now().date()
+            hoy = timezone.localdate()
             if fecha > hoy:
                 messages.error(request, '❌ No se puede registrar asistencia para una fecha futura.')
                 return redirect('asistencia_justificada')

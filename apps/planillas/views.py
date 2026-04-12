@@ -170,7 +170,7 @@ class PlanillaCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
         ).order_by('nombre')
         
         # Sugerir período por defecto (última catorcena)
-        hoy = timezone.now().date()
+        hoy = timezone.localdate()
         
         # Encontrar el jueves más reciente
         dias_desde_jueves = (hoy.weekday() - 3) % 7

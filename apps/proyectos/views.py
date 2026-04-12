@@ -113,7 +113,7 @@ class ProyectoDetalleView(LoginRequiredMixin, DetailView):
         # Conteo de asistencias de HOY para la tarjeta de Resumen
         context['asistencias_hoy'] = Asistencia.objects.filter(
             proyecto=proyecto, 
-            fecha=timezone.now().date(), 
+            fecha=timezone.localdate(), 
             estado='cerrado' # Contar solo los que marcaron salida
         ).count()
         
