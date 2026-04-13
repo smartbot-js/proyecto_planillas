@@ -1179,28 +1179,37 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
                 except (ValueError, AttributeError):
                     pass
             
-            asistencia_existente = Asistencia.objects.filter(
+            # Verificar si tiene un turno abierto (de cualquier fecha)
+            asistencia_abierta = Asistencia.objects.filter(
                 trabajador=trabajador,
-                fecha=fecha_registro
+                estado='abierto',
+                eliminado=False
             ).first()
             
-            if asistencia_existente:
-                if asistencia_existente.estado == 'abierto':
-                    return Response(
-                        {
-                            'error': 'El trabajador ya tiene un turno abierto hoy',
-                            'asistencia': AsistenciaSerializer(asistencia_existente).data
-                        },
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                else:
-                    return Response(
-                        {
-                            'error': 'El trabajador ya tiene un turno cerrado hoy',
-                            'asistencia': AsistenciaSerializer(asistencia_existente).data
-                        },
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+            if asistencia_abierta:
+                return Response(
+                    {
+                        'error': f'El trabajador tiene una entrada abierta desde {asistencia_abierta.fecha.strftime("%d/%m/%Y")} a las {asistencia_abierta.hora_entrada.strftime("%I:%M %p")}. Debe cerrarla antes de registrar una nueva.',
+                        'asistencia': AsistenciaSerializer(asistencia_abierta).data
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Verificar si ya tiene asistencia cerrada hoy
+            asistencia_hoy = Asistencia.objects.filter(
+                trabajador=trabajador,
+                fecha=fecha_registro,
+                eliminado=False
+            ).exclude(estado='abierto').first()
+            
+            if asistencia_hoy:
+                return Response(
+                    {
+                        'error': 'El trabajador ya tiene un turno cerrado hoy',
+                        'asistencia': AsistenciaSerializer(asistencia_hoy).data
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
             # Parsear fecha y hora del dispositivo
             fecha_registro = hoy
