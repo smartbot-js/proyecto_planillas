@@ -44,6 +44,9 @@ from apps.admin_panel.permissions import PermissionRequiredMixin
 import csv
 import re
 
+import logging
+logger = logging.getLogger('registro_asistencias')
+
 # ============================================
 # VISTAS WEB
 # ============================================
@@ -1141,6 +1144,9 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         
         if not serializer.is_valid():
+            logger.error(
+                f"Fallo en check-in | Datos recibidos: {request.data} | Errores: {serializer.errors}"
+            )
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         data = serializer.validated_data
@@ -1278,6 +1284,9 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         
         if not serializer.is_valid():
+            logger.error(
+                f"Fallo en check-out | Datos recibidos: {request.data} | Errores: {serializer.errors}"
+            )
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         data = serializer.validated_data

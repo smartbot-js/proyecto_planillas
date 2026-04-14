@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 from decouple import config
 
@@ -223,3 +223,32 @@ AUTHENTICATION_BACKENDS = [
 LOGIN_URL = '/login/'  # ✅ Tu URL de login real
 LOGIN_REDIRECT_URL = '/dashboard/'  # ✅ A dónde redirigir después de login exitoso
 LOGOUT_REDIRECT_URL = '/login/'  # ✅ A dónde redirigir después de logout
+
+# ============================================================
+# CONFIGURACIÓN DE LOGS (ERRORES)
+# ============================================================
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'detallado': {
+            'format': '{levelname} | {asctime} | Módulo: {module} | {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'archivo_errores': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'errores_serializer.log'), 
+            'formatter': 'detallado',
+        },
+    },
+    'loggers': {
+        'registro_asistencias': {
+            'handlers': ['archivo_errores'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+    },
+}
