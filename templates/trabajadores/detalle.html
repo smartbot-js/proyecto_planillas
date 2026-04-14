@@ -174,7 +174,7 @@
                 </div>
                 <div class="detail-card-body">
                     <div class="detail-row">
-                        <span class="detail-label">Salario por hora:</span>
+                        <span class="detail-label">{% if trabajador.tipo_pago == 'por_turno' %}Valor por turno:{% else %}Salario por hora:{% endif %}</span>
                         <span class="detail-value">{{ trabajador.salario_normal|moneda }}</span>
                     </div>
                     <div class="detail-row">
