@@ -175,19 +175,11 @@
                 <div class="detail-card-body">
                     <div class="detail-row">
                         <span class="detail-label">Salario por hora:</span>
-                        <span class="detail-value">Gs. {{ trabajador.salario_normal|floatformat:0 }}</span>
+                        <span class="detail-value">{{ trabajador.salario_normal|moneda }}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Tarifa hora extra:</span>
-                        <span class="detail-value">Gs. {{ trabajador.tarifa_hora_extra|floatformat:0 }}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Salario diario estimado:</span>
-                        <span class="detail-value">Gs. {{ trabajador.get_salario_diario|floatformat:0 }}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Salario mensual estimado:</span>
-                        <span class="detail-value">Gs. {{ trabajador.get_salario_mensual_estimado|floatformat:0 }}</span>
+                        <span class="detail-value">{{ trabajador.tarifa_hora_extra|moneda }}</span>
                     </div>
                 </div>
             </div>
