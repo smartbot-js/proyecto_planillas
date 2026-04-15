@@ -1157,8 +1157,20 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
             from apps.trabajadores.utils import buscar_trabajador_por_cedula
             # Normalizar cédula entrante
 
-            data['trabajador_cedula'] = re.sub(r'[^a-zA-Z0-9]', '', data['trabajador_cedula']).upper()
-            trabajador = buscar_trabajador_por_cedula(data['trabajador_cedula'])
+            # Buscar trabajador por ID o por cédula
+            trabajador = None
+            trabajador_id = data.get('trabajador_id')
+            trabajador_cedula = data.get('trabajador_cedula')
+            
+            if trabajador_id:
+                try:
+                    trabajador = Trabajador.objects.get(id=trabajador_id, eliminado=False)
+                except Trabajador.DoesNotExist:
+                    trabajador = None
+            
+            if not trabajador and trabajador_cedula:
+                trabajador_cedula = re.sub(r'[^a-zA-Z0-9]', '', trabajador_cedula).upper()
+                trabajador = buscar_trabajador_por_cedula(trabajador_cedula)
             
             if not trabajador:
                 raise Trabajador.DoesNotExist

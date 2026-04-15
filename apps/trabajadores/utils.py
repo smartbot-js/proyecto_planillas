@@ -268,6 +268,7 @@ def generar_qr_trabajador(trabajador):
 
     # Datos del QR en formato JSON
     datos_qr = {
+        "id": trabajador.id,
         "cedula": trabajador.numero_cedula,
         "nombre": trabajador.nombre_completo,
         "cargo": trabajador.puesto_laboral or trabajador.area_cargo or "Sin asignar",

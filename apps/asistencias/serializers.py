@@ -159,8 +159,8 @@ class AsistenciaListSerializer(serializers.ModelSerializer):
 
 class CheckInSerializer(serializers.Serializer):
     """Serializer para marcar entrada (check-in)"""
-    
-    trabajador_cedula = serializers.CharField(max_length=50, required=True)
+    trabajador_id = serializers.IntegerField(required=False, allow_null=True)
+    trabajador_cedula = serializers.CharField(max_length=50, required=False, allow_blank=True, allow_null=True)
     proyecto_id = serializers.IntegerField(required=True)
     hora_entrada = serializers.TimeField(required=False, allow_null=True)
     fecha_app = serializers.CharField(required=False, allow_blank=True, allow_null=True)
