@@ -119,7 +119,6 @@ def generar_planilla_desde_asistencias(proyecto, periodo_inicio, periodo_fin, us
         # Contar TODAS las asistencias validadas (abiertas o cerradas)
         # Para guardas, contar turnos; para normales, contar días
         if hasattr(trabajador, 'tipo_pago') and trabajador.tipo_pago == 'por_turno':
-            from django.db.models import Sum
             dias_laborados = asistencias_trabajador.aggregate(
                 total=Sum('turnos')
             )['total'] or 0
