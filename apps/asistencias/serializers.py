@@ -173,17 +173,18 @@ class CheckInSerializer(serializers.Serializer):
     dispositivo_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
     observaciones = serializers.CharField(required=False, allow_blank=True)
 
-
 class CheckOutSerializer(serializers.Serializer):
     """Serializer para marcar salida (check-out)"""
     
-    asistencia_id = serializers.IntegerField(required=True)
+    asistencia_id = serializers.IntegerField(required=False, allow_null=True)
+    trabajador_id = serializers.IntegerField(required=False, allow_null=True)
+    trabajador_cedula = serializers.CharField(max_length=50, required=False, allow_blank=True, allow_null=True)
     hora_salida = serializers.TimeField(required=False, allow_null=True)
     fecha_app = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     latitud = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
     longitud = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
     observaciones = serializers.CharField(required=False, allow_blank=True)
-
+    
 class SincronizarAsistenciaItemSerializer(serializers.Serializer):
     """
     Serializer para sincronización batch

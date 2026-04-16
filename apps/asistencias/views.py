@@ -1304,7 +1304,44 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
         data = serializer.validated_data
         
         try:
-            asistencia = Asistencia.objects.get(id=data['asistencia_id'])
+            asistencia = None
+            
+            # Opción 1: buscar por asistencia_id directo
+            if data.get('asistencia_id'):
+                asistencia = Asistencia.objects.get(id=data['asistencia_id'])
+            else:
+                # Opción 2: buscar asistencia abierta por trabajador_id o cédula
+                import re
+                trabajador = None
+                
+                if data.get('trabajador_id'):
+                    try:
+                        trabajador = Trabajador.objects.get(id=data['trabajador_id'], eliminado=False)
+                    except Trabajador.DoesNotExist:
+                        pass
+                
+                if not trabajador and data.get('trabajador_cedula'):
+                    from apps.trabajadores.utils import buscar_trabajador_por_cedula
+                    cedula = re.sub(r'[^a-zA-Z0-9]', '', data['trabajador_cedula']).upper()
+                    trabajador = buscar_trabajador_por_cedula(cedula)
+                
+                if not trabajador:
+                    return Response(
+                        {'error': 'No se encontró al trabajador'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+                
+                asistencia = Asistencia.objects.filter(
+                    trabajador=trabajador,
+                    estado='abierto',
+                    eliminado=False
+                ).order_by('-fecha').first()
+                
+                if not asistencia:
+                    return Response(
+                        {'error': 'No existe registro de entrada abierto para este trabajador'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
             
             if asistencia.estado == 'cerrado':
                 return Response(
