@@ -164,8 +164,8 @@ class CheckInSerializer(serializers.Serializer):
     proyecto_id = serializers.IntegerField(required=True)
     hora_entrada = serializers.TimeField(required=False, allow_null=True)
     fecha_app = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    latitud = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
-    longitud = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
+    latitud = serializers.DecimalField(max_digits=20, decimal_places=14, required=False, allow_null=True)
+    longitud = serializers.DecimalField(max_digits=20, decimal_places=14, required=False, allow_null=True)
     metodo_identificacion = serializers.ChoiceField(
         choices=Asistencia.METODO_CHOICES,
         default='qr'
@@ -181,8 +181,8 @@ class CheckOutSerializer(serializers.Serializer):
     trabajador_cedula = serializers.CharField(max_length=50, required=False, allow_blank=True, allow_null=True)
     hora_salida = serializers.TimeField(required=False, allow_null=True)
     fecha_app = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    latitud = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
-    longitud = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
+    latitud = serializers.DecimalField(max_digits=20, decimal_places=14, required=False, allow_null=True)
+    longitud = serializers.DecimalField(max_digits=20, decimal_places=14, required=False, allow_null=True)
     observaciones = serializers.CharField(required=False, allow_blank=True)
     
 class SincronizarAsistenciaItemSerializer(serializers.Serializer):
