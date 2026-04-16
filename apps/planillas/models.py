@@ -901,7 +901,7 @@ class DetallePlanilla(models.Model):
             self.ingreso_dia_feriado +
             self.bonos +
             self.combustible +
-            self.otros_ingresos -
+            self.otros_gastos -
             self.deducciones
         ).quantize(Decimal('0.01'))
 
@@ -950,7 +950,7 @@ class DetallePlanilla(models.Model):
             self.salario_prestacionado +
             self.bonos +
             self.combustible +
-            self.otros_ingresos -
+            self.otros_gastos -
             self.deducciones
         ).quantize(Decimal('0.01'))
         
