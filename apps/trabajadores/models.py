@@ -500,6 +500,10 @@ class Trabajador(models.Model):
         # Normalizar cédula: sin guiones, sin espacios, mayúsculas
         if self.numero_cedula:
             self.numero_cedula = re.sub(r'[^a-zA-Z0-9]', '', self.numero_cedula).upper()
+            if not self.numero_cedula:
+                self.numero_cedula = None
+        else:
+            self.numero_cedula = None
         
         # Normalizar nombres: mayúsculas, sin espacios dobles
         if self.nombre:

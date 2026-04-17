@@ -30,7 +30,7 @@
             </svg>
             Editar Trabajador
         </h1>
-        <p class="page-subtitle">{{ trabajador.nombre_completo }} - CI: {{ trabajador.numero_cedula }}</p>
+        <p class="page-subtitle">{{ trabajador.nombre_completo }} - CI: {{ trabajador.numero_cedula|default:"Sin cédula" }}</p>
     </div>
     
     <div style="display: flex; gap: 12px;">
@@ -100,7 +100,7 @@
                         
                         <div class="form-group">
                             <label for="numero_cedula">Número de Cédula</label>
-                            <input type="text" id="numero_cedula" name="numero_cedula" class="form-control" value="{{ trabajador.numero_cedula }}">
+                            <input type="text" id="numero_cedula" name="numero_cedula" class="form-control" value="{{ trabajador.numero_cedula|default_if_none:'' }}">
                             <small class="form-help">Código de barras: {{ trabajador.codigo_barras }}</small>
                         </div>
                         

@@ -747,17 +747,16 @@ class PlanillaDetalleView(LoginRequiredMixin, View):
         
         puede_aprobar_gerente = (
             planilla.estado == 'borrador' and
-            (request.user.is_superuser or rc in ['admin', 'gerente_general'])
+            (request.user.is_superuser or rc in ['admin', 'gerente_general', 'gerente_proyecto'])
         )
         
         puede_aprobar_contador = (
             planilla.estado == 'aprobada_gerente' and
-            (request.user.is_superuser or rc in ['admin', 'contador', 'gerente_general'])
+            (request.user.is_superuser or rc in ['admin', 'contador', 'gerente_general', 'gerente_proyecto'])
         )
-        
         puede_marcar_pagada = (
             planilla.estado == 'aprobada_final' and
-            (request.user.is_superuser or rc in ['admin', 'contador', 'gerente_general'])
+            (request.user.is_superuser or rc in ['admin', 'contador', 'gerente_general', 'gerente_proyecto'])
         )
         
         context = {
@@ -845,7 +844,7 @@ class PlanillaAprobarGerenteView(LoginRequiredMixin, PermissionRequiredMixin, Vi
                 return redirect('planilla_detalle', pk=pk)
             
             # Verificar permisos
-            if not (request.user.is_superuser or request.user.rol_codigo in ['admin', 'gerente_general']):
+            if not (request.user.is_superuser or request.user.rol_codigo in ['admin', 'gerente_general', 'gerente_proyecto']):
                 messages.error(request, '⛔ No tienes permisos para aprobar como gerente')
                 return redirect('planilla_detalle', pk=pk)
             
