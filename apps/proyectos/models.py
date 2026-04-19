@@ -1,4 +1,5 @@
 import os
+import re
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from apps.usuarios.models import Usuario
@@ -1006,23 +1007,44 @@ class Proyecto(models.Model):
     # NORMALIZACIÓN AUTOMÁTICA DE COORDENADAS
     # ======================================================
     def save(self, *args, **kwargs):
-        # Si vienen coordenadas tipo: "4.7110000,-74.0721000"
+
         if self.ubicacion_coordenadas:
             coords = self.ubicacion_coordenadas.strip()
-
-            if ',' in coords:
+            
+            # Formato 1: Decimal "12.073500, -86.241417"
+            if ',' in coords and '°' not in coords:
                 try:
                     lat_str, lon_str = coords.split(',')
-
                     lat = float(lat_str.strip())
                     lon = float(lon_str.strip())
-
                     self.latitud = lat
                     self.longitud = lon
-
                 except Exception as e:
-                    # No romper guardado por error de formato
                     print(f"[GEO NORMALIZE ERROR] {coords} -> {e}")
+            
+            # Formato 2: DMS "12°04'24.6"N 86°14'27.1"W"
+            elif '°' in coords:
+                try:
+                    patron = r"(\d+)[°]\s*(\d+)[\'′]\s*([\d.]+)[\"″]?\s*([NSEW])"
+                    matches = re.findall(patron, coords, re.IGNORECASE)
+                    if len(matches) >= 2:
+                        # Primera coordenada (latitud)
+                        g1, m1, s1, d1 = matches[0]
+                        lat = float(g1) + float(m1) / 60 + float(s1) / 3600
+                        if d1.upper() == 'S':
+                            lat = -lat
+                        
+                        # Segunda coordenada (longitud)
+                        g2, m2, s2, d2 = matches[1]
+                        lon = float(g2) + float(m2) / 60 + float(s2) / 3600
+                        if d2.upper() == 'W':
+                            lon = -lon
+                        
+                        self.latitud = round(lat, 7)
+                        self.longitud = round(lon, 7)
+                except Exception as e:
+                    print(f"[GEO DMS ERROR] {coords} -> {e}")
+        
         # Sincronizar activo con estado
         self.activo = self.estado in ('ejecucion')
         super().save(*args, **kwargs)
