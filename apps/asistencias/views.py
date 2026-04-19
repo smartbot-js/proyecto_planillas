@@ -2214,6 +2214,8 @@ class AsistenciaJustificadaView(LoginRequiredMixin, PermissionRequiredMixin, Vie
                 messages.error(request, '❌ La hora de salida debe ser posterior a la hora de entrada.')
                 return redirect('asistencia_justificada')
 
+            archivo = request.FILES.get('archivo_justificacion')
+
             # Crear asistencia ya cerrada
             asistencia = Asistencia.objects.create(
                 trabajador=trabajador,
@@ -2228,6 +2230,8 @@ class AsistenciaJustificadaView(LoginRequiredMixin, PermissionRequiredMixin, Vie
                 observaciones=f'[JUSTIFICADA] {justificacion}\nRegistrada por: {request.user.nombre_completo}',
                 registrado_por=request.user,
                 estado='cerrado',
+                archivo_justificacion=archivo,
+
             )
 
             messages.success(

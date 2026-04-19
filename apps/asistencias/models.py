@@ -292,6 +292,13 @@ class Asistencia(models.Model):
         verbose_name='Motivo de Corrección',
         help_text='Explica por qué se corrigió la marcación'
     )
+    archivo_justificacion = models.FileField(
+        upload_to='asistencias/justificaciones/',
+        blank=True,
+        null=True,
+        verbose_name='Constancia de Justificación',
+        help_text='Foto o documento de soporte para la justificación'
+    )
     hora_entrada_original = models.TimeField(
         null=True,
         blank=True,

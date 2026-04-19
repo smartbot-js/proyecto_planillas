@@ -29,7 +29,7 @@
                 </h3>
             </div>
             <div class="card-body">
-                <form method="POST" id="formJustificada">
+                <form method="POST" id="formJustificada" enctype="multipart/form-data">
                     {% csrf_token %}
                     
                     <div class="form-group">
@@ -84,10 +84,14 @@
                         <textarea name="justificacion" id="justificacion" class="form-control" rows="3" 
                                   placeholder="Ej: Excusa médica presentada, permiso autorizado por gerente, etc." 
                                   required></textarea>
-                        <small class="form-text">Motivo por el cual se registra esta asistencia de forma retroactiva</small>
-                    </div>
-
-                    <div class="form-actions">
+                                  <small class="form-text">Motivo por el cual se registra esta asistencia de forma retroactiva</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="archivo_justificacion">Constancia / Soporte (opcional)</label>
+                                    <input type="file" name="archivo_justificacion" id="archivo_justificacion" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                                    <small class="form-text">Foto o documento de soporte: excusa médica, permiso firmado, etc.</small>
+                                </div>
+                        <div class="form-actions">
                         <button type="submit" class="btn btn-primary">
                             <span class="material-symbols-outlined">check</span>
                             Registrar Asistencia
