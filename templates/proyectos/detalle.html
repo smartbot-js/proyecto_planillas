@@ -705,7 +705,12 @@
                             <span class="info-label">Departamento</span>
                             <span class="info-value">{{ proyecto.departamento|default:"N/A" }}</span>
                         </div>
-                        {% if proyecto.ubicacion_coordenadas %}
+                        {% if proyecto.latitud and proyecto.longitud %}
+                        <div class="info-item full-width">
+                            <span class="info-label">Coordenadas</span>
+                            <span class="info-value">{{ proyecto.latitud }}, {{ proyecto.longitud }}</span>
+                        </div>
+                        {% elif proyecto.ubicacion_coordenadas %}
                         <div class="info-item full-width">
                             <span class="info-label">Coordenadas (Texto)</span>
                             <span class="info-value">{{ proyecto.ubicacion_coordenadas }}</span>
