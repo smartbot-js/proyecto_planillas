@@ -738,11 +738,11 @@ class PlanillaDetalleView(LoginRequiredMixin, View):
             }
         
         # Permisos del usuario (usa rol_codigo property)
-        rc = request.user.rol_codigo
-        
+        rc = request.user.rol_codigo if hasattr(request.user, 'rol_codigo') else ''
         puede_editar = planilla.estado == 'borrador' and (
             request.user.is_superuser or 
-            request.user == planilla.generada_por
+            request.user == planilla.generada_por or
+            rc in ['admin', 'gerente_general', 'gerente_proyecto', 'residente']
         )
         
         puede_aprobar_gerente = (
