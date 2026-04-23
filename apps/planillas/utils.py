@@ -49,7 +49,8 @@ def generar_planilla_desde_asistencias(proyecto, periodo_inicio, periodo_fin, us
         proyecto=proyecto,
         fecha__gte=periodo_inicio,
         fecha__lte=periodo_fin,
-        validado=True  # Solo asistencias validadas
+        validado=True,  # Solo asistencias validadas
+        eliminado=False
     )
     
     if not asistencias.exists():
