@@ -786,20 +786,18 @@
                 <div class="filter-group">
                     <label class="filter-label" for="fecha_inicio">
                         <span class="material-symbols-outlined">event</span>
-                        Fecha Inicio (Opcional)
+                        Fecha Inicio *
                     </label>
                     <input type="date" name="fecha_inicio" id="fecha_inicio" class="filter-input" 
-                           value="{{ request.GET.fecha_inicio }}">
+                           value="{{ request.GET.fecha_inicio }}" required>
                 </div>
-
-                <!-- Fecha Fin (Opcional) -->
                 <div class="filter-group">
                     <label class="filter-label" for="fecha_fin">
                         <span class="material-symbols-outlined">event</span>
-                        Fecha Fin (Opcional)
+                        Fecha Fin *
                     </label>
-                    <input type="date" name="fecha_fin" id="fecha_fin" class="filter-input" 
-                           value="{{ request.GET.fecha_fin }}">
+                    <input type="date" name="fecha_fin" id="fecha_fin" class="filter-input"
+                           value="{{ request.GET.fecha_fin }}" required>
                 </div>
 
             </div>
@@ -835,7 +833,7 @@
 
         {% if reportes_disponibles %}
             {% for reporte in reportes_disponibles %}
-            <div class="reporte-item" onclick="verReporte('{{ reporte.planilla_id }}', '{{ reporte.tipo_planilla }}')">
+            <div class="reporte-item">
                 <div class="reporte-item-left">
                     <div class="reporte-item-header">
                         <span class="reporte-tipo-badge {{ reporte.tipo_planilla }}">{{ reporte.tipo }}</span>
@@ -862,12 +860,21 @@
                 </div>
             </div>
             {% endfor %}
-        {% else %}
+            {% else %}
             <div class="empty-reportes">
                 <span class="material-symbols-outlined">folder_open</span>
                 <h3>No hay planillas disponibles</h3>
                 <p>No se encontraron planillas para {{ proyecto_seleccionado.nombre }}{% if filtro_aplicado %} en el rango seleccionado{% endif %}</p>
             </div>
+        {% endif %}
+        
+        {% if reportes_disponibles %}
+        <div style="display: flex; justify-content: center; margin-top: 24px; padding: 20px; background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0;">
+            <button class="btn btn-success" onclick="generarConsolidado()" style="padding: 14px 32px; font-size: 16px; font-weight: 700;">
+                <span class="material-symbols-outlined">summarize</span>
+                Generar Reporte Consolidado ({{ reportes_disponibles|length }} planillas)
+            </button>
+        </div>
         {% endif %}
     </div>
     {% endif %}
@@ -1207,6 +1214,15 @@ document.getElementById('fecha_fin').addEventListener('change', function() {
     }
 });
 
+function generarConsolidado() {
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set('consolidar', '1');
+    urlParams.delete('planilla_id');
+    urlParams.delete('tipo_planilla');
+    document.getElementById('loadingOverlay').classList.add('active');
+    window.location.href = window.location.pathname + '?' + urlParams.toString();
+}
+
 // Ver reporte específico
 function verReporte(planillaId, tipoPlanilla) {
     const urlParams = new URLSearchParams(window.location.search);
@@ -1229,19 +1245,18 @@ function volverALista() {
 
 // Exportar a Excel
 function exportarExcel() {
-    // Obtener parámetros actuales
     const urlParams = new URLSearchParams(window.location.search);
-    const planillaId = urlParams.get('planilla_id');
-    const tipoPlanilla = urlParams.get('tipo_planilla');
+    const proyecto = urlParams.get('proyecto');
+    const fechaInicio = urlParams.get('fecha_inicio');
+    const fechaFin = urlParams.get('fecha_fin');
     
-    if (!planillaId || !tipoPlanilla) {
-        alert('Por favor genera el reporte primero antes de exportar');
+    if (!proyecto || !fechaInicio || !fechaFin) {
+        alert('Por favor genera el reporte consolidado primero');
         return;
     }
     
-    // Construir URL de exportación
     const exportUrl = '/reportes/proyecto/exportar-excel/' + 
-        `?planilla_id=${planillaId}&tipo_planilla=${tipoPlanilla}`;
+        `?proyecto=${proyecto}&fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
     
     // Mostrar loading
     document.getElementById('loadingOverlay').classList.add('active');

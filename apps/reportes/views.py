@@ -221,117 +221,120 @@ class ReportePorProyectoView(LoginRequiredMixin, TemplateView):
                 context['error'] = 'El proyecto seleccionado no existe'
         
         # ==========================================
-        # MOSTRAR DETALLE DEL REPORTE SELECCIONADO
+        # GENERAR REPORTE CONSOLIDADO
         # ==========================================
-        elif planilla_id and tipo_planilla:
+        elif proyecto_id and self.request.GET.get('consolidar') == '1':
             try:
-                if tipo_planilla == 'trabajadores':
-                    planilla = Planilla.objects.get(id=planilla_id, eliminado=False)
-                    proyecto = planilla.proyecto
+                proyecto = Proyecto.objects.get(id=proyecto_id, eliminado=False)
+                context['proyecto_seleccionado'] = proyecto
+                
+                fecha_inicio_obj = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+                fecha_fin_obj = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+                context['fecha_inicio'] = fecha_inicio
+                context['fecha_fin'] = fecha_fin
+                
+                # Planillas de trabajadores en el rango
+                planillas_trab = Planilla.objects.filter(
+                    proyecto=proyecto,
+                    estado='pagada',
+                    eliminado=False,
+                    periodo_inicio__gte=fecha_inicio_obj,
+                    periodo_fin__lte=fecha_fin_obj
+                )
+                
+                # Planillas de contratistas en el rango
+                planillas_cont = PlanillaContratista.objects.filter(
+                    proyecto=proyecto,
+                    estado='pagada',
+                    eliminado=False,
+                    periodo_inicio__gte=fecha_inicio_obj,
+                    periodo_fin__lte=fecha_fin_obj
+                )
+                
+                # Detalles de trabajadores
+                detalles_trab = DetallePlanilla.objects.filter(
+                    planilla__in=planillas_trab
+                ).select_related('trabajador')
+                
+                oficiales = []
+                ayudantes = []
+                
+                for detalle in detalles_trab:
+                    trabajador_data = {
+                        'nombre': detalle.trabajador.nombre_completo,
+                        'cedula': detalle.trabajador.numero_cedula or '',
+                        'cargo': detalle.cargo or 'N/A',
+                        'dias_trabajados': detalle.dias_laborados or 0,
+                        'dias_feriados': detalle.dias_feriados or 0,
+                        'horas_extras': detalle.horas_extras or Decimal('0.00'),
+                        'salario_dia_base': detalle.salario_dia_base or Decimal('0.00'),
+                        'valor_septimo': detalle.valor_septimo_dia or Decimal('0.00'),
+                        'salario_devengado': detalle.salario_devengado or Decimal('0.00'),
+                        'salario_horas_extras': detalle.salario_horas_extras or Decimal('0.00'),
+                        'ingreso_feriado': detalle.ingreso_dia_feriado or Decimal('0.00'),
+                        'combustible': detalle.combustible or Decimal('0.00'),
+                        'otros': detalle.otros_gastos or Decimal('0.00'),
+                        'deducciones': detalle.deducciones or Decimal('0.00'),
+                        'total_cordobas': detalle.ingreso_total or Decimal('0.00'),
+                        'total_dolares': (detalle.ingreso_total / tipo_cambio) if detalle.ingreso_total else Decimal('0.00'),
+                    }
                     
-                    # Obtener detalles de trabajadores
-                    detalles = DetallePlanilla.objects.filter(
-                        planilla=planilla
-                    ).select_related('trabajador')
-                    
-                    # Separar por cargo
-                    oficiales = []
-                    ayudantes = []
-                    
-                    for detalle in detalles:
-                        trabajador_data = {
-                            'nombre': detalle.trabajador.nombre_completo,
-                            'cargo': detalle.cargo or 'N/A',  # El cargo está en DetallePlanilla, no en Trabajador
-                            'dias_trabajados': detalle.dias_laborados or 0,
-                            'horas_extras': detalle.horas_extras or Decimal('0.00'),
-                            'salario_cordobas': detalle.salario_devengado or Decimal('0.00'),
-                            'salario_dolares': (detalle.salario_devengado / tipo_cambio) if detalle.salario_devengado else Decimal('0.00'),
-                            'bonos': detalle.bonos or Decimal('0.00'),
-                            'deducciones': detalle.deducciones or Decimal('0.00'),
-                            'total_cordobas': detalle.salario_devengado or Decimal('0.00'),
-                            'total_dolares': (detalle.salario_devengado / tipo_cambio) if detalle.salario_devengado else Decimal('0.00'),
-                        }
-                        
-                        cargo_lower = (detalle.cargo or '').lower()
-                        if 'oficial' in cargo_lower or 'maestro' in cargo_lower:
-                            oficiales.append(trabajador_data)
-                        else:
-                            ayudantes.append(trabajador_data)
-                    
-                    context['oficiales'] = oficiales
-                    context['ayudantes'] = ayudantes
-                    context['total_oficiales_cordobas'] = sum(o['total_cordobas'] for o in oficiales)
-                    context['total_oficiales_dolares'] = sum(o['total_dolares'] for o in oficiales)
-                    context['total_ayudantes_cordobas'] = sum(a['total_cordobas'] for a in ayudantes)
-                    context['total_ayudantes_dolares'] = sum(a['total_dolares'] for a in ayudantes)
-                    context['contratistas'] = []
-                    context['total_contratistas_cordobas'] = Decimal('0.00')
-                    context['total_contratistas_dolares'] = Decimal('0.00')
-                    
-                else:  # contratistas
-                    planilla = PlanillaContratista.objects.get(id=planilla_id, eliminado=False)
-                    proyecto = planilla.proyecto
-                    
-                    # Obtener detalles de contratistas
-                    detalles_contratistas = DetallePlanillaContratista.objects.filter(
-                        planilla=planilla
-                    ).select_related('avaluo__contrato__contratista')
-                    
-                    contratistas_data = []
-                    for detalle in detalles_contratistas:
-                        # ContratoProyecto no tiene numero_contrato, usar ID o descripción del avalúo
-                        contrato_ref = f"Contrato #{detalle.avaluo.contrato.id}"
-                        
-                        contratista_data = {
-                            'nombre': detalle.avaluo.contrato.contratista.nombre_completo,
-                            'contrato': contrato_ref,
-                            'descripcion': detalle.avaluo.concepto or 'N/A',
-                            'monto_cordobas': detalle.monto_cordobas or Decimal('0.00'),
-                            'monto_dolares': detalle.monto_dolares or Decimal('0.00'),
-                        }
-                        contratistas_data.append(contratista_data)
-                    
-                    context['contratistas'] = contratistas_data
-                    context['total_contratistas_cordobas'] = sum(c['monto_cordobas'] for c in contratistas_data)
-                    context['total_contratistas_dolares'] = sum(c['monto_dolares'] for c in contratistas_data)
-                    context['oficiales'] = []
-                    context['ayudantes'] = []
-                    context['total_oficiales_cordobas'] = Decimal('0.00')
-                    context['total_oficiales_dolares'] = Decimal('0.00')
-                    context['total_ayudantes_cordobas'] = Decimal('0.00')
-                    context['total_ayudantes_dolares'] = Decimal('0.00')
+                    cargo_lower = (detalle.cargo or '').lower()
+                    area_lower = (detalle.area or '').lower()
+                    if any(w in cargo_lower for w in ['oficial', 'maestro', 'ingeniero', 'fontanero', 'electricista', 'soldador', 'albañil']) or 'oficial' in area_lower:
+                        oficiales.append(trabajador_data)
+                    else:
+                        ayudantes.append(trabajador_data)
+                
+                # Detalles de contratistas
+                detalles_cont = DetallePlanillaContratista.objects.filter(
+                    planilla__in=planillas_cont
+                ).select_related('avaluo__contrato__contratista')
+                
+                contratistas_data = []
+                for detalle in detalles_cont:
+                    contratistas_data.append({
+                        'nombre': detalle.avaluo.contrato.contratista.nombre_completo,
+                        'cedula': detalle.avaluo.contrato.contratista.numero_cedula or '',
+                        'contrato': f"Contrato #{detalle.avaluo.contrato.id}",
+                        'descripcion': detalle.avaluo.concepto or 'N/A',
+                        'monto_cordobas': detalle.monto_cordobas or Decimal('0.00'),
+                        'monto_dolares': detalle.monto_dolares or Decimal('0.00'),
+                    })
+                
+                # Totales
+                context['oficiales'] = oficiales
+                context['ayudantes'] = ayudantes
+                context['contratistas'] = contratistas_data
+                
+                context['total_oficiales_cordobas'] = sum(o['total_cordobas'] for o in oficiales)
+                context['total_oficiales_dolares'] = sum(o['total_dolares'] for o in oficiales)
+                context['total_ayudantes_cordobas'] = sum(a['total_cordobas'] for a in ayudantes)
+                context['total_ayudantes_dolares'] = sum(a['total_dolares'] for a in ayudantes)
+                context['total_contratistas_cordobas'] = sum(c['monto_cordobas'] for c in contratistas_data)
+                context['total_contratistas_dolares'] = sum(c['monto_dolares'] for c in contratistas_data)
                 
                 # Resumen por área
                 resumen = [
-                    {
-                        'area': 'Oficiales',
-                        'total_cordobas': context['total_oficiales_cordobas'],
-                        'total_dolares': context['total_oficiales_dolares'],
-                    },
-                    {
-                        'area': 'Ayudantes',
-                        'total_cordobas': context['total_ayudantes_cordobas'],
-                        'total_dolares': context['total_ayudantes_dolares'],
-                    },
-                    {
-                        'area': 'Sub-Contratistas',
-                        'total_cordobas': context['total_contratistas_cordobas'],
-                        'total_dolares': context['total_contratistas_dolares'],
-                    },
+                    {'area': 'Oficiales', 'total_cordobas': context['total_oficiales_cordobas'], 'total_dolares': context['total_oficiales_dolares']},
+                    {'area': 'Ayudantes', 'total_cordobas': context['total_ayudantes_cordobas'], 'total_dolares': context['total_ayudantes_dolares']},
+                    {'area': 'Sub-Contratistas', 'total_cordobas': context['total_contratistas_cordobas'], 'total_dolares': context['total_contratistas_dolares']},
                 ]
                 
                 context['resumen'] = resumen
                 context['gran_total_cordobas'] = sum(r['total_cordobas'] for r in resumen)
                 context['gran_total_dolares'] = sum(r['total_dolares'] for r in resumen)
-                context['proyecto_seleccionado'] = proyecto
-                context['fecha_inicio'] = planilla.periodo_inicio
-                context['fecha_fin'] = planilla.periodo_fin
+                context['planillas_incluidas_trab'] = planillas_trab.count()
+                context['planillas_incluidas_cont'] = planillas_cont.count()
                 context['datos_reporte'] = True
                 
-            except (Planilla.DoesNotExist, PlanillaContratista.DoesNotExist):
-                context['error'] = 'La planilla seleccionada no existe'
+            except Proyecto.DoesNotExist:
+                context['error'] = 'El proyecto seleccionado no existe'
+            except Exception as e:
+                context['error'] = f'Error al generar reporte: {str(e)}'
         
         return context
+
 
 class ReportePlanillaAdministrativaView(LoginRequiredMixin, TemplateView):
     """
@@ -1518,7 +1521,7 @@ class ExportarReporteProyectoExcelView(LoginRequiredMixin, PermissionRequiredMix
                 ws.row_dimensions[1].height = 40
         except:
             pass
-        
+
 # ============================================================================
 # 1. EXPORTAR CONSOLIDADO DE PROYECTOS
 # ============================================================================
