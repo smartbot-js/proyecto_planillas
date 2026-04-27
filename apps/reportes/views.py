@@ -1122,403 +1122,403 @@ class ReportePlanillaTotalView(LoginRequiredMixin, TemplateView):
 
 class ExportarReporteProyectoExcelView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """
-    Vista para exportar el reporte por proyecto a Excel con formato profesional
+    Exportar reporte por proyecto a Excel con múltiples hojas:
+    - RESUMEN: Totales por área
+    - PLANILLA: Detalle de trabajadores (oficiales + ayudantes)
+    - SUB-CONTRATISTAS: Detalle de contratistas/avalúos
     """
     permission_modulo = 'reportes'
     permission_accion = 'exportar'
 
     def get(self, request, *args, **kwargs):
-        # Obtener parámetros
+        proyecto_id = request.GET.get('proyecto')
         planilla_id = request.GET.get('planilla_id')
         tipo_planilla = request.GET.get('tipo_planilla')
+        fecha_inicio = request.GET.get('fecha_inicio')
+        fecha_fin = request.GET.get('fecha_fin')
         
-        if not planilla_id or not tipo_planilla:
+        if not proyecto_id and not planilla_id:
             return HttpResponse('Parámetros incompletos', status=400)
         
-        # Crear workbook
-        wb = Workbook()
-        wb.remove(wb.active)  # Remover hoja por defecto
-        
-        # Obtener configuración
-        configuracion = ConfiguracionEmpresa.get_configuracion()
-        tipo_cambio = get_tipo_cambio_actual()
-        
         try:
-            # Obtener datos según tipo de planilla
-            if tipo_planilla == 'trabajadores':
-                planilla = Planilla.objects.get(id=planilla_id, eliminado=False)
-                proyecto = planilla.proyecto
-                
-                # Obtener detalles
-                detalles = DetallePlanilla.objects.filter(
-                    planilla=planilla
-                ).select_related('trabajador')
-                
-                # Separar por cargo
-                oficiales = []
-                ayudantes = []
-                
-                for detalle in detalles:
-                    data = {
-                        'nombre': detalle.trabajador.nombre_completo,
-                        'cargo': detalle.cargo or 'N/A',
-                        'dias': detalle.dias_laborados or 0,
-                        'horas_extras': detalle.horas_extras or Decimal('0.00'),
-                        'cordobas': detalle.salario_devengado or Decimal('0.00'),
-                        'dolares': (detalle.salario_devengado / tipo_cambio) if detalle.salario_devengado else Decimal('0.00'),
-                    }
-                    
-                    cargo_lower = (detalle.cargo or '').lower()
-                    if 'oficial' in cargo_lower or 'maestro' in cargo_lower:
-                        oficiales.append(data)
-                    else:
-                        ayudantes.append(data)
-                
-                contratistas = []
-                
-            else:  # contratistas
-                planilla = PlanillaContratista.objects.get(id=planilla_id, eliminado=False)
-                proyecto = planilla.proyecto
-                
-                # Obtener detalles
-                detalles = DetallePlanillaContratista.objects.filter(
-                    planilla=planilla
-                ).select_related('avaluo__contrato__contratista')
-                
-                contratistas = []
-                for detalle in detalles:
-                    contratistas.append({
-                        'nombre': detalle.avaluo.contrato.contratista.nombre_completo,
-                        'contrato': f"Contrato #{detalle.avaluo.contrato.id}",
-                        'descripcion': detalle.avaluo.descripcion_trabajo or 'N/A',
-                        'cordobas': detalle.monto_cordobas or Decimal('0.00'),
-                        'dolares': detalle.monto_dolares or Decimal('0.00'),
-                    })
-                
-                oficiales = []
-                ayudantes = []
+            config = ConfiguracionEmpresa.get_configuracion()
+            tipo_cambio = get_tipo_cambio_actual()
             
-            # Calcular totales
-            total_oficiales_c = sum(o['cordobas'] for o in oficiales)
-            total_oficiales_d = sum(o['dolares'] for o in oficiales)
-            total_ayudantes_c = sum(a['cordobas'] for a in ayudantes)
-            total_ayudantes_d = sum(a['dolares'] for a in ayudantes)
-            total_contratistas_c = sum(c['cordobas'] for c in contratistas)
-            total_contratistas_d = sum(c['dolares'] for c in contratistas)
+            # Determinar proyecto
+            if planilla_id and tipo_planilla:
+                if tipo_planilla == 'trabajadores':
+                    planilla_ref = Planilla.objects.get(id=planilla_id, eliminado=False)
+                else:
+                    planilla_ref = PlanillaContratista.objects.get(id=planilla_id, eliminado=False)
+                proyecto = planilla_ref.proyecto
+                periodo_inicio = planilla_ref.periodo_inicio
+                periodo_fin = planilla_ref.periodo_fin
+            else:
+                proyecto = Proyecto.objects.get(id=proyecto_id, eliminado=False)
+                periodo_inicio = datetime.strptime(fecha_inicio, '%Y-%m-%d').date() if fecha_inicio else None
+                periodo_fin = datetime.strptime(fecha_fin, '%Y-%m-%d').date() if fecha_fin else None
+            
+            # =============================================
+            # OBTENER DATOS DE TRABAJADORES
+            # =============================================
+            planillas_trab_qs = Planilla.objects.filter(
+                proyecto=proyecto, estado='pagada', eliminado=False
+            )
+            if periodo_inicio and periodo_fin:
+                planillas_trab_qs = planillas_trab_qs.filter(
+                    periodo_inicio__gte=periodo_inicio, periodo_fin__lte=periodo_fin
+                )
+            
+            detalles_trabajadores = DetallePlanilla.objects.filter(
+                planilla__in=planillas_trab_qs
+            ).select_related('trabajador')
+            
+            oficiales = []
+            ayudantes = []
+            
+            for d in detalles_trabajadores:
+                data = {
+                    'nombre': d.trabajador.nombre_completo,
+                    'cedula': d.trabajador.numero_cedula or '',
+                    'cargo': d.cargo or 'N/A',
+                    'area': d.area or '',
+                    'dias_laborados': d.dias_laborados or 0,
+                    'dias_feriados': d.dias_feriados or 0,
+                    'horas_extras': float(d.horas_extras or 0),
+                    'salario_dia_base': float(d.salario_dia_base or 0),
+                    'valor_septimo': float(d.valor_septimo_dia or 0),
+                    'salario_con_septimo': float(d.salario_diario_con_septimo or 0),
+                    'valor_hora_base': float(d.valor_hora_base or 0),
+                    'salario_devengado': float(d.salario_devengado or 0),
+                    'salario_horas_extras': float(d.salario_horas_extras or 0),
+                    'ingreso_feriado': float(d.ingreso_dia_feriado or 0),
+                    'bonos': float(d.bonos or 0),
+                    'combustible': float(d.combustible or 0),
+                    'otros': float(d.otros_gastos or 0),
+                    'deducciones': float(d.deducciones or 0),
+                    'ingreso_total': float(d.ingreso_total or 0),
+                    'total_dolares': float(d.ingreso_total / tipo_cambio) if d.ingreso_total else 0,
+                }
+                
+                cargo_lower = (d.cargo or '').lower()
+                area_lower = (d.area or '').lower()
+                if any(w in cargo_lower for w in ['oficial', 'maestro', 'ingeniero', 'fontanero', 'electricista', 'soldador', 'albañil']):
+                    oficiales.append(data)
+                elif 'oficial' in area_lower:
+                    oficiales.append(data)
+                else:
+                    ayudantes.append(data)
+            
+            # =============================================
+            # OBTENER DATOS DE CONTRATISTAS
+            # =============================================
+            planillas_cont_qs = PlanillaContratista.objects.filter(
+                proyecto=proyecto, estado='pagada', eliminado=False
+            )
+            if periodo_inicio and periodo_fin:
+                planillas_cont_qs = planillas_cont_qs.filter(
+                    periodo_inicio__gte=periodo_inicio, periodo_fin__lte=periodo_fin
+                )
+            
+            detalles_contratistas = DetallePlanillaContratista.objects.filter(
+                planilla__in=planillas_cont_qs
+            ).select_related('avaluo__contrato__contratista')
+            
+            contratistas = []
+            for d in detalles_contratistas:
+                contratistas.append({
+                    'nombre': d.avaluo.contrato.contratista.nombre_completo,
+                    'cedula': d.avaluo.contrato.contratista.numero_cedula or '',
+                    'descripcion': d.avaluo.concepto or 'N/A',
+                    'monto_cordobas': float(d.monto_cordobas or 0),
+                    'monto_dolares': float(d.monto_dolares or 0),
+                })
+            
+            # =============================================
+            # CALCULAR TOTALES
+            # =============================================
+            total_oficiales_c = sum(o['ingreso_total'] for o in oficiales)
+            total_ayudantes_c = sum(a['ingreso_total'] for a in ayudantes)
+            total_contratistas_c = sum(c['monto_cordobas'] for c in contratistas)
+            
+            total_oficiales_d = sum(o['total_dolares'] for o in oficiales)
+            total_ayudantes_d = sum(a['total_dolares'] for a in ayudantes)
+            total_contratistas_d = sum(c['monto_dolares'] for c in contratistas)
             
             gran_total_c = total_oficiales_c + total_ayudantes_c + total_contratistas_c
             gran_total_d = total_oficiales_d + total_ayudantes_d + total_contratistas_d
             
-            # Crear hojas con datos
-            if oficiales:
-                self._crear_hoja_trabajadores(wb, 'Oficiales', oficiales, total_oficiales_c, total_oficiales_d, 
-                                              configuracion, proyecto, planilla, tipo_cambio)
+            # =============================================
+            # CREAR EXCEL
+            # =============================================
+            wb = Workbook()
+            wb.remove(wb.active)
             
-            if ayudantes:
-                self._crear_hoja_trabajadores(wb, 'Ayudantes', ayudantes, total_ayudantes_c, total_ayudantes_d,
-                                              configuracion, proyecto, planilla, tipo_cambio)
+            periodo_str = f'{periodo_inicio.strftime("%d/%m/%Y")} al {periodo_fin.strftime("%d/%m/%Y")}' if periodo_inicio and periodo_fin else 'Todas las planillas'
             
-            if contratistas:
-                self._crear_hoja_contratistas(wb, contratistas, total_contratistas_c, total_contratistas_d,
-                                              configuracion, proyecto, planilla, tipo_cambio)
-            
-            # Crear hoja de resumen
-            self._crear_hoja_resumen(wb, {
+            # Hoja RESUMEN
+            self._crear_hoja_resumen(wb, proyecto, periodo_str, tipo_cambio, {
                 'Oficiales': (total_oficiales_c, total_oficiales_d),
                 'Ayudantes': (total_ayudantes_c, total_ayudantes_d),
                 'Sub-Contratistas': (total_contratistas_c, total_contratistas_d),
-            }, gran_total_c, gran_total_d, configuracion, proyecto, planilla, tipo_cambio)
+            }, gran_total_c, gran_total_d)
             
-            # Preparar respuesta
+            # Hoja OFICIALES
+            if oficiales:
+                self._crear_hoja_planilla(wb, 'OFICIALES', 'PLANILLA OFICIALES', oficiales,
+                                          total_oficiales_c, total_oficiales_d, proyecto, periodo_str, tipo_cambio)
+            
+            # Hoja AYUDANTES
+            if ayudantes:
+                self._crear_hoja_planilla(wb, 'AYUDANTES', 'PLANILLA DE AYUDANTES', ayudantes,
+                                          total_ayudantes_c, total_ayudantes_d, proyecto, periodo_str, tipo_cambio)
+            
+            # Hoja SUB-CONTRATISTAS
+            if contratistas:
+                self._crear_hoja_contratistas(wb, contratistas, total_contratistas_c, total_contratistas_d,
+                                              proyecto, periodo_str, tipo_cambio)
+            
+            # Respuesta
             response = HttpResponse(
                 content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
-            
-            filename = f'Reporte_{proyecto.nombre}_{planilla.periodo_inicio}_{planilla.periodo_fin}.xlsx'
-            filename = filename.replace(' ', '_').replace('/', '-')
+            filename = f'Planilla_Proyecto_{proyecto.nombre}.xlsx'.replace(' ', '_')
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
-            
             wb.save(response)
             return response
             
-        except (Planilla.DoesNotExist, PlanillaContratista.DoesNotExist):
-            return HttpResponse('Planilla no encontrada', status=404)
+        except (Planilla.DoesNotExist, PlanillaContratista.DoesNotExist, Proyecto.DoesNotExist):
+            return HttpResponse('No encontrado', status=404)
+        except Exception as e:
+            return HttpResponse(f'Error: {str(e)}', status=500)
     
-    def _crear_hoja_trabajadores(self, wb, nombre_hoja, datos, total_c, total_d, config, proyecto, planilla, tipo_cambio):
-        """Crear hoja de Excel para trabajadores (Oficiales o Ayudantes)"""
-        ws = wb.create_sheet(nombre_hoja)
-        
-        # Estilos
-        header_fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
-        header_font = Font(bold=True, color='FFFFFF', size=11)
+    def _estilos(self):
+        header_fill = PatternFill(start_color='2F5496', end_color='2F5496', fill_type='solid')
+        header_font = Font(bold=True, color='FFFFFF', size=10, name='Arial')
         border = Border(
-            left=Side(style='thin'),
-            right=Side(style='thin'),
-            top=Side(style='thin'),
-            bottom=Side(style='thin')
+            left=Side(style='thin', color='D1D5DB'),
+            right=Side(style='thin', color='D1D5DB'),
+            top=Side(style='thin', color='D1D5DB'),
+            bottom=Side(style='thin', color='D1D5DB')
         )
-        
-        # Agregar logo (ocupa A1:A2 con altura ajustada)
+        total_fill = PatternFill(start_color='F0FDF4', end_color='F0FDF4', fill_type='solid')
+        total_font = Font(bold=True, size=10, name='Arial', color='065F46')
+        return header_fill, header_font, border, total_fill, total_font
+    
+    def _encabezado(self, ws, proyecto, periodo_str, tipo_cambio, subtitulo):
         self._agregar_logo(ws, 'A1')
+        ws.merge_cells('A1:E1')
+        ws['A1'] = f'PROYECTO: {proyecto.nombre.upper()}'
+        ws['A1'].font = Font(bold=True, size=14, name='Arial', color='1F4788')
         
-        # Título del reporte
-        ws.merge_cells('B1:F2')
-        ws['B1'] = f'Reporte de Planilla - {nombre_hoja}'
-        ws['B1'].font = Font(bold=True, size=14)
-        ws['B1'].alignment = Alignment(horizontal='center', vertical='center')
+        ws.merge_cells('A2:E2')
+        ws['A2'] = 'PLANILLA DE PAGOS'
+        ws['A2'].font = Font(bold=True, size=12, name='Arial', color='1F4788')
         
-        # Información del proyecto
-        row = 3
-        info_data = [
-            ('Proyecto:', proyecto.nombre),
-            ('Periodo:', f'{planilla.periodo_inicio} al {planilla.periodo_fin}'),
-            ('Tipo de Cambio:', f'C$ {tipo_cambio}'),
-            ('Fecha de Generación:', datetime.now().strftime('%d/%m/%Y')),
-        ]
+        ws.merge_cells('A3:E3')
+        ws['A3'] = subtitulo
+        ws['A3'].font = Font(bold=True, size=11, name='Arial')
         
-        for label, value in info_data:
-            ws[f'A{row}'] = label
-            ws[f'A{row}'].font = Font(bold=True)
-            ws[f'B{row}'] = value
-            row += 1
+        ws['A4'] = 'FECHA:'
+        ws['A4'].font = Font(bold=True, size=10, name='Arial')
+        ws['B4'] = datetime.now().strftime('%d DE %B DE %Y').upper()
+        ws['B4'].font = Font(size=10, name='Arial')
         
-        # Encabezados de tabla
-        row += 1
-        headers = ['Nombre', 'Cargo', 'Días', 'Horas Extras', 'Córdobas (C$)', 'Dólares (USD)']
-        for col, header in enumerate(headers, 1):
-            cell = ws.cell(row=row, column=col, value=header)
+        ws['A5'] = 'PERIODO:'
+        ws['A5'].font = Font(bold=True, size=10, name='Arial')
+        ws['B5'] = periodo_str
+        ws['B5'].font = Font(size=10, name='Arial')
+        
+        ws['A6'] = 'TIPO DE CAMBIO BCN:'
+        ws['A6'].font = Font(bold=True, size=10, name='Arial')
+        ws['D6'] = float(tipo_cambio)
+        ws['D6'].font = Font(size=10, name='Arial')
+    
+    def _crear_hoja_resumen(self, wb, proyecto, periodo_str, tipo_cambio, totales, gran_total_c, gran_total_d):
+        ws = wb.create_sheet('RESUMEN', 0)
+        header_fill, header_font, border, total_fill, total_font = self._estilos()
+        
+        self._encabezado(ws, proyecto, periodo_str, tipo_cambio, '')
+        
+        # Tasa de cambio
+        ws['A6'] = 'Tasa de Cambio'
+        ws['C6'] = float(tipo_cambio)
+        
+        # Headers tabla
+        row = 9
+        headers = ['N°', 'Area', '', 'SALARIO TOTAL', 'TOTAL EN DOLAR PROYECTO']
+        for col, h in enumerate(headers, 1):
+            cell = ws.cell(row=row, column=col, value=h)
             cell.fill = header_fill
             cell.font = header_font
-            cell.alignment = Alignment(horizontal='center', vertical='center')
             cell.border = border
+            cell.alignment = Alignment(horizontal='center')
         
         # Datos
-        row += 1
-        for trabajador in datos:
-            ws.cell(row=row, column=1, value=trabajador['nombre']).border = border
-            ws.cell(row=row, column=2, value=trabajador['cargo']).border = border
-            ws.cell(row=row, column=3, value=trabajador['dias']).border = border
-            ws.cell(row=row, column=4, value=float(trabajador['horas_extras'])).border = border
-            ws.cell(row=row, column=5, value=float(trabajador['cordobas'])).border = border
-            ws.cell(row=row, column=5).number_format = '#,##0.00'
-            ws.cell(row=row, column=6, value=float(trabajador['dolares'])).border = border
-            ws.cell(row=row, column=6).number_format = '#,##0.00'
+        row = 10
+        num = 1
+        for area, (total_c, total_d) in totales.items():
+            ws.cell(row=row, column=1, value=num).border = border
+            ws.cell(row=row, column=1).alignment = Alignment(horizontal='center')
+            ws.cell(row=row, column=2, value=area).border = border
+            ws.cell(row=row, column=3).border = border
+            cell_c = ws.cell(row=row, column=4, value=total_c)
+            cell_c.border = border
+            cell_c.number_format = '#,##0.00'
+            cell_d = ws.cell(row=row, column=5, value=total_d)
+            cell_d.border = border
+            cell_d.number_format = '#,##0.00'
+            num += 1
             row += 1
         
         # Totales
-        ws.cell(row=row, column=1, value='TOTAL').font = Font(bold=True)
-        ws.cell(row=row, column=1).border = border
-        for col in range(2, 5):
+        ws.cell(row=row, column=1, value='TOTAL CÓRDOBAS').font = Font(bold=True, name='Arial')
+        ws.cell(row=row, column=4, value=gran_total_c).font = Font(bold=True, name='Arial')
+        ws.cell(row=row, column=4).number_format = '#,##0.00'
+        for col in range(1, 6):
             ws.cell(row=row, column=col).border = border
-        ws.cell(row=row, column=5, value=float(total_c)).border = border
-        ws.cell(row=row, column=5).number_format = '#,##0.00'
-        ws.cell(row=row, column=5).font = Font(bold=True)
-        ws.cell(row=row, column=6, value=float(total_d)).border = border
-        ws.cell(row=row, column=6).number_format = '#,##0.00'
-        ws.cell(row=row, column=6).font = Font(bold=True)
+            ws.cell(row=row, column=col).fill = total_fill
         
-        # Ajustar anchos
-        ws.column_dimensions['A'].width = 35
-        ws.column_dimensions['B'].width = 20
-        ws.column_dimensions['C'].width = 10
-        ws.column_dimensions['D'].width = 15
+        row += 1
+        ws.cell(row=row, column=1, value='TOTAL DÓLARES').font = Font(bold=True, name='Arial')
+        ws.cell(row=row, column=4, value=gran_total_d).font = Font(bold=True, name='Arial')
+        ws.cell(row=row, column=4).number_format = '#,##0.00'
+        for col in range(1, 6):
+            ws.cell(row=row, column=col).border = border
+            ws.cell(row=row, column=col).fill = total_fill
+        
+        ws.column_dimensions['A'].width = 8
+        ws.column_dimensions['B'].width = 35
+        ws.column_dimensions['C'].width = 5
+        ws.column_dimensions['D'].width = 20
+        ws.column_dimensions['E'].width = 25
+    
+    def _crear_hoja_planilla(self, wb, nombre_hoja, subtitulo, datos, total_c, total_d, proyecto, periodo_str, tipo_cambio):
+        ws = wb.create_sheet(nombre_hoja)
+        header_fill, header_font, border, total_fill, total_font = self._estilos()
+        
+        self._encabezado(ws, proyecto, periodo_str, tipo_cambio, subtitulo)
+        
+        # Headers
+        row = 8
+        headers = ['N°', 'NOMBRE Y APELLIDO', 'CÉDULA', 'CARGO', 'DÍAS LAB.', 'DÍAS FER.',
+                   'H. EXTRAS', 'DÍA BASE', 'VALOR 7MO', 'SAL. BASE+7MO', 'VALOR HORA',
+                   'SAL. DEVENGADO', 'SAL. H.E.', 'INGR. FERIADO', 'BONO', 'COMBUSTIBLE',
+                   'OTROS', 'DEDUCCIÓN', 'TOTAL C$', 'TOTAL USD', 'FIRMA']
+        
+        for col, h in enumerate(headers, 1):
+            cell = ws.cell(row=row, column=col, value=h)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.border = border
+            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        
+        # Datos
+        row = 9
+        for i, d in enumerate(datos, 1):
+            vals = [
+                i, d['nombre'], d['cedula'], d['cargo'], d['dias_laborados'], d['dias_feriados'],
+                d['horas_extras'], d['salario_dia_base'], d['valor_septimo'], d['salario_con_septimo'],
+                d['valor_hora_base'], d['salario_devengado'], d['salario_horas_extras'],
+                d['ingreso_feriado'], d['bonos'], d['combustible'], d['otros'], d['deducciones'],
+                d['ingreso_total'], d['total_dolares'], ''
+            ]
+            for col, val in enumerate(vals, 1):
+                cell = ws.cell(row=row, column=col, value=val)
+                cell.border = border
+                cell.font = Font(size=9, name='Arial')
+                if col >= 8 and col <= 20:
+                    cell.number_format = '#,##0.00'
+                if col in [1, 5, 6]:
+                    cell.alignment = Alignment(horizontal='center')
+            row += 1
+        
+        # Total
+        ws.cell(row=row, column=1, value='TOTAL:').font = Font(bold=True, name='Arial')
+        ws.cell(row=row, column=19, value=total_c).font = Font(bold=True, name='Arial')
+        ws.cell(row=row, column=19).number_format = '#,##0.00'
+        ws.cell(row=row, column=20, value=total_d).font = Font(bold=True, name='Arial')
+        ws.cell(row=row, column=20).number_format = '#,##0.00'
+        for col in range(1, 22):
+            ws.cell(row=row, column=col).border = border
+            ws.cell(row=row, column=col).fill = total_fill
+        
+        row += 1
+        ws.cell(row=row, column=1, value='TOTAL DÓLARES:').font = Font(bold=True, name='Arial')
+        ws.cell(row=row, column=19, value=total_d).font = Font(bold=True, name='Arial')
+        ws.cell(row=row, column=19).number_format = '#,##0.00'
+        
+        # Anchos
+        widths = [5, 30, 18, 18, 8, 8, 8, 12, 12, 14, 10, 14, 12, 12, 10, 12, 10, 12, 14, 14, 12]
+        for i, w in enumerate(widths, 1):
+            ws.column_dimensions[get_column_letter(i)].width = w
+    
+    def _crear_hoja_contratistas(self, wb, datos, total_c, total_d, proyecto, periodo_str, tipo_cambio):
+        ws = wb.create_sheet('SUB-CONTRATISTA')
+        header_fill, header_font, border, total_fill, total_font = self._estilos()
+        
+        self._encabezado(ws, proyecto, periodo_str, tipo_cambio, 'SUBCONTRATISTAS')
+        
+        # Headers
+        row = 8
+        headers = ['N°', 'NOMBRE Y APELLIDO', 'CÉDULA', 'DESCRIPCIÓN', 'PAGO C$', 'PAGO USD', 'FIRMA']
+        
+        for col, h in enumerate(headers, 1):
+            cell = ws.cell(row=row, column=col, value=h)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.border = border
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+        
+        # Datos
+        row = 9
+        for i, d in enumerate(datos, 1):
+            vals = [i, d['nombre'], d['cedula'], d['descripcion'], d['monto_cordobas'], d['monto_dolares'], '']
+            for col, val in enumerate(vals, 1):
+                cell = ws.cell(row=row, column=col, value=val)
+                cell.border = border
+                cell.font = Font(size=9, name='Arial')
+                if col in [5, 6]:
+                    cell.number_format = '#,##0.00'
+            row += 1
+        
+        # Total
+        ws.cell(row=row, column=1, value='TOTAL EN CÓRDOBAS').font = Font(bold=True, name='Arial')
+        ws.cell(row=row, column=5, value=total_c).font = Font(bold=True, name='Arial')
+        ws.cell(row=row, column=5).number_format = '#,##0.00'
+        for col in range(1, 8):
+            ws.cell(row=row, column=col).border = border
+            ws.cell(row=row, column=col).fill = total_fill
+        
+        row += 1
+        ws.cell(row=row, column=1, value='TOTAL EN DÓLARES').font = Font(bold=True, name='Arial')
+        ws.cell(row=row, column=5, value=total_d).font = Font(bold=True, name='Arial')
+        ws.cell(row=row, column=5).number_format = '#,##0.00'
+        for col in range(1, 8):
+            ws.cell(row=row, column=col).border = border
+            ws.cell(row=row, column=col).fill = total_fill
+        
+        # Anchos
+        ws.column_dimensions['A'].width = 5
+        ws.column_dimensions['B'].width = 30
+        ws.column_dimensions['C'].width = 20
+        ws.column_dimensions['D'].width = 45
         ws.column_dimensions['E'].width = 18
         ws.column_dimensions['F'].width = 18
-    
-    def _crear_hoja_contratistas(self, wb, datos, total_c, total_d, config, proyecto, planilla, tipo_cambio):
-        """Crear hoja de Excel para contratistas"""
-        ws = wb.create_sheet('Sub-Contratistas')
-        
-        # Estilos
-        header_fill = PatternFill(start_color='F4B084', end_color='F4B084', fill_type='solid')
-        header_font = Font(bold=True, color='FFFFFF', size=11)
-        border = Border(
-            left=Side(style='thin'),
-            right=Side(style='thin'),
-            top=Side(style='thin'),
-            bottom=Side(style='thin')
-        )
-        
-        # Agregar logo (ocupa A1:A2 con altura ajustada)
-        self._agregar_logo(ws, 'A1')
-        
-        # Título del reporte
-        ws.merge_cells('B1:E2')
-        ws['B1'] = 'Reporte de Planilla - Sub-Contratistas'
-        ws['B1'].font = Font(bold=True, size=14)
-        ws['B1'].alignment = Alignment(horizontal='center', vertical='center')
-        
-        # Información del proyecto
-        row = 3
-        info_data = [
-            ('Proyecto:', proyecto.nombre),
-            ('Periodo:', f'{planilla.periodo_inicio} al {planilla.periodo_fin}'),
-            ('Tipo de Cambio:', f'C$ {tipo_cambio}'),
-            ('Fecha de Generación:', datetime.now().strftime('%d/%m/%Y')),
-        ]
-        
-        for label, value in info_data:
-            ws[f'A{row}'] = label
-            ws[f'A{row}'].font = Font(bold=True)
-            ws[f'B{row}'] = value
-            row += 1
-        
-        # Encabezados de tabla
-        row += 1
-        headers = ['Nombre', 'Contrato', 'Descripción', 'Córdobas (C$)', 'Dólares (USD)']
-        for col, header in enumerate(headers, 1):
-            cell = ws.cell(row=row, column=col, value=header)
-            cell.fill = header_fill
-            cell.font = header_font
-            cell.alignment = Alignment(horizontal='center', vertical='center')
-            cell.border = border
-        
-        # Datos
-        row += 1
-        for contratista in datos:
-            ws.cell(row=row, column=1, value=contratista['nombre']).border = border
-            ws.cell(row=row, column=2, value=contratista['contrato']).border = border
-            ws.cell(row=row, column=3, value=contratista['descripcion']).border = border
-            ws.cell(row=row, column=4, value=float(contratista['cordobas'])).border = border
-            ws.cell(row=row, column=4).number_format = '#,##0.00'
-            ws.cell(row=row, column=5, value=float(contratista['dolares'])).border = border
-            ws.cell(row=row, column=5).number_format = '#,##0.00'
-            row += 1
-        
-        # Totales
-        ws.cell(row=row, column=1, value='TOTAL').font = Font(bold=True)
-        ws.cell(row=row, column=1).border = border
-        for col in range(2, 4):
-            ws.cell(row=row, column=col).border = border
-        ws.cell(row=row, column=4, value=float(total_c)).border = border
-        ws.cell(row=row, column=4).number_format = '#,##0.00'
-        ws.cell(row=row, column=4).font = Font(bold=True)
-        ws.cell(row=row, column=5, value=float(total_d)).border = border
-        ws.cell(row=row, column=5).number_format = '#,##0.00'
-        ws.cell(row=row, column=5).font = Font(bold=True)
-        
-        # Ajustar anchos
-        ws.column_dimensions['A'].width = 35
-        ws.column_dimensions['B'].width = 18
-        ws.column_dimensions['C'].width = 40
-        ws.column_dimensions['D'].width = 18
-        ws.column_dimensions['E'].width = 18
-    
-    def _crear_hoja_resumen(self, wb, totales, gran_total_c, gran_total_d, config, proyecto, planilla, tipo_cambio):
-        """Crear hoja de resumen con totales por área"""
-        ws = wb.create_sheet('Resumen', 0)  # Primera posición
-        
-        # Estilos
-        header_fill = PatternFill(start_color='70AD47', end_color='70AD47', fill_type='solid')
-        header_font = Font(bold=True, color='FFFFFF', size=11)
-        total_fill = PatternFill(start_color='FFD966', end_color='FFD966', fill_type='solid')
-        border = Border(
-            left=Side(style='thin'),
-            right=Side(style='thin'),
-            top=Side(style='thin'),
-            bottom=Side(style='thin')
-        )
-        
-        # Agregar logo (ocupa A1:A2 con altura ajustada)
-        self._agregar_logo(ws, 'A1')
-        
-        # Título del reporte
-        ws.merge_cells('B1:D2')
-        ws['B1'] = 'Resumen General del Proyecto'
-        ws['B1'].font = Font(bold=True, size=14)
-        ws['B1'].alignment = Alignment(horizontal='center', vertical='center')
-        
-        # Información del proyecto
-        row = 3
-        info_data = [
-            ('Proyecto:', proyecto.nombre),
-            ('Periodo:', f'{planilla.periodo_inicio} al {planilla.periodo_fin}'),
-            ('Tipo de Cambio:', f'C$ {tipo_cambio}'),
-            ('Fecha de Generación:', datetime.now().strftime('%d/%m/%Y')),
-        ]
-        
-        for label, value in info_data:
-            ws[f'A{row}'] = label
-            ws[f'A{row}'].font = Font(bold=True)
-            ws[f'B{row}'] = value
-            row += 1
-        
-        # Encabezados de tabla
-        row += 1
-        headers = ['Área', 'Córdobas (C$)', 'Dólares (USD)', '% Participación']
-        for col, header in enumerate(headers, 1):
-            cell = ws.cell(row=row, column=col, value=header)
-            cell.fill = header_fill
-            cell.font = header_font
-            cell.alignment = Alignment(horizontal='center', vertical='center')
-            cell.border = border
-        
-        # Datos
-        row += 1
-        for area, (total_c, total_d) in totales.items():
-            ws.cell(row=row, column=1, value=area).border = border
-            ws.cell(row=row, column=2, value=float(total_c)).border = border
-            ws.cell(row=row, column=2).number_format = '#,##0.00'
-            ws.cell(row=row, column=3, value=float(total_d)).border = border
-            ws.cell(row=row, column=3).number_format = '#,##0.00'
-            
-            # Porcentaje
-            porcentaje = (total_c / gran_total_c * 100) if gran_total_c > 0 else 0
-            ws.cell(row=row, column=4, value=float(porcentaje)).border = border
-            ws.cell(row=row, column=4).number_format = '0.00"%"'
-            row += 1
-        
-        # Gran Total
-        for col in range(1, 5):
-            ws.cell(row=row, column=col).fill = total_fill
-            ws.cell(row=row, column=col).border = border
-        
-        ws.cell(row=row, column=1, value='TOTAL GENERAL').font = Font(bold=True, size=12)
-        ws.cell(row=row, column=2, value=float(gran_total_c)).font = Font(bold=True, size=12)
-        ws.cell(row=row, column=2).number_format = '#,##0.00'
-        ws.cell(row=row, column=3, value=float(gran_total_d)).font = Font(bold=True, size=12)
-        ws.cell(row=row, column=3).number_format = '#,##0.00'
-        ws.cell(row=row, column=4, value=100.0).font = Font(bold=True, size=12)
-        ws.cell(row=row, column=4).number_format = '0.00"%"'
-        
-        # Ajustar anchos
-        ws.column_dimensions['A'].width = 25
-        ws.column_dimensions['B'].width = 20
-        ws.column_dimensions['C'].width = 20
-        ws.column_dimensions['D'].width = 18
+        ws.column_dimensions['G'].width = 15
     
     def _agregar_logo(self, ws, celda='A1'):
-        """Agregar logo de la empresa al Excel"""
         try:
-            from django.conf import settings
-            import os
-            
-            # Ruta al logo
             logo_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'logo_quadycons.png')
-            
             if os.path.exists(logo_path):
-                # Crear objeto imagen
                 img = XLImage(logo_path)
-                
-                # Ajustar tamaño del logo (más grande y proporcionado)
                 img.width = 100
                 img.height = 100
-                
-                # Insertar imagen en la celda
                 ws.add_image(img, celda)
-                
-                # Ajustar altura de las filas para el logo (más espacio)
-                ws.row_dimensions[1].height = 75
-                ws.row_dimensions[2].height = 10
-                
-                # Ajustar ancho de columna A para el logo
-                ws.column_dimensions['A'].width = 15
-                
-        except Exception as e:
-            # Si hay error con el logo, continuar sin él
-            print(f"No se pudo cargar el logo: {e}")
+                ws.row_dimensions[1].height = 40
+        except:
             pass
-
+        
 # ============================================================================
 # 1. EXPORTAR CONSOLIDADO DE PROYECTOS
 # ============================================================================
