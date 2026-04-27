@@ -285,7 +285,7 @@ class ReportePorProyectoView(LoginRequiredMixin, TemplateView):
                         contratista_data = {
                             'nombre': detalle.avaluo.contrato.contratista.nombre_completo,
                             'contrato': contrato_ref,
-                            'descripcion': detalle.avaluo.descripcion_trabajo or 'N/A',
+                            'descripcion': detalle.avaluo.concepto or 'N/A',
                             'monto_cordobas': detalle.monto_cordobas or Decimal('0.00'),
                             'monto_dolares': detalle.monto_dolares or Decimal('0.00'),
                         }
