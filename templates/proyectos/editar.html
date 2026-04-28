@@ -56,16 +56,8 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="id_supervisor">Supervisor *</label>
-                    <select name="supervisor" class="form-control" required id="id_supervisor">
-                        {% for sup in supervisores %}
-                        <option value="{{ sup.id }}" {% if proyecto.supervisor.id == sup.id %}selected{% endif %}>
-                            {{ sup.nombre_completo }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
+                <!-- SUPERVISOR DESACTIVADO - Se mantiene el supervisor actual -->
+                <input type="hidden" name="supervisor" value="{{ proyecto.supervisor.id }}">
             </div>
         </div>
     </div>

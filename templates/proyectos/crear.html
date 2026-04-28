@@ -1156,15 +1156,8 @@
                         </div>
 
                         <div class="form-grid cols-2">
-                            <div class="form-group">
-                                <label for="supervisor">Gerente/Supervisor <span class="required">*</span></label>
-                                <select name="supervisor" class="form-control" required id="supervisor">
-                                    <option value="">Seleccionar gerente...</option>
-                                    {% for sup in supervisores %}
-                                    <option value="{{ sup.id }}">{{ sup.nombre_completo }} - {{ sup.get_rol_display }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
+                            <!-- SUPERVISOR DESACTIVADO - Se asigna automáticamente al usuario que crea -->
+                            <input type="hidden" name="supervisor" value="{{ request.user.id }}">
                             
                             <!-- ✅ NUEVA SECCIÓN DE TRABAJADORES -->
                             <div class="form-group">

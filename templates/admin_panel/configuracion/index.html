@@ -1,0 +1,449 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load formato_moneda %}
+
+{% block title %}Configuración del Sistema{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header { margin-bottom: 24px; }
+.page-header h1 {
+    font-size: 28px; font-weight: 700; color: #111827; margin: 0;
+    display: flex; align-items: center; gap: 12px;
+}
+.page-header h1 .material-symbols-outlined { font-size: 32px; color: #3b82f6; }
+.page-subtitle { font-size: 14px; color: #6b7280; margin-top: 4px; }
+
+/* Tabs */
+.config-tabs {
+    display: flex; gap: 0; border-bottom: 2px solid #e5e7eb; margin-bottom: 28px;
+}
+.config-tab {
+    padding: 14px 24px; font-size: 14px; font-weight: 600; color: #6b7280;
+    cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px;
+    display: flex; align-items: center; gap: 8px; transition: all 0.2s;
+    background: none; border: none; border-bottom: 3px solid transparent;
+}
+.config-tab:hover { color: #3b82f6; background: #f8fafc; }
+.config-tab.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+.config-tab .material-symbols-outlined { font-size: 20px; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Cards */
+.config-card {
+    background: white; border: 1px solid #e2e8f0; border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden; margin-bottom: 24px;
+}
+.config-card-header {
+    padding: 20px 24px; border-bottom: 1px solid #e5e7eb; background: #f8fafc;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.config-card-header h3 {
+    font-size: 16px; font-weight: 700; color: #111827; margin: 0;
+    display: flex; align-items: center; gap: 8px;
+}
+.config-card-header h3 .material-symbols-outlined { color: #3b82f6; font-size: 22px; }
+.config-card-body { padding: 24px; }
+
+/* Tabla */
+.config-table { width: 100%; border-collapse: collapse; }
+.config-table thead th {
+    background: #f9fafb; padding: 12px 16px; font-size: 12px; font-weight: 600;
+    color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;
+    text-align: left; border-bottom: 2px solid #e5e7eb;
+}
+.config-table tbody td {
+    padding: 12px 16px; border-bottom: 1px solid #f3f4f6; font-size: 14px; color: #374151;
+}
+.config-table tbody tr:hover { background: #f9fafb; }
+
+/* Forms inline */
+.inline-form {
+    display: flex; gap: 12px; align-items: end; flex-wrap: wrap;
+    padding: 20px 24px; background: #f8fafc; border-top: 1px solid #e5e7eb;
+}
+.inline-form .form-group { display: flex; flex-direction: column; gap: 6px; }
+.inline-form label { font-size: 13px; font-weight: 600; color: #374151; }
+.inline-form .input-field {
+    padding: 10px 14px; border: 1.5px solid #d1d5db; border-radius: 8px;
+    font-size: 14px; font-family: inherit; transition: all 0.2s;
+}
+.inline-form .input-field:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+
+/* Tipo cambio display */
+.tc-current {
+    display: flex; align-items: center; gap: 24px; padding: 24px;
+    background: linear-gradient(135deg, #eff6ff, #f0fdf4); border-radius: 12px;
+    border: 1px solid #bfdbfe; margin-bottom: 24px;
+}
+.tc-current-value { font-size: 36px; font-weight: 800; color: #1e40af; }
+.tc-current-label { font-size: 14px; color: #6b7280; }
+.tc-current-date { font-size: 13px; color: #9ca3af; }
+
+/* Badges */
+.badge-activo { background: #d1fae5; color: #065f46; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.badge-inactivo { background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.badge-nacional { background: #dbeafe; color: #1d4ed8; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+
+/* Area card */
+.area-card {
+    border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; margin-bottom: 16px;
+}
+.area-card-header {
+    padding: 14px 20px; background: #f9fafb; border-bottom: 1px solid #e5e7eb;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.area-card-header h4 { margin: 0; font-size: 15px; font-weight: 600; color: #111827; }
+.area-card-body { padding: 16px 20px; }
+.puesto-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; background: #f3f4f6; border-radius: 8px;
+    font-size: 13px; color: #374151; margin: 4px;
+}
+.puesto-tag .btn-remove {
+    background: none; border: none; cursor: pointer; color: #9ca3af;
+    font-size: 16px; padding: 0; line-height: 1; transition: color 0.2s;
+}
+.puesto-tag .btn-remove:hover { color: #ef4444; }
+
+/* Buttons */
+.btn { padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    border: none; cursor: pointer; transition: all 0.2s; display: inline-flex;
+    align-items: center; gap: 6px; text-decoration: none; }
+.btn .material-symbols-outlined { font-size: 18px; }
+.btn-primary { background: #3b82f6; color: white; }
+.btn-primary:hover { background: #2563eb; }
+.btn-success { background: #10b981; color: white; }
+.btn-success:hover { background: #059669; }
+.btn-danger { background: #ef4444; color: white; }
+.btn-danger:hover { background: #dc2626; }
+.btn-secondary { background: #f3f4f6; color: #374151; }
+.btn-secondary:hover { background: #e5e7eb; }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+.btn-icon {
+    width: 32px; height: 32px; border-radius: 6px; display: inline-flex;
+    align-items: center; justify-content: center; border: none; cursor: pointer;
+    transition: all 0.2s; padding: 0;
+}
+.btn-icon-danger { background: #fee2e2; color: #991b1b; }
+.btn-icon-danger:hover { background: #fecaca; }
+.btn-icon-warning { background: #fef3c7; color: #92400e; }
+.btn-icon-warning:hover { background: #fde68a; }
+
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+
+@media (max-width: 768px) {
+    .config-tabs { overflow-x: auto; }
+    .inline-form { flex-direction: column; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>
+        <span class="material-symbols-outlined">settings</span>
+        Configuración del Sistema
+    </h1>
+    <p class="page-subtitle">Administre días feriados, tipo de cambio, puestos laborales y áreas de trabajo</p>
+</div>
+
+<!-- Tabs -->
+<div class="config-tabs">
+    <button class="config-tab active" onclick="cambiarTab('feriados')">
+        <span class="material-symbols-outlined">event_busy</span> Días Feriados
+    </button>
+    <button class="config-tab" onclick="cambiarTab('tipocambio')">
+        <span class="material-symbols-outlined">currency_exchange</span> Tipo de Cambio
+    </button>
+    <button class="config-tab" onclick="cambiarTab('puestos')">
+        <span class="material-symbols-outlined">work</span> Puestos y Áreas
+    </button>
+</div>
+
+<!-- ============================================ -->
+<!-- TAB: DÍAS FERIADOS -->
+<!-- ============================================ -->
+<div id="tab-feriados" class="tab-content active">
+    <div class="config-card">
+        <div class="config-card-header">
+            <h3>
+                <span class="material-symbols-outlined">event_busy</span>
+                Días Feriados {{ anio_actual }}
+            </h3>
+            <span style="font-size: 13px; color: #6b7280;">{{ feriados|length }} feriados activos</span>
+        </div>
+        <div class="config-card-body" style="padding: 0;">
+            <table class="config-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Descripción</th>
+                        <th>Tipo</th>
+                        <th class="text-center">Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for feriado in feriados %}
+                    <tr>
+                        <td><strong>{{ feriado.fecha|date:"d/m/Y" }}</strong></td>
+                        <td>{{ feriado.descripcion }}</td>
+                        <td><span class="badge-nacional">{{ feriado.get_tipo_display }}</span></td>
+                        <td class="text-center">
+                            <span class="badge-activo">Activo</span>
+                        </td>
+                        <td class="text-center" style="display: flex; gap: 6px; justify-content: center;">
+                            <form method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="accion" value="toggle_feriado">
+                                <input type="hidden" name="feriado_id" value="{{ feriado.id }}">
+                                <button type="submit" class="btn-icon btn-icon-warning" title="Desactivar">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">visibility_off</span>
+                                </button>
+                            </form>
+                            <form method="post" style="display: inline;" onsubmit="return confirm('¿Eliminar este feriado?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="accion" value="eliminar_feriado">
+                                <input type="hidden" name="feriado_id" value="{{ feriado.id }}">
+                                <button type="submit" class="btn-icon btn-icon-danger" title="Eliminar">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center" style="padding: 32px; color: #9ca3af;">
+                            No hay feriados registrados para este año
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% for feriado in feriados_inactivos %}
+                    <tr style="background: #fef2f2; opacity: 0.7;">
+                        <td><strong>{{ feriado.fecha|date:"d/m/Y" }}</strong></td>
+                        <td><s>{{ feriado.descripcion }}</s></td>
+                        <td><span class="badge-nacional">{{ feriado.get_tipo_display }}</span></td>
+                        <td class="text-center">
+                            <span class="badge-inactivo">Inactivo</span>
+                        </td>
+                        <td class="text-center" style="display: flex; gap: 6px; justify-content: center;">
+                            <form method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="accion" value="toggle_feriado">
+                                <input type="hidden" name="feriado_id" value="{{ feriado.id }}">
+                                <button type="submit" class="btn-icon" style="background: #d1fae5; color: #065f46;" title="Activar">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">visibility</span>
+                                </button>
+                            </form>
+                            <form method="post" style="display: inline;" onsubmit="return confirm('¿Eliminar este feriado?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="accion" value="eliminar_feriado">
+                                <input type="hidden" name="feriado_id" value="{{ feriado.id }}">
+                                <button type="submit" class="btn-icon btn-icon-danger" title="Eliminar">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="agregar_feriado">
+            <div class="inline-form">
+                <div class="form-group">
+                    <label>Fecha *</label>
+                    <input type="date" name="fecha" class="input-field" required>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Descripción *</label>
+                    <input type="text" name="descripcion" class="input-field" placeholder="Ej: Día de la Independencia" required>
+                </div>
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select name="tipo" class="input-field">
+                        <option value="nacional">Nacional</option>
+                        <option value="proyecto">Específico de Proyecto</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <span class="material-symbols-outlined">add</span> Agregar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- TAB: TIPO DE CAMBIO -->
+<!-- ============================================ -->
+<div id="tab-tipocambio" class="tab-content">
+    <div class="config-card">
+        <div class="config-card-header">
+            <h3>
+                <span class="material-symbols-outlined">currency_exchange</span>
+                Tipo de Cambio Actual
+            </h3>
+        </div>
+        <div class="config-card-body">
+            <div class="tc-current">
+                <div>
+                    <div class="tc-current-value">C$ {{ tipo_cambio.valor }}</div>
+                    <div class="tc-current-label">Córdobas por 1 Dólar (USD)</div>
+                    <div class="tc-current-date">Última actualización: {{ tipo_cambio.fecha_modificacion|date:"d/m/Y H:i" }}</div>
+                </div>
+            </div>
+            
+            <form method="post" style="display: flex; gap: 12px; align-items: end; margin-bottom: 24px;">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="actualizar_tipo_cambio">
+                <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 14px; font-weight: 600;">Nuevo valor (C$/USD)</label>
+                    <input type="text" name="valor" class="input-field" placeholder="Ej: 36.6000" required style="width: 200px; padding: 12px 16px; font-size: 16px;">
+                </div>
+                <button type="submit" class="btn btn-primary" onclick="return confirm('¿Actualizar el tipo de cambio?');">
+                    <span class="material-symbols-outlined">sync</span> Actualizar
+                </button>
+            </form>
+            
+            <h4 style="font-size: 15px; font-weight: 600; color: #374151; margin-bottom: 12px;">Historial de Cambios</h4>
+            <table class="config-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Valor</th>
+                        <th>Estado</th>
+                        <th>Modificado por</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tc in historial_tc %}
+                    <tr>
+                        <td>{{ tc.fecha|date:"d/m/Y" }}</td>
+                        <td><strong>C$ {{ tc.valor }}</strong></td>
+                        <td>
+                            {% if tc.activo %}
+                            <span class="badge-activo">Vigente</span>
+                            {% else %}
+                            <span class="badge-inactivo">Anterior</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ tc.modificado_por.nombre_completo|default:"Sistema" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- TAB: PUESTOS Y ÁREAS -->
+<!-- ============================================ -->
+<div id="tab-puestos" class="tab-content">
+    <!-- Agregar Área -->
+    <div class="config-card">
+        <div class="config-card-header">
+            <h3>
+                <span class="material-symbols-outlined">work</span>
+                Áreas de Trabajo y Puestos Laborales
+            </h3>
+        </div>
+        <div class="config-card-body">
+            {% for area, puestos in puestos_data.items %}
+            <div class="area-card">
+                <div class="area-card-header">
+                    <h4>{{ area }} <span style="font-size: 13px; color: #6b7280; font-weight: 400;">({{ puestos|length }} puestos)</span></h4>
+                    {% if not puestos %}
+                    <form method="post" style="display: inline;" onsubmit="return confirm('¿Eliminar el área {{ area }}?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="accion" value="eliminar_area">
+                        <input type="hidden" name="area" value="{{ area }}">
+                        <button type="submit" class="btn btn-danger btn-sm">
+                            <span class="material-symbols-outlined">delete</span> Eliminar Área
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+                <div class="area-card-body">
+                    {% for puesto in puestos %}
+                    <span class="puesto-tag">
+                        {{ puesto }}
+                        <form method="post" style="display: inline;" onsubmit="return confirm('¿Eliminar el puesto {{ puesto }}?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="accion" value="eliminar_puesto">
+                            <input type="hidden" name="area" value="{{ area }}">
+                            <input type="hidden" name="puesto" value="{{ puesto }}">
+                            <button type="submit" class="btn-remove" title="Eliminar puesto">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+                            </button>
+                        </form>
+                    </span>
+                    {% empty %}
+                    <p style="color: #9ca3af; font-size: 13px; margin: 0;">Sin puestos asignados</p>
+                    {% endfor %}
+                    
+                    <!-- Agregar puesto a esta área -->
+                    <form method="post" style="display: flex; gap: 8px; margin-top: 12px;">
+                        {% csrf_token %}
+                        <input type="hidden" name="accion" value="agregar_puesto">
+                        <input type="hidden" name="area" value="{{ area }}">
+                        <input type="text" name="puesto" class="input-field" placeholder="Nuevo puesto..." required style="flex: 1; padding: 8px 12px; font-size: 13px;">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <span class="material-symbols-outlined">add</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Agregar nueva área -->
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="agregar_area">
+            <div class="inline-form">
+                <div class="form-group" style="flex: 1;">
+                    <label>Nueva Área de Trabajo</label>
+                    <input type="text" name="area" class="input-field" placeholder="Ej: Supervisión" required>
+                </div>
+                <button type="submit" class="btn btn-success">
+                    <span class="material-symbols-outlined">add</span> Crear Área
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Restaurar tab activa desde URL hash
+    var hash = window.location.hash.replace('#', '');
+    if (hash) cambiarTab(hash);
+});
+
+function cambiarTab(tab) {
+    // Ocultar todos
+    document.querySelectorAll('.tab-content').forEach(function(el) { el.classList.remove('active'); });
+    document.querySelectorAll('.config-tab').forEach(function(el) { el.classList.remove('active'); });
+    
+    // Mostrar seleccionado
+    var tabContent = document.getElementById('tab-' + tab);
+    if (tabContent) tabContent.classList.add('active');
+    
+    // Activar botón
+    document.querySelectorAll('.config-tab').forEach(function(el) {
+        if (el.getAttribute('onclick').indexOf(tab) > -1) el.classList.add('active');
+    });
+    
+    // Actualizar hash
+    window.location.hash = tab;
+}
+</script>
+{% endblock %}

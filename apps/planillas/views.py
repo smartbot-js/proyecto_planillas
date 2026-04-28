@@ -59,6 +59,11 @@ class PlanillaListView(LoginRequiredMixin, ListView):
             'aprobada_contador_por'
         ).order_by('-fecha_generacion')
         
+        # Filtrar por proyectos permitidos según rol
+        if not self.request.user.es_administrador():
+            proyectos_permitidos = self.request.user.get_proyectos_permitidos()
+            queryset = queryset.filter(proyecto__in=proyectos_permitidos)
+        
         # Filtro de búsqueda por código
         search = self.request.GET.get('search')
         if search:
@@ -114,20 +119,13 @@ class PlanillaListView(LoginRequiredMixin, ListView):
         """Agrega datos adicionales al contexto"""
         context = super().get_context_data(**kwargs)
         
-        # Queryset base para estadísticas (filtrado por permisos)
-        if self.request.user.es_administrador():
-            base_queryset = Planilla.objects.filter(eliminado=False)
-        else:
-            proyectos_permitidos = self.request.user.get_proyectos_permitidos()
-            base_queryset = Planilla.objects.filter(eliminado=False, proyecto__in=proyectos_permitidos)
-        
-        # Estadísticas generales
+        # Estadísticas basadas en los filtros aplicados
+        base_queryset = self.get_queryset()
         context['total_planillas'] = base_queryset.count()
         context['planillas_borrador'] = base_queryset.filter(estado='borrador').count()
         context['planillas_aprobadas_gerente'] = base_queryset.filter(estado='aprobada_gerente').count()
         context['planillas_aprobadas_final'] = base_queryset.filter(estado='aprobada_final').count()
         context['planillas_pagadas'] = base_queryset.filter(estado='pagada').count()
-        
         # Totales en córdobas
         totales = base_queryset.filter(
             estado__in=['aprobada_final', 'pagada']

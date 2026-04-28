@@ -10,6 +10,7 @@ from .views import (
     RolUpdateView,
     RolDeleteView,
 )
+from .views_configuracion import ConfiguracionView
 
 app_name = 'admin_panel'
 
@@ -26,4 +27,7 @@ urlpatterns = [
     path('roles/crear/', RolCreateView.as_view(), name='rol_crear'),
     path('roles/<int:pk>/editar/', RolUpdateView.as_view(), name='rol_editar'),
     path('roles/<int:pk>/eliminar/', RolDeleteView.as_view(), name='rol_eliminar'),
+        
+    # Configuración
+    path('configuracion/', ConfiguracionView.as_view(), name='configuracion'),
 ]

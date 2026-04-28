@@ -108,6 +108,10 @@
                     <span class="material-symbols-outlined">shield_person</span>
                     <span class="nav-text">Roles</span>
                 </a>
+                <a href="{% url 'admin_panel:configuracion' %}" class="nav-item {% if 'configuracion' in request.path %}active{% endif %}">
+                    <span class="material-symbols-outlined">settings</span>
+                    <span class="nav-text">Configuración</span>
+                </a>
                 {% endif %}
             </nav>
             

@@ -99,13 +99,8 @@ class TrabajadorListView(LoginRequiredMixin, ListView):
         # Choices para los filtros
         context['estados'] = Trabajador.Estado.choices
         
-        # Estadísticas
-        if self.request.user.es_administrador():
-            base_qs = Trabajador.objects.filter(eliminado=False)
-        else:
-            proyectos_permitidos = self.request.user.get_proyectos_permitidos()
-            base_qs = Trabajador.objects.filter(eliminado=False, proyecto_asignado__in=proyectos_permitidos)
-        
+        # Estadísticas basadas en los filtros aplicados
+        base_qs = self.get_queryset()
         context['total_trabajadores'] = base_qs.count()
         context['trabajadores_activos'] = base_qs.filter(estado=Trabajador.Estado.ACTIVO).count()
         context['trabajadores_asegurados'] = base_qs.filter(asegurado=True).count()
