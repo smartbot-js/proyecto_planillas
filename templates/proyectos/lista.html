@@ -45,24 +45,12 @@
                 </select>
             </div>
 
-            <div class="filter-group">
-                <label>Supervisor</label>
-                <select name="supervisor" class="form-control">
-                    <option value="">Todos</option>
-                    {% for supervisor in supervisores %}
-                    <option value="{{ supervisor.id }}" {% if request.GET.supervisor == supervisor.id|stringformat:"s" %}selected{% endif %}>
-                        {{ supervisor.nombre }} {{ supervisor.apellido }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-
             <button type="submit" class="btn btn-primary">
                 <span class="material-symbols-outlined">filter_alt</span>
                 Filtrar
             </button>
 
-            {% if request.GET.search or request.GET.estado or request.GET.supervisor %}
+            {% if request.GET.search or request.GET.estado %}
             <a href="{% url 'proyectos_lista' %}" class="btn btn-secondary">
                 <span class="material-symbols-outlined">clear</span>
                 Limpiar
@@ -201,10 +189,6 @@
                     <div class="detail-item">
                         <span class="detail-label">Municipio</span>
                         <span class="detail-value">{{ proyecto.municipio|default:"N/A" }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Encargado</span>
-                        <span class="detail-value">{{ proyecto.supervisor.nombre }} {{ proyecto.supervisor.apellido|first }}.</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Trabajadores</span>
