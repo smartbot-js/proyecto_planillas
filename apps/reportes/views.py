@@ -123,13 +123,13 @@ class ReportePorProyectoView(LoginRequiredMixin, TemplateView):
                     fecha_fin_obj = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
                     
                     planillas_trabajadores_qs = planillas_trabajadores_qs.filter(
-                        fecha_generacion__gte=fecha_inicio_obj,
-                        fecha_generacion__lte=fecha_fin_obj
+                        periodo_inicio__gte=fecha_inicio_obj,
+                        periodo_fin__lte=fecha_fin_obj
                     )
                     
                     planillas_contratistas_qs = planillas_contratistas_qs.filter(
-                        fecha_generacion__gte=fecha_inicio_obj,
-                        fecha_generacion__lte=fecha_fin_obj
+                        periodo_inicio__gte=fecha_inicio_obj,
+                        periodo_fin__lte=fecha_fin_obj
                     )
                     
                     context['fecha_inicio'] = fecha_inicio
