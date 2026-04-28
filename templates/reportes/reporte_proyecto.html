@@ -758,8 +758,7 @@
         <!-- Mensaje informativo -->
         <div class="info-box">
             <p>
-                <strong>💡 Tip:</strong> Selecciona un proyecto para ver sus últimas planillas generadas. 
-                Opcionalmente puedes filtrar por rango de fechas específico.
+                <strong>💡 Tip:</strong> Selecciona un proyecto y un rango de fechas para ver las planillas pagadas disponibles y generar el reporte consolidado.
             </p>
         </div>
 
@@ -869,11 +868,19 @@
         {% endif %}
         
         {% if reportes_disponibles %}
-        <div style="display: flex; justify-content: center; margin-top: 24px; padding: 20px; background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0;">
-            <button class="btn btn-success" onclick="generarConsolidado()" style="padding: 14px 32px; font-size: 16px; font-weight: 700;">
-                <span class="material-symbols-outlined">summarize</span>
-                Generar Reporte Consolidado ({{ reportes_disponibles|length }} planillas)
-            </button>
+        <div style="margin-top: 24px; border: 1px solid #d1d5db; border-radius: 12px; overflow: hidden;">
+            <div style="padding: 16px 24px; background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+                <p style="margin: 0; font-size: 14px; color: #374151; display: flex; align-items: center; gap: 8px;">
+                    <span class="material-symbols-outlined" style="color: #3b82f6; font-size: 20px;">info</span>
+                    Las <strong>{{ reportes_disponibles|length }} planillas</strong> listadas arriba serán incluidas en el reporte consolidado del proyecto <strong>{{ proyecto_seleccionado.nombre }}</strong>.
+                </p>
+            </div>
+            <div style="padding: 20px 24px; display: flex; justify-content: center; background: white;">
+                <button class="btn btn-primary" onclick="generarConsolidado()" style="padding: 12px 28px; font-size: 15px; font-weight: 600;">
+                    <span class="material-symbols-outlined">summarize</span>
+                    Generar Reporte Consolidado
+                </button>
+            </div>
         </div>
         {% endif %}
     </div>

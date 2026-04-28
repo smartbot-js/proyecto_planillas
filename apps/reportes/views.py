@@ -98,7 +98,7 @@ class ReportePorProyectoView(LoginRequiredMixin, TemplateView):
         # ==========================================
         # MOSTRAR LISTA DE PLANILLAS DISPONIBLES
         # ==========================================
-        if proyecto_id and not planilla_id:
+        if proyecto_id and fecha_inicio and fecha_fin and not self.request.GET.get('consolidar'):
             try:
                 proyecto = Proyecto.objects.get(id=proyecto_id, eliminado=False)
                 context['proyecto_seleccionado'] = proyecto
