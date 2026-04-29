@@ -234,16 +234,10 @@
         padding: 20px;
         margin-bottom: 12px;
         transition: all 0.2s ease;
-        cursor: pointer;
+        cursor: default;
         display: flex;
         justify-content: space-between;
         align-items: center;
-    }
-
-    .reporte-item:hover {
-        border-color: #667eea;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        transform: translateY(-2px);
     }
 
     .reporte-item-left {
@@ -853,9 +847,6 @@
                     <div class="reporte-total">Total</div>
                     <div class="reporte-amount">{{ reporte.total_cordobas|moneda }}</div>
                     <div class="reporte-amount" style="font-size: 14px; color: #6b7280;">{{ reporte.total_dolares|dolares }}</div>
-                    <div class="reporte-arrow">
-                        <span class="material-symbols-outlined">arrow_forward</span>
-                    </div>
                 </div>
             </div>
             {% endfor %}
@@ -1232,12 +1223,12 @@ function generarConsolidado() {
 
 // Ver reporte específico
 function verReporte(planillaId, tipoPlanilla) {
-    const urlParams = new URLSearchParams(window.location.search);
-    urlParams.set('planilla_id', planillaId);
-    urlParams.set('tipo_planilla', tipoPlanilla);
-    
     document.getElementById('loadingOverlay').classList.add('active');
-    window.location.href = window.location.pathname + '?' + urlParams.toString();
+    if (tipoPlanilla === 'contratistas') {
+        window.location.href = '/contratistas/planillas/' + planillaId + '/';
+    } else {
+        window.location.href = '/planillas/' + planillaId + '/';
+    }
 }
 
 // Volver a la lista

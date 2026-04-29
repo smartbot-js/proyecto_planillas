@@ -499,9 +499,13 @@ class Trabajador(models.Model):
 
         # Normalizar cédula: sin guiones, sin espacios, mayúsculas
         if self.numero_cedula:
-            self.numero_cedula = re.sub(r'[^a-zA-Z0-9]', '', self.numero_cedula).upper()
-            if not self.numero_cedula:
+            cedula_limpia = re.sub(r'[^a-zA-Z0-9]', '', self.numero_cedula).upper()
+            # Detectar valores basura que no son cédulas reales
+            valores_invalidos = ['NOTIENE', 'NONE', 'NULL', 'NA', 'ND', 'SIN', 'SINCED', 'SINCEDULA', 'NOAPL', 'NOAPLICA', '']
+            if not cedula_limpia or cedula_limpia in valores_invalidos:
                 self.numero_cedula = None
+            else:
+                self.numero_cedula = cedula_limpia
         else:
             self.numero_cedula = None
         
@@ -517,7 +521,32 @@ class Trabajador(models.Model):
         else:
             if not self.pk:
                 self.tipo_pago = 'por_hora'
+        
+        # Detectar si cambió algo relevante para regenerar QR
+        regenerar_qr = False
+        if self.pk:
+            try:
+                original = Trabajador.objects.get(pk=self.pk)
+                if (original.numero_cedula != self.numero_cedula or
+                    original.nombre != self.nombre or
+                    original.apellido != self.apellido or
+                    original.puesto_laboral != self.puesto_laboral or
+                    original.proyecto_asignado_id != self.proyecto_asignado_id):
+                    regenerar_qr = True
+            except Trabajador.DoesNotExist:
+                pass
+        
         super().save(*args, **kwargs)
+        
+        # Regenerar QR después del save (necesita el ID)
+        if regenerar_qr or (not self.codigo_qr and self.pk):
+            try:
+                from .utils import generar_qr_trabajador
+                generar_qr_trabajador(self)
+                # Guardar solo el campo codigo_qr sin disparar save() recursivo
+                Trabajador.objects.filter(pk=self.pk).update(codigo_qr=self.codigo_qr)
+            except Exception as e:
+                print(f"Error regenerando QR para {self.nombre_completo}: {e}")
 
     def cambiar_estado(self, nuevo_estado):
         """Cambia el estado del trabajador"""

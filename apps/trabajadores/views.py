@@ -680,7 +680,11 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, PermissionRequiredMixin, Vie
             # Leer el archivo CSV
             decoded_file = archivo.read().decode('utf-8-sig')  # utf-8-sig para manejar BOM
             io_string = io.StringIO(decoded_file)
-            reader = csv.DictReader(io_string)
+            # Detectar delimitador (coma o tabulación)
+            primera_linea = decoded_file.split('\n')[0]
+            delimitador = '\t' if '\t' in primera_linea else ','
+            io_string = io.StringIO(decoded_file)
+            reader = csv.DictReader(io_string, delimiter=delimitador)
             
             # Validar que tenga las columnas requeridas
             columnas_requeridas = ['nombre', 'apellido', 'numero_cedula', 'telefono', 'puesto_laboral']
@@ -732,9 +736,10 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, PermissionRequiredMixin, Vie
                     filas_vacias += 1
                     continue
                 
-                if not numero_cedula:
-                    errores.append(f"Fila {idx}: Número de cédula vacío")
-                    continue
+                # Cédula es opcional (trabajadores sin cédula usan QR por ID)
+                if numero_cedula:
+                    import re
+                    numero_cedula = re.sub(r'[^a-zA-Z0-9]', '', numero_cedula).upper()
                 
                 # Verificar si ya existe
                 if numero_cedula and Trabajador.objects.filter(numero_cedula=numero_cedula, eliminado=False).exists():
@@ -759,7 +764,8 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, PermissionRequiredMixin, Vie
                     campos_faltantes.append('puesto_laboral')
                 
                 if campos_faltantes:
-                    errores.append(f"Fila {idx}: Campos vacíos ({', '.join(campos_faltantes)}) - Cédula: {numero_cedula}")
+                    identificador = numero_cedula or nombre or f'Fila {idx}'
+                    errores.append(f"Fila {idx}: Campos vacíos ({', '.join(campos_faltantes)}) - {identificador}")
                     continue
                 
                 # Construir contacto de emergencia
@@ -794,6 +800,18 @@ class TrabajadorImportarCSVView(LoginRequiredMixin, PermissionRequiredMixin, Vie
                     'modificado_por': request.user,
                 }
                 
+                # Asignar proyecto si viene en el CSV
+                proyecto_nombre = row.get('proyecto', '').strip()
+                if proyecto_nombre:
+                    from apps.proyectos.models import Proyecto
+                    proyecto = Proyecto.objects.filter(
+                        nombre__iexact=proyecto_nombre, eliminado=False
+                    ).first()
+                    if proyecto:
+                        trabajador_data['proyecto_asignado'] = proyecto
+                    else:
+                        errores.append(f"Fila {idx}: Proyecto '{proyecto_nombre}' no encontrado")
+
                 # Validar sexo
                 if trabajador_data['sexo'] not in ['masculino', 'femenino', 'otro']:
                     trabajador_data['sexo'] = 'masculino'
@@ -1136,7 +1154,8 @@ def trabajadores_plantilla_csv(request):
         'salario_normal',
         'tarifa_hora_extra',
         'numero_seguro_social',
-        'asegurado'
+        'asegurado',
+        'proyecto'
     ])
     
     # Fila de ejemplo (será ignorada en la importación)
@@ -1158,7 +1177,8 @@ def trabajadores_plantilla_csv(request):
         '2500000',
         '20000',
         'SS123456',
-        'si'
+        'si',
+        'Nombre del Proyecto'
     ])
     
     return response

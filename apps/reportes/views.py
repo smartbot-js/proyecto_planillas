@@ -1310,17 +1310,18 @@ class ExportarReporteProyectoExcelView(LoginRequiredMixin, PermissionRequiredMix
     
     def _encabezado(self, ws, proyecto, periodo_str, tipo_cambio, subtitulo):
         self._agregar_logo(ws, 'A1')
-        ws.merge_cells('A1:E1')
-        ws['A1'] = f'PROYECTO: {proyecto.nombre.upper()}'
-        ws['A1'].font = Font(bold=True, size=14, name='Arial', color='1F4788')
         
-        ws.merge_cells('A2:E2')
-        ws['A2'] = 'PLANILLA DE PAGOS'
-        ws['A2'].font = Font(bold=True, size=12, name='Arial', color='1F4788')
+        ws.merge_cells('B1:H1')
+        ws['B1'] = f'PROYECTO: {proyecto.nombre.upper()}'
+        ws['B1'].font = Font(bold=True, size=14, name='Arial', color='1F4788')
+        ws['B1'].alignment = Alignment(vertical='center')
         
-        ws.merge_cells('A3:E3')
-        ws['A3'] = subtitulo
-        ws['A3'].font = Font(bold=True, size=11, name='Arial')
+        ws.merge_cells('B2:H2')
+        ws['B2'] = f'PLANILLA DE PAGOS{" - " + subtitulo if subtitulo else ""}'
+        ws['B2'].font = Font(bold=True, size=12, name='Arial', color='1F4788')
+        ws['B2'].alignment = Alignment(vertical='center')
+        
+        ws.row_dimensions[3].height = 6
         
         ws['A4'] = 'FECHA:'
         ws['A4'].font = Font(bold=True, size=10, name='Arial')
@@ -1336,7 +1337,7 @@ class ExportarReporteProyectoExcelView(LoginRequiredMixin, PermissionRequiredMix
         ws['A6'].font = Font(bold=True, size=10, name='Arial')
         ws['D6'] = float(tipo_cambio)
         ws['D6'].font = Font(size=10, name='Arial')
-    
+
     def _crear_hoja_resumen(self, wb, proyecto, periodo_str, tipo_cambio, totales, gran_total_c, gran_total_d):
         ws = wb.create_sheet('RESUMEN', 0)
         header_fill, header_font, border, total_fill, total_font = self._estilos()

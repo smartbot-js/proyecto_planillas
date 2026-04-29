@@ -89,7 +89,7 @@
                                 <div class="form-group">
                                     <label for="archivo_justificacion">Constancia / Soporte (opcional)</label>
                                     <input type="file" name="archivo_justificacion" id="archivo_justificacion" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
-                                    <small class="form-text">Foto o documento de soporte: excusa médica, permiso firmado, etc.</small>
+                                    <small class="form-text">Foto o documento de soporte: excusa médica, permiso firmado, etc. (Máximo 5 MB)</small>
                                 </div>
                         <div class="form-actions">
                         <button type="submit" class="btn btn-primary">
@@ -480,6 +480,15 @@ document.addEventListener('DOMContentLoaded', function() {
     var fechaInput = document.getElementById('fecha');
     var today = new Date().toISOString().split('T')[0];
     fechaInput.setAttribute('max', today);
+});
+
+// Validar tamaño de archivo (máx 5 MB)
+document.getElementById('archivo_justificacion').addEventListener('change', function() {
+    const maxSize = 5 * 1024 * 1024; // 5 MB
+    if (this.files.length > 0 && this.files[0].size > maxSize) {
+        alert('El archivo excede el límite de 5 MB. Por favor selecciona un archivo más pequeño.');
+        this.value = '';
+    }
 });
 
 // Preview del trabajador al seleccionar

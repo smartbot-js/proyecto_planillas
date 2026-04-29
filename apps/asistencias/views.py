@@ -2216,6 +2216,11 @@ class AsistenciaJustificadaView(LoginRequiredMixin, PermissionRequiredMixin, Vie
 
             archivo = request.FILES.get('archivo_justificacion')
 
+            # Validar tamaño del archivo (máx 5 MB)
+            if archivo and archivo.size > 5 * 1024 * 1024:
+                messages.error(request, '❌ El archivo excede el límite de 5 MB.')
+                return redirect('asistencia_justificada')
+
             # Crear asistencia ya cerrada
             asistencia = Asistencia.objects.create(
                 trabajador=trabajador,

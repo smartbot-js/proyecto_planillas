@@ -299,7 +299,8 @@ def generar_qr_trabajador(trabajador):
     buffer.seek(0)
     
     # Nombre del archivo
-    filename = f'qr_{trabajador.numero_cedula}.png'
+    identificador = trabajador.numero_cedula or f'ID{trabajador.id}'
+    filename = f'qr_{identificador}.png'
     
     # Guardar en el modelo
     trabajador.codigo_qr.save(filename, File(buffer), save=False)
