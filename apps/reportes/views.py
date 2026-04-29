@@ -161,7 +161,7 @@ class ReportePorProyectoView(LoginRequiredMixin, TemplateView):
                     total_cordobas = DetallePlanilla.objects.filter(
                         planilla=planilla
                     ).aggregate(
-                        total=Sum('salario_devengado')
+                        total=Sum('ingreso_total')
                     )['total'] or Decimal('0.00')
                     
                     # Calcular dólares usando tipo de cambio
@@ -403,7 +403,7 @@ class ReportePlanillaAdministrativaView(LoginRequiredMixin, TemplateView):
                     total_cordobas = DetallePlanilla.objects.filter(
                         planilla=planilla
                     ).aggregate(
-                        total=Sum('salario_devengado')
+                        total=Sum('ingreso_total')
                     )['total'] or Decimal('0.00')
                     
                     total_dolares = total_cordobas / tipo_cambio if total_cordobas > 0 else Decimal('0.00')
@@ -455,7 +455,7 @@ class ReportePlanillaAdministrativaView(LoginRequiredMixin, TemplateView):
                             'total_dolares': Decimal('0.00'),
                         }
                     
-                    salario_c = detalle.salario_devengado or Decimal('0.00')
+                    salario_c = detalle.ingreso_total or Decimal('0.00')
                     salario_d = salario_c / tipo_cambio if salario_c > 0 else Decimal('0.00')
                     
                     personal_por_area[area]['personal'].append({
@@ -738,7 +738,7 @@ class ReporteConsolidadoProyectosView(LoginRequiredMixin, TemplateView):
                     total_trabajadores_c = DetallePlanilla.objects.filter(
                         planilla__in=planillas_trabajadores
                     ).aggregate(
-                        total=Sum('salario_devengado')
+                        total=Sum('ingreso_total')
                     )['total'] or Decimal('0.00')
                     
                     # Planillas de contratistas
@@ -785,7 +785,7 @@ class ReporteConsolidadoProyectosView(LoginRequiredMixin, TemplateView):
                         total_trabajadores_ant_c = DetallePlanilla.objects.filter(
                             planilla__in=planillas_trabajadores_ant
                         ).aggregate(
-                            total=Sum('salario_devengado')
+                            total=Sum('ingreso_total')
                         )['total'] or Decimal('0.00')
                         
                         # Planillas de contratistas periodo anterior
@@ -920,7 +920,7 @@ class ReportePlanillaTotalView(LoginRequiredMixin, TemplateView):
                     
                     total_trab = DetallePlanilla.objects.filter(
                         planilla__in=planillas_trab
-                    ).aggregate(total=Sum('salario_devengado'))['total'] or Decimal('0.00')
+                    ).aggregate(total=Sum('ingreso_total'))['total'] or Decimal('0.00')
                     
                     # Contratistas
                     planillas_cont = PlanillaContratista.objects.filter(
@@ -957,7 +957,7 @@ class ReportePlanillaTotalView(LoginRequiredMixin, TemplateView):
                     
                     total_administrativa_c = DetallePlanilla.objects.filter(
                         planilla__in=planillas_admin
-                    ).aggregate(total=Sum('salario_devengado'))['total'] or Decimal('0.00')
+                    ).aggregate(total=Sum('ingreso_total'))['total'] or Decimal('0.00')
                     
                     total_administrativa_d = total_administrativa_c / tipo_cambio if total_administrativa_c > 0 else Decimal('0.00')
                 
@@ -1015,7 +1015,7 @@ class ReportePlanillaTotalView(LoginRequiredMixin, TemplateView):
                         
                         total_trab_ant = DetallePlanilla.objects.filter(
                             planilla__in=planillas_trab_ant
-                        ).aggregate(total=Sum('salario_devengado'))['total'] or Decimal('0.00')
+                        ).aggregate(total=Sum('ingreso_total'))['total'] or Decimal('0.00')
                         
                         planillas_cont_ant = PlanillaContratista.objects.filter(
                             proyecto=proyecto,
@@ -1044,7 +1044,7 @@ class ReportePlanillaTotalView(LoginRequiredMixin, TemplateView):
                         
                         total_admin_ant_c = DetallePlanilla.objects.filter(
                             planilla__in=planillas_admin_ant
-                        ).aggregate(total=Sum('salario_devengado'))['total'] or Decimal('0.00')
+                        ).aggregate(total=Sum('ingreso_total'))['total'] or Decimal('0.00')
                     
                     # GASTOS VARIOS ANTERIOR
                     planillas_todas_ant = Planilla.objects.filter(
@@ -1562,7 +1562,7 @@ class ExportarConsolidadoExcelView(LoginRequiredMixin, PermissionRequiredMixin, 
                 
                 total_trab = DetallePlanilla.objects.filter(
                     planilla__in=planillas_trab
-                ).aggregate(total=Sum('salario_devengado'))['total'] or Decimal('0.00')
+                ).aggregate(total=Sum('ingreso_total'))['total'] or Decimal('0.00')
                 
                 planillas_cont = PlanillaContratista.objects.filter(
                     proyecto=proyecto, estado='pagada',
@@ -1708,8 +1708,8 @@ class ExportarAdministrativaExcelView(LoginRequiredMixin, PermissionRequiredMixi
                     'nombre': detalle.trabajador.nombre_completo,
                     'cargo': detalle.cargo or 'N/A',
                     'dias': detalle.dias_laborados or 0,
-                    'cordobas': detalle.salario_devengado or Decimal('0.00'),
-                    'dolares': (detalle.salario_devengado / tipo_cambio) if detalle.salario_devengado else Decimal('0.00'),
+                    'cordobas': detalle.ingreso_total or Decimal('0.00'),
+                    'dolares': (detalle.ingreso_total / tipo_cambio) if detalle.ingreso_total else Decimal('0.00'),
                 })
             
             # Crear hoja por área
@@ -2042,7 +2042,7 @@ class ExportarPlanillaTotalExcelView(LoginRequiredMixin, PermissionRequiredMixin
                 )
                 total_proyectos_c += DetallePlanilla.objects.filter(
                     planilla__in=planillas
-                ).aggregate(t=Sum('salario_devengado'))['t'] or Decimal('0.00')
+                ).aggregate(t=Sum('ingreso_total'))['t'] or Decimal('0.00')
                 
                 planillas_cont = PlanillaContratista.objects.filter(
                     proyecto=proyecto, estado='pagada',
@@ -2063,7 +2063,7 @@ class ExportarPlanillaTotalExcelView(LoginRequiredMixin, PermissionRequiredMixin
                 )
                 total_admin_c = DetallePlanilla.objects.filter(
                     planilla__in=planillas_admin
-                ).aggregate(t=Sum('salario_devengado'))['t'] or Decimal('0.00')
+                ).aggregate(t=Sum('ingreso_total'))['t'] or Decimal('0.00')
             
             # Gastos
             planillas_todas = Planilla.objects.filter(
