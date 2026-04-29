@@ -40,6 +40,7 @@ from .permissions import (
 from apps.trabajadores.models import Trabajador
 from apps.proyectos.models import Proyecto
 from apps.admin_panel.permissions import PermissionRequiredMixin
+from datetime import time
 
 import csv
 import re
@@ -2166,8 +2167,8 @@ class AsistenciaJustificadaView(LoginRequiredMixin, PermissionRequiredMixin, Vie
             justificacion = request.POST.get('justificacion', '').strip()
 
             # Validaciones básicas
-            if not all([trabajador_id, proyecto_id, fecha_str, hora_entrada_str, hora_salida_str]):
-                messages.error(request, '❌ Todos los campos son obligatorios.')
+            if not all([trabajador_id, proyecto_id, fecha_str]):
+                messages.error(request, '❌ Trabajador, proyecto y fecha son obligatorios.')
                 return redirect('asistencia_justificada')
 
             if not justificacion:
@@ -2186,8 +2187,8 @@ class AsistenciaJustificadaView(LoginRequiredMixin, PermissionRequiredMixin, Vie
                 return redirect('asistencia_justificada')
 
             fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
-            hora_entrada = datetime.strptime(hora_entrada_str, '%H:%M').time()
-            hora_salida = datetime.strptime(hora_salida_str, '%H:%M').time()
+            hora_entrada = datetime.strptime(hora_entrada_str, '%H:%M').time() if hora_entrada_str else None
+            hora_salida = datetime.strptime(hora_salida_str, '%H:%M').time() if hora_salida_str else None
 
             # No permitir fecha futura
             hoy = timezone.localdate()
@@ -2209,10 +2210,17 @@ class AsistenciaJustificadaView(LoginRequiredMixin, PermissionRequiredMixin, Vie
                 )
                 return redirect('asistencia_justificada')
 
-            # Validar que hora salida sea después de hora entrada
-            if hora_salida <= hora_entrada:
-                messages.error(request, '❌ La hora de salida debe ser posterior a la hora de entrada.')
-                return redirect('asistencia_justificada')
+            # Validar horas solo para trabajadores normales
+            #trabajador = Trabajador.objects.get(id=trabajador_id, eliminado=False)
+            es_guarda = hasattr(trabajador, 'tipo_pago') and trabajador.tipo_pago == 'por_turno'
+            
+            if not es_guarda:
+                if not hora_entrada or not hora_salida:
+                    messages.error(request, '❌ Hora de entrada y salida son obligatorias.')
+                    return redirect('asistencia_justificada')
+                if hora_salida <= hora_entrada:
+                    messages.error(request, '❌ La hora de salida debe ser posterior a la hora de entrada.')
+                    return redirect('asistencia_justificada')
 
             archivo = request.FILES.get('archivo_justificacion')
 
@@ -2221,23 +2229,75 @@ class AsistenciaJustificadaView(LoginRequiredMixin, PermissionRequiredMixin, Vie
                 messages.error(request, '❌ El archivo excede el límite de 5 MB.')
                 return redirect('asistencia_justificada')
 
-            # Crear asistencia ya cerrada
-            asistencia = Asistencia.objects.create(
-                trabajador=trabajador,
-                proyecto=proyecto,
-                fecha=fecha,
-                puesto_laboral=trabajador.puesto_laboral,
-                hora_entrada=hora_entrada,
-                hora_salida=hora_salida,
-                salario_dia=trabajador.salario_normal or Decimal('0.00'),
-                tarifa_hora_extra=trabajador.tarifa_hora_extra or Decimal('0.00'),
-                metodo_identificacion='manual',
-                observaciones=f'[JUSTIFICADA] {justificacion}\nRegistrada por: {request.user.nombre_completo}',
-                registrado_por=request.user,
-                estado='cerrado',
-                archivo_justificacion=archivo,
-
-            )
+            # Detectar si es guarda/celador
+            es_guarda = hasattr(trabajador, 'tipo_pago') and trabajador.tipo_pago == 'por_turno'
+            
+            if es_guarda:
+                # Para guardas: usar turnos del POST y horario del proyecto
+                turnos = int(request.POST.get('turnos', 1))
+                
+                # Obtener horario del guarda desde el proyecto
+                horario = proyecto.obtener_horario_guarda(fecha) if hasattr(proyecto, 'obtener_horario_guarda') else None
+                if horario:
+                    from datetime import datetime as dt
+                    h_inicio = horario[0]
+                    h_fin = horario[1]
+                    if isinstance(h_inicio, str):
+                        h_inicio = h_inicio.strip()
+                        for fmt in ['%I:%M %p', '%I:%M%p', '%H:%M']:
+                            try:
+                                h_inicio = dt.strptime(h_inicio, fmt).time()
+                                break
+                            except ValueError:
+                                continue
+                    if isinstance(h_fin, str):
+                        h_fin = h_fin.strip()
+                        for fmt in ['%I:%M %p', '%I:%M%p', '%H:%M']:
+                            try:
+                                h_fin = dt.strptime(h_fin, fmt).time()
+                                break
+                            except ValueError:
+                                continue
+                    hora_entrada_guarda = hora_entrada or (h_inicio if isinstance(h_inicio, time) else time(18, 0))
+                    hora_salida_guarda = hora_salida or (h_fin if isinstance(h_fin, time) else time(6, 0))
+                else:
+                    hora_entrada_guarda = hora_entrada or time(18, 0)
+                    hora_salida_guarda = hora_salida or time(6, 0)
+                asistencia = Asistencia.objects.create(
+                    trabajador=trabajador,
+                    proyecto=proyecto,
+                    fecha=fecha,
+                    puesto_laboral=trabajador.puesto_laboral,
+                    hora_entrada=hora_entrada_guarda,
+                    hora_salida=hora_salida_guarda,
+                    turnos=turnos,
+                    horas_normales=Decimal('0.00'),
+                    horas_extras=Decimal('0.00'),
+                    salario_dia=trabajador.salario_normal or Decimal('0.00'),
+                    tarifa_hora_extra=Decimal('0.00'),
+                    metodo_identificacion='manual',
+                    observaciones=f'[JUSTIFICADA - GUARDA] {justificacion} ({turnos} turnos)\nRegistrada por: {request.user.nombre_completo}',
+                    registrado_por=request.user,
+                    estado='cerrado',
+                    archivo_justificacion=archivo,
+                )
+            else:
+                # Para trabajadores normales
+                asistencia = Asistencia.objects.create(
+                    trabajador=trabajador,
+                    proyecto=proyecto,
+                    fecha=fecha,
+                    puesto_laboral=trabajador.puesto_laboral,
+                    hora_entrada=hora_entrada,
+                    hora_salida=hora_salida,
+                    salario_dia=trabajador.salario_normal or Decimal('0.00'),
+                    tarifa_hora_extra=trabajador.tarifa_hora_extra or Decimal('0.00'),
+                    metodo_identificacion='manual',
+                    observaciones=f'[JUSTIFICADA] {justificacion}\nRegistrada por: {request.user.nombre_completo}',
+                    registrado_por=request.user,
+                    estado='cerrado',
+                    archivo_justificacion=archivo,
+                )
 
             messages.success(
                 request,

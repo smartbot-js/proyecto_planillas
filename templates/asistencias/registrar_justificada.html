@@ -40,6 +40,7 @@
                             <option value="{{ trabajador.id }}" 
                                     data-cedula="{{ trabajador.numero_cedula }}"
                                     data-puesto="{{ trabajador.puesto_laboral }}"
+                                    data-tipo-pago="{{ trabajador.tipo_pago }}"
                                     data-nombre="{{ trabajador.nombre_completo }}"
                                     {% if trabajador.proyecto_asignado %}data-proyecto="{{ trabajador.proyecto_asignado.id }}" data-proyecto-nombre="{{ trabajador.proyecto_asignado.nombre }}"{% endif %}
                                     {% if trabajador.foto %}data-foto="{{ trabajador.foto.url }}"{% endif %}>
@@ -85,6 +86,14 @@
                                   placeholder="Ej: Excusa médica presentada, permiso autorizado por gerente, etc." 
                                   required></textarea>
                                   <small class="form-text">Motivo por el cual se registra esta asistencia de forma retroactiva</small>
+                                </div>
+                                <div class="form-group" id="grupo_turnos" style="display: none;">
+                                    <label for="turnos">Cantidad de Turnos *</label>
+                                    <select name="turnos" id="turnos" class="form-control">
+                                        <option value="1">1 turno</option>
+                                        <option value="2">2 turnos</option>
+                                    </select>
+                                    <small class="form-text">Seleccione los turnos completados por el guarda</small>
                                 </div>
                                 <div class="form-group">
                                     <label for="archivo_justificacion">Constancia / Soporte (opcional)</label>
@@ -555,6 +564,34 @@ function calcularPreviewHoras() {
     }
 }
 
+// Detectar si es guarda para mostrar/ocultar campos
+document.getElementById('selectTrabajador').addEventListener('change', function() {
+    var selected = this.options[this.selectedIndex];
+    var tipoPago = selected.getAttribute('data-tipo-pago') || 'por_hora';
+    var esGuarda = tipoPago === 'por_turno';
+    
+    var grupoHoras = document.getElementById('horaEntrada').closest('.form-group').parentElement;
+    var grupoTurnos = document.getElementById('grupo_turnos');
+    var horaEntrada = document.getElementById('horaEntrada');
+    var horaSalida = document.getElementById('horaSalida');
+    
+    if (esGuarda) {
+        // Ocultar horas, mostrar turnos
+        horaEntrada.closest('.form-group').style.display = 'none';
+        horaSalida.closest('.form-group').style.display = 'none';
+        grupoTurnos.style.display = 'block';
+        horaEntrada.removeAttribute('required');
+        horaSalida.removeAttribute('required');
+    } else {
+        // Mostrar horas, ocultar turnos
+        horaEntrada.closest('.form-group').style.display = 'block';
+        horaSalida.closest('.form-group').style.display = 'block';
+        grupoTurnos.style.display = 'none';
+        horaEntrada.setAttribute('required', 'required');
+        horaSalida.setAttribute('required', 'required');
+    }
+});
+
 document.getElementById('horaEntrada').addEventListener('change', calcularPreviewHoras);
 document.getElementById('horaSalida').addEventListener('change', calcularPreviewHoras);
 
@@ -567,9 +604,17 @@ document.getElementById('formJustificada').addEventListener('submit', function(e
     var salida = document.getElementById('horaSalida').value;
     var justificacion = document.getElementById('justificacion').value.trim();
     
-    if (!trabajador || !proyecto || !fecha || !entrada || !salida || !justificacion) {
+    var selectedOpt = document.getElementById('selectTrabajador').options[document.getElementById('selectTrabajador').selectedIndex];
+    var esGuarda = (selectedOpt.getAttribute('data-tipo-pago') || '') === 'por_turno';
+    
+    if (!trabajador || !proyecto || !fecha || !justificacion) {
         e.preventDefault();
         alert('Por favor complete todos los campos requeridos');
+        return;
+    }
+    if (!esGuarda && (!entrada || !salida)) {
+        e.preventDefault();
+        alert('Por favor complete hora de entrada y salida');
         return false;
     }
     
