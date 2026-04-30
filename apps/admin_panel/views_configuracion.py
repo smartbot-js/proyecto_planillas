@@ -31,15 +31,49 @@ class ConfiguracionView(LoginRequiredMixin, View):
     def get(self, request):
         # Feriados del año actual y siguiente
         anio_actual = timezone.localdate().year
-        feriados = DiaFeriado.objects.filter(
+        feriados_raw = DiaFeriado.objects.filter(
             fecha__year__gte=anio_actual,
             activo=True
-        ).order_by('fecha')
+        ).select_related('proyecto').order_by('fecha')
         
-        feriados_inactivos = DiaFeriado.objects.filter(
+        # Agrupar por fecha+descripción
+        from collections import OrderedDict
+        feriados_agrupados = OrderedDict()
+        for f in feriados_raw:
+            clave = (f.fecha, f.descripcion)
+            if clave not in feriados_agrupados:
+                feriados_agrupados[clave] = {
+                    'fecha': f.fecha,
+                    'descripcion': f.descripcion,
+                    'tipo': f.tipo,
+                    'proyectos': [],
+                    'ids': [],
+                }
+            if f.tipo == 'proyecto' and f.proyecto:
+                feriados_agrupados[clave]['proyectos'].append(f.proyecto.nombre)
+            feriados_agrupados[clave]['ids'].append(f.id)
+        feriados = list(feriados_agrupados.values())
+        
+        feriados_inactivos_raw = DiaFeriado.objects.filter(
             fecha__year__gte=anio_actual,
             activo=False
-        ).order_by('fecha')
+        ).select_related('proyecto').order_by('fecha')
+        
+        feriados_inactivos_agrupados = OrderedDict()
+        for f in feriados_inactivos_raw:
+            clave = (f.fecha, f.descripcion)
+            if clave not in feriados_inactivos_agrupados:
+                feriados_inactivos_agrupados[clave] = {
+                    'fecha': f.fecha,
+                    'descripcion': f.descripcion,
+                    'tipo': f.tipo,
+                    'proyectos': [],
+                    'ids': [],
+                }
+            if f.tipo == 'proyecto' and f.proyecto:
+                feriados_inactivos_agrupados[clave]['proyectos'].append(f.proyecto.nombre)
+            feriados_inactivos_agrupados[clave]['ids'].append(f.id)
+        feriados_inactivos = list(feriados_inactivos_agrupados.values())
         
         # Tipo de cambio
         tipo_cambio = TipoCambio.get_actual()
@@ -96,52 +130,74 @@ class ConfiguracionView(LoginRequiredMixin, View):
         from datetime import datetime
         fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
         
-        # Verificar si ya existe
-        if DiaFeriado.objects.filter(fecha=fecha_obj, tipo=tipo, activo=True).exists():
-            messages.warning(request, f'Ya existe un feriado activo para el {fecha_obj.strftime("%d/%m/%Y")}.')
-            return redirect('admin_panel:configuracion')
-        
-        proyecto_feriado = None
-        if tipo == 'proyecto':
-            proyecto_id = request.POST.get('proyecto_id')
-            if proyecto_id:
-                from apps.proyectos.models import Proyecto
-                proyecto_feriado = Proyecto.objects.filter(id=proyecto_id, eliminado=False).first()
-            if not proyecto_feriado:
-                messages.error(request, 'Debe seleccionar un proyecto para feriados específicos.')
+        if tipo == 'nacional':
+            if DiaFeriado.objects.filter(fecha=fecha_obj, tipo='nacional', activo=True).exists():
+                messages.warning(request, f'Ya existe un feriado nacional para el {fecha_obj.strftime("%d/%m/%Y")}.')
                 return redirect('admin_panel:configuracion')
+            
+            DiaFeriado.objects.create(
+                fecha=fecha_obj,
+                descripcion=descripcion,
+                tipo='nacional',
+                activo=True
+            )
+            messages.success(request, f'Feriado nacional "{descripcion}" agregado para el {fecha_obj.strftime("%d/%m/%Y")}.')
+        else:
+            from apps.proyectos.models import Proyecto
+            proyecto_ids = request.POST.getlist('proyecto_ids')
+            
+            if not proyecto_ids:
+                messages.error(request, 'Debe seleccionar al menos un proyecto.')
+                return redirect('admin_panel:configuracion')
+            
+            creados = 0
+            duplicados = 0
+            for pid in proyecto_ids:
+                proyecto = Proyecto.objects.filter(id=pid, eliminado=False).first()
+                if not proyecto:
+                    continue
+                if DiaFeriado.objects.filter(fecha=fecha_obj, tipo='proyecto', proyecto=proyecto, activo=True).exists():
+                    duplicados += 1
+                    continue
+                DiaFeriado.objects.create(
+                    fecha=fecha_obj,
+                    descripcion=descripcion,
+                    tipo='proyecto',
+                    proyecto=proyecto,
+                    activo=True
+                )
+                creados += 1
+            
+            msg = f'Feriado "{descripcion}" agregado para {creados} proyecto(s).'
+            if duplicados > 0:
+                msg += f' {duplicados} ya existían.'
+            messages.success(request, msg)
         
-        DiaFeriado.objects.create(
-            fecha=fecha_obj,
-            descripcion=descripcion,
-            tipo=tipo,
-            proyecto=proyecto_feriado,
-            activo=True
-        )
-        messages.success(request, f'Feriado "{descripcion}" agregado para el {fecha_obj.strftime("%d/%m/%Y")}.')
         return redirect('admin_panel:configuracion')
-    
+
     def _eliminar_feriado(self, request):
-        feriado_id = request.POST.get('feriado_id')
-        try:
-            feriado = DiaFeriado.objects.get(id=feriado_id)
-            desc = feriado.descripcion
-            feriado.delete()
-            messages.success(request, f'Feriado "{desc}" eliminado.')
-        except DiaFeriado.DoesNotExist:
+        feriado_ids = request.POST.get('feriado_ids', '')
+        ids = [int(x) for x in feriado_ids.split(',') if x.strip()]
+        if ids:
+            count = DiaFeriado.objects.filter(id__in=ids).count()
+            DiaFeriado.objects.filter(id__in=ids).delete()
+            messages.success(request, f'Feriado eliminado ({count} registros).')
+        else:
             messages.error(request, 'Feriado no encontrado.')
         return redirect('admin_panel:configuracion')
     
     def _toggle_feriado(self, request):
-        feriado_id = request.POST.get('feriado_id')
-        try:
-            feriado = DiaFeriado.objects.get(id=feriado_id)
-            feriado.activo = not feriado.activo
-            feriado.save()
-            estado = 'activado' if feriado.activo else 'desactivado'
-            messages.success(request, f'Feriado "{feriado.descripcion}" {estado}.')
-        except DiaFeriado.DoesNotExist:
-            messages.error(request, 'Feriado no encontrado.')
+        feriado_ids = request.POST.get('feriado_ids', '')
+        ids = [int(x) for x in feriado_ids.split(',') if x.strip()]
+        if ids:
+            feriados = DiaFeriado.objects.filter(id__in=ids)
+            if feriados.exists():
+                nuevo_estado = not feriados.first().activo
+                feriados.update(activo=nuevo_estado)
+                estado = 'activado' if nuevo_estado else 'desactivado'
+                messages.success(request, f'Feriado {estado} ({len(ids)} registros).')
+            else:
+                messages.error(request, 'Feriado no encontrado.')
         return redirect('admin_panel:configuracion')
     
     def _actualizar_tipo_cambio(self, request):

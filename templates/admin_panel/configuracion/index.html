@@ -196,7 +196,9 @@
                             {% if feriado.tipo == 'nacional' %}
                             <span class="badge-nacional">Nacional</span>
                             {% else %}
-                            <span style="background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">{{ feriado.proyecto.nombre|default:"Sin proyecto" }}</span>
+                            {% for proy in feriado.proyectos %}
+                            <span style="background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; margin: 2px; display: inline-block;">{{ proy }}</span>
+                            {% endfor %}
                             {% endif %}
                         </td>
                         <td class="text-center">
@@ -206,7 +208,7 @@
                             <form method="post" style="display: inline;">
                                 {% csrf_token %}
                                 <input type="hidden" name="accion" value="toggle_feriado">
-                                <input type="hidden" name="feriado_id" value="{{ feriado.id }}">
+                                <input type="hidden" name="feriado_ids" value="{{ feriado.ids|join:',' }}">
                                 <button type="submit" class="btn-icon btn-icon-warning" title="Desactivar">
                                     <span class="material-symbols-outlined" style="font-size: 16px;">visibility_off</span>
                                 </button>
@@ -214,7 +216,7 @@
                             <form method="post" style="display: inline;" onsubmit="return confirm('¿Eliminar este feriado?');">
                                 {% csrf_token %}
                                 <input type="hidden" name="accion" value="eliminar_feriado">
-                                <input type="hidden" name="feriado_id" value="{{ feriado.id }}">
+                                <input type="hidden" name="feriado_ids" value="{{ feriado.ids|join:',' }}">
                                 <button type="submit" class="btn-icon btn-icon-danger" title="Eliminar">
                                     <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
                                 </button>
@@ -236,7 +238,9 @@
                             {% if feriado.tipo == 'nacional' %}
                             <span class="badge-nacional">Nacional</span>
                             {% else %}
-                            <span style="background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">{{ feriado.proyecto.nombre|default:"Sin proyecto" }}</span>
+                            {% for proy in feriado.proyectos %}
+                            <span style="background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; margin: 2px; display: inline-block;">{{ proy }}</span>
+                            {% endfor %}
                             {% endif %}
                         </td>
                         <td class="text-center">
@@ -246,7 +250,7 @@
                             <form method="post" style="display: inline;">
                                 {% csrf_token %}
                                 <input type="hidden" name="accion" value="toggle_feriado">
-                                <input type="hidden" name="feriado_id" value="{{ feriado.id }}">
+                                <input type="hidden" name="feriado_ids" value="{{ feriado.ids|join:',' }}">
                                 <button type="submit" class="btn-icon" style="background: #d1fae5; color: #065f46;" title="Activar">
                                     <span class="material-symbols-outlined" style="font-size: 16px;">visibility</span>
                                 </button>
@@ -254,7 +258,7 @@
                             <form method="post" style="display: inline;" onsubmit="return confirm('¿Eliminar este feriado?');">
                                 {% csrf_token %}
                                 <input type="hidden" name="accion" value="eliminar_feriado">
-                                <input type="hidden" name="feriado_id" value="{{ feriado.id }}">
+                                <input type="hidden" name="feriado_ids" value="{{ feriado.ids|join:',' }}">
                                 <button type="submit" class="btn-icon btn-icon-danger" title="Eliminar">
                                     <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
                                 </button>
@@ -284,14 +288,18 @@
                         <option value="proyecto">Específico de Proyecto</option>
                     </select>
                 </div>
-                <div class="form-group" id="grupoProyectoFeriado" style="display: none; min-width: 200px;">
-                    <label>Proyecto *</label>
-                    <select name="proyecto_id" class="input-field" id="selectProyectoFeriado">
-                        <option value="">Seleccionar proyecto...</option>
+                <div class="form-group" id="grupoProyectoFeriado" style="display: none; min-width: 300px;">
+                    <label>Proyectos *</label>
+                    <div style="max-height: 160px; overflow-y: auto; border: 1px solid #d1d5db; border-radius: 8px; padding: 8px; background: white;">
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: #3b82f6; border-bottom: 1px solid #f3f4f6; margin-bottom: 4px;">
+                            <input type="checkbox" id="checkTodosProyectos" onclick="toggleTodosProyectos(this)"> Seleccionar todos
+                        </label>
                         {% for proyecto in proyectos %}
-                        <option value="{{ proyecto.id }}">{{ proyecto.nombre }}</option>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 4px 8px; cursor: pointer; font-size: 13px; border-radius: 4px;" onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" name="proyecto_ids" value="{{ proyecto.id }}" class="checkbox-proyecto"> {{ proyecto.nombre }}
+                        </label>
                         {% endfor %}
-                    </select>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary">
                     <span class="material-symbols-outlined">add</span> Agregar
@@ -452,15 +460,19 @@ document.addEventListener('DOMContentLoaded', function() {
 function toggleProyectoFeriado() {
     var tipo = document.getElementById('tipoFeriado').value;
     var grupo = document.getElementById('grupoProyectoFeriado');
-    var select = document.getElementById('selectProyectoFeriado');
     if (tipo === 'proyecto') {
         grupo.style.display = 'block';
-        select.setAttribute('required', 'required');
     } else {
         grupo.style.display = 'none';
-        select.removeAttribute('required');
-        select.value = '';
+        var checks = document.querySelectorAll('.checkbox-proyecto');
+        checks.forEach(function(c) { c.checked = false; });
+        document.getElementById('checkTodosProyectos').checked = false;
     }
+}
+
+function toggleTodosProyectos(master) {
+    var checks = document.querySelectorAll('.checkbox-proyecto');
+    checks.forEach(function(c) { c.checked = master.checked; });
 }
 
 function cambiarTab(tab) {
