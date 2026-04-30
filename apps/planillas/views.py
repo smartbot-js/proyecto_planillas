@@ -176,9 +176,9 @@ class PlanillaCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
             dias_desde_jueves += 7
         ultimo_jueves = hoy - timedelta(days=dias_desde_jueves)
         
-        # Período sugerido: jueves a martes (13 días)
+        # Período sugerido: jueves a miércoles (14 días)
         periodo_inicio_sugerido = ultimo_jueves - timedelta(days=14)
-        periodo_fin_sugerido = periodo_inicio_sugerido + timedelta(days=12)
+        periodo_fin_sugerido = periodo_inicio_sugerido + timedelta(days=13)
         
         # Tipo de cambio actual
         tipo_cambio = TipoCambio.get_actual()

@@ -251,15 +251,16 @@ def validar_periodo_planilla(periodo_inicio, periodo_fin):
         dia_nombre = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'][periodo_inicio.weekday()]
         advertencias.append(f"El período no inicia en jueves (inicia en {dia_nombre})")
     
-    # Verificar si termina en martes (weekday 1)
-    termina_martes = periodo_fin.weekday() == 1
+    # Verificar si termina en miErcoles (weekday 2)
+    termina_martes = periodo_fin.weekday() == 2
     if not termina_martes:
         dia_nombre = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'][periodo_fin.weekday()]
-        advertencias.append(f"El período no termina en martes (termina en {dia_nombre})")
+        advertencias.append(f"El período no termina en miércoles (termina en {dia_nombre})")
+
     
-    # Verificar que sea una catorcena (13 días: jueves a martes)
-    if dias_periodo != 13 and inicia_jueves and termina_martes:
-        advertencias.append(f"El período tiene {dias_periodo} días (se recomienda 13 días para catorcena)")
+    # Verificar que sea una catorcena (14 días: jueves a miercoles)
+    if dias_periodo != 14 and inicia_jueves and termina_martes:
+        advertencias.append(f"El período tiene {dias_periodo} días (se recomienda 14 días para catorcena)")
     
     # Verificar que periodo_fin sea posterior a periodo_inicio
     valido = periodo_fin > periodo_inicio
