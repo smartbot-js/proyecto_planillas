@@ -192,7 +192,13 @@
                     <tr>
                         <td><strong>{{ feriado.fecha|date:"d/m/Y" }}</strong></td>
                         <td>{{ feriado.descripcion }}</td>
-                        <td><span class="badge-nacional">{{ feriado.get_tipo_display }}</span></td>
+                        <td>
+                            {% if feriado.tipo == 'nacional' %}
+                            <span class="badge-nacional">Nacional</span>
+                            {% else %}
+                            <span style="background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">{{ feriado.proyecto.nombre|default:"Sin proyecto" }}</span>
+                            {% endif %}
+                        </td>
                         <td class="text-center">
                             <span class="badge-activo">Activo</span>
                         </td>
@@ -226,7 +232,13 @@
                     <tr style="background: #fef2f2; opacity: 0.7;">
                         <td><strong>{{ feriado.fecha|date:"d/m/Y" }}</strong></td>
                         <td><s>{{ feriado.descripcion }}</s></td>
-                        <td><span class="badge-nacional">{{ feriado.get_tipo_display }}</span></td>
+                        <td>
+                            {% if feriado.tipo == 'nacional' %}
+                            <span class="badge-nacional">Nacional</span>
+                            {% else %}
+                            <span style="background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">{{ feriado.proyecto.nombre|default:"Sin proyecto" }}</span>
+                            {% endif %}
+                        </td>
                         <td class="text-center">
                             <span class="badge-inactivo">Inactivo</span>
                         </td>
@@ -256,20 +268,29 @@
         <form method="post">
             {% csrf_token %}
             <input type="hidden" name="accion" value="agregar_feriado">
-            <div class="inline-form">
+            <div class="inline-form" style="flex-wrap: wrap;">
                 <div class="form-group">
                     <label>Fecha *</label>
                     <input type="date" name="fecha" class="input-field" required>
                 </div>
-                <div class="form-group" style="flex: 1;">
+                <div class="form-group" style="flex: 1; min-width: 200px;">
                     <label>Descripción *</label>
                     <input type="text" name="descripcion" class="input-field" placeholder="Ej: Día de la Independencia" required>
                 </div>
                 <div class="form-group">
                     <label>Tipo</label>
-                    <select name="tipo" class="input-field">
-                        <option value="nacional">Nacional</option>
+                    <select name="tipo" class="input-field" id="tipoFeriado" onchange="toggleProyectoFeriado()">
+                        <option value="nacional">Nacional (todos los proyectos)</option>
                         <option value="proyecto">Específico de Proyecto</option>
+                    </select>
+                </div>
+                <div class="form-group" id="grupoProyectoFeriado" style="display: none; min-width: 200px;">
+                    <label>Proyecto *</label>
+                    <select name="proyecto_id" class="input-field" id="selectProyectoFeriado">
+                        <option value="">Seleccionar proyecto...</option>
+                        {% for proyecto in proyectos %}
+                        <option value="{{ proyecto.id }}">{{ proyecto.nombre }}</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <button type="submit" class="btn btn-primary">
@@ -427,6 +448,20 @@ document.addEventListener('DOMContentLoaded', function() {
     var hash = window.location.hash.replace('#', '');
     if (hash) cambiarTab(hash);
 });
+
+function toggleProyectoFeriado() {
+    var tipo = document.getElementById('tipoFeriado').value;
+    var grupo = document.getElementById('grupoProyectoFeriado');
+    var select = document.getElementById('selectProyectoFeriado');
+    if (tipo === 'proyecto') {
+        grupo.style.display = 'block';
+        select.setAttribute('required', 'required');
+    } else {
+        grupo.style.display = 'none';
+        select.removeAttribute('required');
+        select.value = '';
+    }
+}
 
 function cambiarTab(tab) {
     // Ocultar todos

@@ -13,6 +13,7 @@ import json
 
 from apps.planillas.models import DiaFeriado, TipoCambio
 from apps.core.puestos_data import PUESTOS_DATA
+from apps.proyectos.models import Proyecto
 
 
 class ConfiguracionView(LoginRequiredMixin, View):
@@ -47,6 +48,9 @@ class ConfiguracionView(LoginRequiredMixin, View):
         # Puestos y áreas
         puestos_data = PUESTOS_DATA
         
+        # Proyectos para feriados específicos
+        proyectos = Proyecto.objects.filter(eliminado=False).order_by('nombre')
+        
         context = {
             'feriados': feriados,
             'feriados_inactivos': feriados_inactivos,
@@ -54,6 +58,7 @@ class ConfiguracionView(LoginRequiredMixin, View):
             'historial_tc': historial_tc,
             'puestos_data': puestos_data,
             'anio_actual': anio_actual,
+            'proyectos': proyectos,
         }
         return render(request, self.template_name, context)
     
@@ -96,10 +101,21 @@ class ConfiguracionView(LoginRequiredMixin, View):
             messages.warning(request, f'Ya existe un feriado activo para el {fecha_obj.strftime("%d/%m/%Y")}.')
             return redirect('admin_panel:configuracion')
         
+        proyecto_feriado = None
+        if tipo == 'proyecto':
+            proyecto_id = request.POST.get('proyecto_id')
+            if proyecto_id:
+                from apps.proyectos.models import Proyecto
+                proyecto_feriado = Proyecto.objects.filter(id=proyecto_id, eliminado=False).first()
+            if not proyecto_feriado:
+                messages.error(request, 'Debe seleccionar un proyecto para feriados específicos.')
+                return redirect('admin_panel:configuracion')
+        
         DiaFeriado.objects.create(
             fecha=fecha_obj,
             descripcion=descripcion,
             tipo=tipo,
+            proyecto=proyecto_feriado,
             activo=True
         )
         messages.success(request, f'Feriado "{descripcion}" agregado para el {fecha_obj.strftime("%d/%m/%Y")}.')
