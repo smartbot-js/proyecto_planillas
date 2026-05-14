@@ -1633,7 +1633,18 @@ class PlanillaRechazarView(LoginRequiredMixin, View):
         planilla.observaciones = f'[RECHAZADA por {request.user.nombre_completo}] {motivo}'
         planilla.save()
         
-        messages.warning(request, f'⚠️ Planilla {planilla.codigo} rechazada')
+        # 1. Revertimos el estado del avalúo a 'pendiente' y limpiamos firmas
+        for detalle in planilla.detalles.all():
+            avaluo = detalle.avaluo
+            avaluo.estado = 'pendiente'
+            avaluo.aprobado_gerente_por = None
+            avaluo.fecha_aprobacion_gerente = None
+            avaluo.save()
+        
+        # 2. Eliminamos los detalles para desenlazar los avalúos de esta planilla anulada
+        planilla.detalles.all().delete()
+
+        messages.warning(request, f'⚠️ Planilla {planilla.codigo} rechazada y sus avalúos fueron liberados.')
         return redirect('planillas_contratistas_detalle', pk=pk)
         
 class PlanillaExportarExcelView(LoginRequiredMixin, View):
