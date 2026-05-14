@@ -27,6 +27,7 @@ class RolForm(forms.ModelForm):
     # Planillas
     planillas_ver = forms.BooleanField(required=False, label='Ver planillas')
     planillas_crear = forms.BooleanField(required=False, label='Crear planillas')
+    planillas_eliminar = forms.BooleanField(required=False, label='Eliminar planillas')
     planillas_aprobar_gerente = forms.BooleanField(required=False, label='Aprobar (Gerente)')
     planillas_aprobar_contador = forms.BooleanField(required=False, label='Aprobar (Contador)')
     
@@ -83,6 +84,7 @@ class RolForm(forms.ModelForm):
             # Planillas
             self.fields['planillas_ver'].initial = permisos.get('planillas', {}).get('ver', False)
             self.fields['planillas_crear'].initial = permisos.get('planillas', {}).get('crear', False)
+            self.fields['planillas_eliminar'].initial = permisos.get('planillas', {}).get('eliminar', False)
             self.fields['planillas_aprobar_gerente'].initial = permisos.get('planillas', {}).get('aprobar_gerente', False)
             self.fields['planillas_aprobar_contador'].initial = permisos.get('planillas', {}).get('aprobar_contador', False)
             
@@ -125,6 +127,7 @@ class RolForm(forms.ModelForm):
             'planillas': {
                 'ver': self.cleaned_data.get('planillas_ver', False),
                 'crear': self.cleaned_data.get('planillas_crear', False),
+                'eliminar': self.cleaned_data.get('planillas_eliminar', False),
                 'aprobar_gerente': self.cleaned_data.get('planillas_aprobar_gerente', False),
                 'aprobar_contador': self.cleaned_data.get('planillas_aprobar_contador', False),
             },

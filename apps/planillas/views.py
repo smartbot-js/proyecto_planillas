@@ -955,7 +955,7 @@ class PlanillaEliminarView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 return redirect('planilla_detalle', pk=pk)
             
             # Verificar permisos
-            if not (request.user.is_superuser or request.user == planilla.generada_por):
+            if not (request.user.is_superuser or request.user == planilla.generada_por or request.user.tiene_permiso('planillas', 'eliminar')):
                 messages.error(request, 'No tienes permisos para eliminar esta planilla')
                 return redirect('planilla_detalle', pk=pk)
             
