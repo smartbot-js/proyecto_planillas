@@ -432,13 +432,17 @@ class Asistencia(models.Model):
         # CÁLCULO DE HORAS NORMALES Y EXTRAS
         # ============================================================
         jornada_normal_decimal = Decimal(str(jornada_normal))
+        descanso_decimal = Decimal(str(descanso_horas))
         
-        if total_horas <= jornada_normal_decimal:
-            self.horas_normales = total_horas
+        # Restar descanso de total_horas para comparar correctamente
+        horas_trabajadas_netas = total_horas - descanso_decimal
+        
+        if horas_trabajadas_netas <= jornada_normal_decimal:
+            self.horas_normales = horas_trabajadas_netas
             self.horas_extras = Decimal('0.00')
         else:
             self.horas_normales = jornada_normal_decimal
-            self.horas_extras = total_horas - jornada_normal_decimal
+            self.horas_extras = horas_trabajadas_netas - jornada_normal_decimal
         
         # ============================================================
         # CÁLCULO DE HORAS NOCTURNAS (18:00 - 06:00)
