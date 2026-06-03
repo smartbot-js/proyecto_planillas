@@ -1352,11 +1352,20 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
                     )
             
             if asistencia.estado == 'cerrado':
-                logger_checkinout.error(f"CHECK-OUT ERROR | asistencia_id: {asistencia.id} | trabajador_id: {asistencia.trabajador.id} | ERROR: Asistencia ya está cerrada")
-                return Response(
-                    {'error': 'Esta asistencia ya está cerrada'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                # Si la asistencia está cerrada, buscar la abierta del mismo trabajador
+                logger.warning(f"CHECK-OUT WARNING | asistencia_id: {asistencia.id} está cerrada, buscando abierta del trabajador {asistencia.trabajador.id}")
+                asistencia = Asistencia.objects.filter(
+                    trabajador=asistencia.trabajador,
+                    estado='abierto',
+                    eliminado=False
+                ).order_by('-fecha').first()
+                
+                if not asistencia:
+                    logger.error(f"CHECK-OUT ERROR | trabajador_id: {asistencia.trabajador.id} | ERROR: No hay asistencia abierta")
+                    return Response(
+                        {'error': 'No existe registro de entrada abierto para este trabajador'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
             
             hora_salida = data.get('hora_salida') or timezone.localtime().time()
             
