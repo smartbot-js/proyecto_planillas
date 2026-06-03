@@ -244,11 +244,22 @@ LOGGING = {
             'formatter': 'detallado',
         },
     },
+    'archivo_checkinout': {
+        'level': 'INFO',
+        'class': 'logging.FileHandler',
+        'filename': '/var/log/quadycons/checkinout.log',
+        'formatter': 'detallado',
+    },
     'loggers': {
         'registro_asistencias': {
             'handlers': ['archivo_errores'],
             'level': 'ERROR',
             'propagate': True,
+        },
+        'asistencias.checkinout': {
+            'handlers': ['archivo_checkinout'],
+            'level': 'INFO',
+            'propagate': False,
         },
     },
 }

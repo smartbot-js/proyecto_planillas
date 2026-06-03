@@ -47,6 +47,7 @@ import re
 
 import logging
 logger = logging.getLogger('registro_asistencias')
+logger_checkinout = logging.getLogger('asistencias.checkinout')
 
 # ============================================
 # VISTAS WEB
@@ -1142,6 +1143,8 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
         Endpoint para marcar entrada (check-in)
         """
         print(f"DATA CHECK-IN: {request.data}")
+        logger.info(f"CHECK-IN REQUEST | trabajador_id: {request.data.get('trabajador_id')} | cedula: {request.data.get('trabajador_cedula')} | proyecto_id: {request.data.get('proyecto_id')} | datos: {request.data}")
+
         serializer = self.get_serializer(data=request.data)
         
         if not serializer.is_valid():
@@ -1261,6 +1264,8 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
             )
             
             # TODO: Validar geolocalización aquí si es necesario
+             # Registrar éxito
+            logger.info(f"CHECK-IN EXITOSO | asistencia_id: {asistencia.id} | trabajador_id: {trabajador.id} | trabajador: {trabajador.nombre_completo}")
             
             return Response(
                 {
@@ -1294,6 +1299,8 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
         Endpoint para marcar salida (check-out)
         """
         print(f"BODY CHECK-OUT: {request.data}")
+        logger.info(f"CHECK-OUT REQUEST | asistencia_id: {request.data.get('asistencia_id')} | trabajador_id: {request.data.get('trabajador_id')} | cedula: {request.data.get('trabajador_cedula')} | datos: {request.data}")
+
         serializer = self.get_serializer(data=request.data)
         
         if not serializer.is_valid():
@@ -1345,6 +1352,7 @@ class AsistenciaViewSet(viewsets.ModelViewSet):
                     )
             
             if asistencia.estado == 'cerrado':
+                logger.error(f"CHECK-OUT ERROR | asistencia_id: {asistencia.id} | trabajador_id: {asistencia.trabajador.id} | ERROR: Asistencia ya está cerrada")
                 return Response(
                     {'error': 'Esta asistencia ya está cerrada'},
                     status=status.HTTP_400_BAD_REQUEST
