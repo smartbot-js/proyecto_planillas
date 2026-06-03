@@ -243,12 +243,12 @@ LOGGING = {
             'filename': os.path.join(BASE_DIR, 'errores_serializer.log'), 
             'formatter': 'detallado',
         },
-    },
-    'archivo_checkinout': {
-        'level': 'INFO',
-        'class': 'logging.FileHandler',
-        'filename': '/var/log/quadycons/checkinout.log',
-        'formatter': 'detallado',
+        'archivo_checkinout': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': '/var/log/quadycons/checkinout.log',
+            'formatter': 'detallado',
+        },
     },
     'loggers': {
         'registro_asistencias': {
